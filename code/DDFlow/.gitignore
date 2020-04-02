@@ -1,0 +1,10 @@
+# python cache
+*.pyc
+
+
+untrained_images/
+testing/
+test_images/
+smaller_untrained_images/
+images/
+ArenaPeds/
