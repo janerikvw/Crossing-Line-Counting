@@ -1,9 +1,0 @@
-[submodule "code/CSRNet-pytorch"]
-	path = code/CSRNet-pytorch
-	url = https://github.com/leeyeehoo/CSRNet-pytorch.git
-[submodule "code/DDFlow"]
-	path = code/DDFlow
-	url = https://github.com/ppliuboy/DDFlow.git
-[submodule "code/video-to-traffic-flow-information"]
-	path = code/video-to-traffic-flow-information
-	url = https://github.com/maartensukel/video-to-traffic-flow-information.git
