@@ -14,3 +14,6 @@ Video: http://visal.cs.cityu.edu.hk/static/downloads/ucsdpeds_vidf.zip http://vi
 https://github.com/sweetyy83/Lstn_fdst_dataset
 
 https://drive.google.com/open?id=19c2X529VTNjl3YL1EYweBg60G70G2D-w
+
+## ShanghaiTech part A and B
+https://drive.google.com/open?id=16dhJn7k4FWVwByRsQAEpl9lwjuV03jVI
