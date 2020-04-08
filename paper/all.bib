@@ -1,0 +1,166 @@
+
+@article{zheng_cross-line_2019,
+	title = {Cross-Line Pedestrian Counting Based on Spatially-Consistent Two-Stage Local Crowd Density Estimation and Accumulation},
+	volume = {29},
+	issn = {1558-2205},
+	doi = {10.1109/TCSVT.2018.2807806},
+	abstract = {This paper proposes a scalable approach for counting pedestrians crossing a virtual line when the crowd is highly dynamic and possibly extremely dense. The approach mainly consists of two parts: local crowd density estimation and pedestrian counting based on accumulating local densities across the line. To obtain a fine estimation of local crowd densities, we divide the neighborhood at the line into a number of blocks. We enforce spatial consistency between local counts in the blocks and those in the enclosing regions to guarantee consistent estimation of local crowd densities. For scalability to various density levels in crowd density estimation, we propose a two-stage strategy: pre-classification of density levels and subsequent regression with overlapped operational ranges. To count pedestrians crossing the virtual line, we accumulate the crowd densities across the line according to the locally estimated velocities. Extensive experimental results demonstrate the effectiveness of the proposed approach and its scalability to crowdedness.},
+	pages = {787--799},
+	number = {3},
+	journaltitle = {{IEEE} Transactions on Circuits and Systems for Video Technology},
+	author = {Zheng, Huicheng and Lin, Zijian and Cen, Jiepeng and Wu, Zeyu and Zhao, Yadan},
+	date = {2019-03},
+	keywords = {Feature extraction, image sequences, regression analysis, Cameras, consistent estimation, cross-line counting, cross-line pedestrian counting, crowd density estimation, density levels, Estimation, fine estimation, Head, image motion analysis, image segmentation, local counts, local crowd densities, local crowd density estimation, local densities, locally estimated velocities, object detection, Pedestrian counting, pedestrians, Reliability, Scalability, spatial consistency, spatially-consistent two-stage, Support vector machines, traffic engineering computing, virtual line},
+	file = {IEEE Xplore Full Text PDF:/home/janerik/Zotero/storage/N6TEYV4M/Zheng et al. - 2019 - Cross-Line Pedestrian Counting Based on Spatially-.pdf:application/pdf;IEEE Xplore Abstract Record:/home/janerik/Zotero/storage/Y44HJMRQ/8295124.html:text/html}
+}
+
+@article{ma_counting_2016,
+	title = {Counting People Crossing a Line Using Integer Programming and Local Features},
+	volume = {26},
+	issn = {1558-2205},
+	doi = {10.1109/TCSVT.2015.2489418},
+	abstract = {We propose an integer programming method for estimating the instantaneous count of pedestrians crossing a line of interest ({LOI}) in a video sequence. Through a line sampling process, the video is first converted into a temporal slice image. Next, the number of people is estimated in a set of overlapping sliding windows on the temporal slice image, using a regression function that maps from local features to a count. Given that the count in a sliding window is the sum of the instantaneous counts in the corresponding time interval, an integer programming method is proposed to recover the number of pedestrians crossing the {LOI} in each frame. Integrating over a specific time interval yields the cumulative count of pedestrians crossing the line. Compared with current methods for line counting, our proposed approach achieves state-of-the-art performance on several challenging crowd video data sets.},
+	pages = {1955--1969},
+	number = {10},
+	journaltitle = {{IEEE} Transactions on Circuits and Systems for Video Technology},
+	author = {Ma, Zheng and Chan, Antoni B.},
+	date = {2016-10},
+	keywords = {Feature extraction, image sequences, Kernel, line of interest, regression analysis, Cameras, Crowd counting, Histograms, Image edge detection, Image segmentation, integer programming, integer programming method, line sampling process, Linear programming, local feature, local features, {LOI}, regression function, temporal slice image, video sequence},
+	file = {IEEE Xplore Full Text PDF:/home/janerik/Zotero/storage/HS6ABMDT/Ma and Chan - 2016 - Counting People Crossing a Line Using Integer Prog.pdf:application/pdf;IEEE Xplore Abstract Record:/home/janerik/Zotero/storage/HS9AZF7L/7295569.html:text/html}
+}
+
+@article{ilg_flownet_2016,
+	title = {{FlowNet} 2.0: Evolution of Optical Flow Estimation with Deep Networks},
+	url = {http://arxiv.org/abs/1612.01925},
+	shorttitle = {{FlowNet} 2.0},
+	abstract = {The {FlowNet} demonstrated that optical ﬂow estimation can be cast as a learning problem. However, the state of the art with regard to the quality of the ﬂow has still been deﬁned by traditional methods. Particularly on small displacements and real-world data, {FlowNet} cannot compete with variational methods. In this paper, we advance the concept of end-to-end learning of optical ﬂow and make it work really well. The large improvements in quality and speed are caused by three major contributions: ﬁrst, we focus on the training data and show that the schedule of presenting data during training is very important. Second, we develop a stacked architecture that includes warping of the second image with intermediate optical ﬂow. Third, we elaborate on small displacements by introducing a subnetwork specializing on small motions. {FlowNet} 2.0 is only marginally slower than the original {FlowNet} but decreases the estimation error by more than 50\%. It performs on par with state-of-the-art methods, while running at interactive frame rates. Moreover, we present faster variants that allow optical ﬂow computation at up to 140fps with accuracy matching the original {FlowNet}.},
+	journaltitle = {{arXiv}:1612.01925 [cs]},
+	author = {Ilg, Eddy and Mayer, Nikolaus and Saikia, Tonmoy and Keuper, Margret and Dosovitskiy, Alexey and Brox, Thomas},
+	urldate = {2020-02-07},
+	date = {2016-12-06},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1612.01925},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {Ilg et al. - 2016 - FlowNet 2.0 Evolution of Optical Flow Estimation .pdf:/home/janerik/Zotero/storage/DM8D8K7P/Ilg et al. - 2016 - FlowNet 2.0 Evolution of Optical Flow Estimation .pdf:application/pdf}
+}
+
+@incollection{leibe_crossing-line_2016,
+	location = {Cham},
+	title = {Crossing-Line Crowd Counting with Two-Phase Deep Neural Networks},
+	volume = {9912},
+	isbn = {978-3-319-46483-1 978-3-319-46484-8},
+	url = {http://link.springer.com/10.1007/978-3-319-46484-8_43},
+	abstract = {In this paper, we propose a deep Convolutional Neural Network ({CNN}) for counting the number of people across a line-of-interest ({LOI}) in surveillance videos. It is a challenging problem and has many potential applications. Observing the limitations of temporal slices used by state-of-the-art {LOI} crowd counting methods, our proposed {CNN} directly estimates the crowd counts with pairs of video frames as inputs and is trained with pixel-level supervision maps. Such rich supervision information helps our {CNN} learn more discriminative feature representations. A two-phase training scheme is adopted, which decomposes the original counting problem into two easier sub-problems, estimating crowd density map and estimating crowd velocity map. Learning to solve the sub-problems provides a good initial point for our {CNN} model, which is then ﬁne-tuned to solve the original counting problem. A new dataset with pedestrian trajectory annotations is introduced for evaluating {LOI} crowd counting methods and has more annotations than any existing one. Our extensive experiments show that our proposed method is robust to variations of crowd density, crowd velocity, and directions of the {LOI}, and outperforms state-of-the-art {LOI} counting methods.},
+	pages = {712--726},
+	booktitle = {Computer Vision – {ECCV} 2016},
+	publisher = {Springer International Publishing},
+	author = {Zhao, Zhuoyi and Li, Hongsheng and Zhao, Rui and Wang, Xiaogang},
+	editor = {Leibe, Bastian and Matas, Jiri and Sebe, Nicu and Welling, Max},
+	urldate = {2020-02-18},
+	date = {2016},
+	langid = {english},
+	doi = {10.1007/978-3-319-46484-8_43},
+	file = {Zhao et al. - 2016 - Crossing-Line Crowd Counting with Two-Phase Deep N.pdf:/home/janerik/Zotero/storage/VECR5FSN/Zhao et al. - 2016 - Crossing-Line Crowd Counting with Two-Phase Deep N.pdf:application/pdf}
+}
+
+@article{liu_selflow_2019,
+	title = {{SelFlow}: Self-Supervised Learning of Optical Flow},
+	url = {http://arxiv.org/abs/1904.09117},
+	shorttitle = {{SelFlow}},
+	abstract = {We present a self-supervised learning approach for optical ﬂow. Our method distills reliable ﬂow estimations from non-occluded pixels, and uses these predictions as ground truth to learn optical ﬂow for hallucinated occlusions. We further design a simple {CNN} to utilize temporal information from multiple frames for better ﬂow estimation. These two principles lead to an approach that yields the best performance for unsupervised optical ﬂow learning on the challenging benchmarks including {MPI} Sintel, {KITTI} 2012 and 2015. More notably, our self-supervised pre-trained model provides an excellent initialization for supervised ﬁne-tuning. Our ﬁne-tuned models achieve stateof-the-art results on all three datasets. At the time of writing, we achieve {EPE}=4.26 on the Sintel benchmark, outperforming all submitted methods.},
+	journaltitle = {{arXiv}:1904.09117 [cs]},
+	author = {Liu, Pengpeng and Lyu, Michael and King, Irwin and Xu, Jia},
+	urldate = {2020-02-25},
+	date = {2019-04-19},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1904.09117},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
+	file = {Liu et al. - 2019 - SelFlow Self-Supervised Learning of Optical Flow.pdf:/home/janerik/Zotero/storage/6RZY8NZA/Liu et al. - 2019 - SelFlow Self-Supervised Learning of Optical Flow.pdf:application/pdf}
+}
+
+@article{fischer_flownet_2015,
+	title = {{FlowNet}: Learning Optical Flow with Convolutional Networks},
+	url = {http://arxiv.org/abs/1504.06852},
+	shorttitle = {{FlowNet}},
+	abstract = {Convolutional neural networks ({CNNs}) have recently been very successful in a variety of computer vision tasks, especially on those linked to recognition. Optical flow estimation has not been among the tasks where {CNNs} were successful. In this paper we construct appropriate {CNNs} which are capable of solving the optical flow estimation problem as a supervised learning task. We propose and compare two architectures: a generic architecture and another one including a layer that correlates feature vectors at different image locations. Since existing ground truth data sets are not sufficiently large to train a {CNN}, we generate a synthetic Flying Chairs dataset. We show that networks trained on this unrealistic data still generalize very well to existing datasets such as Sintel and {KITTI}, achieving competitive accuracy at frame rates of 5 to 10 fps.},
+	journaltitle = {{arXiv}:1504.06852 [cs]},
+	author = {Fischer, Philipp and Dosovitskiy, Alexey and Ilg, Eddy and Häusser, Philip and Hazırbaş, Caner and Golkov, Vladimir and van der Smagt, Patrick and Cremers, Daniel and Brox, Thomas},
+	urldate = {2020-02-25},
+	date = {2015-05-04},
+	eprinttype = {arxiv},
+	eprint = {1504.06852},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, I.2.6, I.4.8},
+	file = {arXiv Fulltext PDF:/home/janerik/Zotero/storage/JHZ27RCX/Fischer et al. - 2015 - FlowNet Learning Optical Flow with Convolutional .pdf:application/pdf;arXiv.org Snapshot:/home/janerik/Zotero/storage/3HQZZCTU/1504.html:text/html}
+}
+
+@article{cao_large_2015,
+	title = {Large scale crowd analysis based on convolutional neural network},
+	volume = {48},
+	issn = {00313203},
+	url = {https://linkinghub.elsevier.com/retrieve/pii/S0031320315001259},
+	doi = {10.1016/j.patcog.2015.04.001},
+	abstract = {Nowadays crowd surveillance is an active area of research. Crowd surveillance is always affected by various conditions, such as different scenes, weather, or density of crowd, which restricts the real application. This paper proposes a convolutional neural network ({CNN}) based method to monitor the number of crowd ﬂow, such as the number of entering or leaving people in high density crowd. It uses an indirect strategy of combining classiﬁcation {CNN} with regression {CNN}, which is more robust than the direct way. A large enough database is built with lots of real videos of public gates, and plenty of experiments show that the proposed method performs well under various weather conditions no matter either in daytime or at night.},
+	pages = {3016--3024},
+	number = {10},
+	journaltitle = {Pattern Recognition},
+	shortjournal = {Pattern Recognition},
+	author = {Cao, Lijun and Zhang, Xu and Ren, Weiqiang and Huang, Kaiqi},
+	urldate = {2020-02-28},
+	date = {2015-10},
+	langid = {english},
+	file = {Cao et al. - 2015 - Large scale crowd analysis based on convolutional .pdf:/home/janerik/Zotero/storage/Q9YWG5SH/Cao et al. - 2015 - Large scale crowd analysis based on convolutional .pdf:application/pdf}
+}
+
+@article{liu_ddflow_2019,
+	title = {{DDFlow}: Learning Optical Flow with Unlabeled Data Distillation},
+	url = {http://arxiv.org/abs/1902.09145},
+	shorttitle = {{DDFlow}},
+	abstract = {We present {DDFlow}, a data distillation approach to learning optical ﬂow estimation from unlabeled data. The approach distills reliable predictions from a teacher network, and uses these predictions as annotations to guide a student network to learn optical ﬂow. Unlike existing work relying on handcrafted energy terms to handle occlusion, our approach is data-driven, and learns optical ﬂow for occluded pixels. This enables us to train our model with a much simpler loss function, and achieve a much higher accuracy. We conduct a rigorous evaluation on the challenging Flying Chairs, {MPI} Sintel, {KITTI} 2012 and 2015 benchmarks, and show that our approach signiﬁcantly outperforms all existing unsupervised learning methods, while running at real time.},
+	journaltitle = {{arXiv}:1902.09145 [cs]},
+	author = {Liu, Pengpeng and King, Irwin and Lyu, Michael R. and Xu, Jia},
+	urldate = {2020-03-02},
+	date = {2019-02-25},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1902.09145},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {Liu et al. - 2019 - DDFlow Learning Optical Flow with Unlabeled Data .pdf:/home/janerik/Zotero/storage/5MMY5IVS/Liu et al. - 2019 - DDFlow Learning Optical Flow with Unlabeled Data .pdf:application/pdf}
+}
+
+@article{sun_pwc-net_2018,
+	title = {{PWC}-Net: {CNNs} for Optical Flow Using Pyramid, Warping, and Cost Volume},
+	url = {http://arxiv.org/abs/1709.02371},
+	shorttitle = {{PWC}-Net},
+	abstract = {We present a compact but effective {CNN} model for optical ﬂow, called {PWC}-Net. {PWC}-Net has been designed according to simple and well-established principles: pyramidal processing, warping, and the use of a cost volume. Cast in a learnable feature pyramid, {PWC}-Net uses the current optical ﬂow estimate to warp the {CNN} features of the second image. It then uses the warped features and features of the ﬁrst image to construct a cost volume, which is processed by a {CNN} to estimate the optical ﬂow. {PWCNet} is 17 times smaller in size and easier to train than the recent {FlowNet}2 model. Moreover, it outperforms all published optical ﬂow methods on the {MPI} Sintel ﬁnal pass and {KITTI} 2015 benchmarks, running at about 35 fps on Sintel resolution (1024×436) images. Our models are available on https://github.com/{NVlabs}/{PWC}-Net.},
+	journaltitle = {{arXiv}:1709.02371 [cs]},
+	author = {Sun, Deqing and Yang, Xiaodong and Liu, Ming-Yu and Kautz, Jan},
+	urldate = {2020-03-03},
+	date = {2018-06-25},
+	langid = {english},
+	eprinttype = {arxiv},
+	eprint = {1709.02371},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {Sun et al. - 2018 - PWC-Net CNNs for Optical Flow Using Pyramid, Warp.pdf:/home/janerik/Zotero/storage/CP3298WW/Sun et al. - 2018 - PWC-Net CNNs for Optical Flow Using Pyramid, Warp.pdf:application/pdf}
+}
+
+@manual{lucas_kan_nutshell,
+    author = {Prof.  Dr.  Ra ́ul Rojas},
+    title = {Lucas-Kanade in a Nutshell}
+}
+
+@article{wang2020nwpu,
+  title={NWPU-Crowd: A Large-Scale Benchmark for Crowd Counting},
+  author={Wang, Qi and Gao, Junyu and Lin, Wei and Li, Xuelong},
+  journal={arXiv preprint arXiv:2001.03360},
+  year={2020}
+}
+
+@inproceedings{li2018csrnet,
+  title={CSRNet: Dilated convolutional neural networks for understanding the highly congested scenes},
+  author={Li, Yuhong and Zhang, Xiaofan and Chen, Deming},
+  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+  pages={1091--1100},
+  year={2018}
+}

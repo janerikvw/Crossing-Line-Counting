@@ -1,0 +1,8 @@
+part_B_final/
+part_A_final/
+.ipynb_checkpoints/
+.git/
+
+*.pyc
+
+*.pth.tar
