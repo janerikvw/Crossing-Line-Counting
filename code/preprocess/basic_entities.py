@@ -1,3 +1,4 @@
+import os
 class BasicVideo:
     def __init__(self, base_path):
         self.frames = []
@@ -15,7 +16,9 @@ class BasicVideo:
 
 
 class BasicFrame:
-    def __init__(self, image_path, centers = []):
+    def __init__(self, image_path, centers=None):
+        if centers == None:
+            centers = []
         self.centers = centers
         self.image_path = image_path
 
@@ -27,3 +30,7 @@ class BasicFrame:
 
     def get_image_path(self):
         return self.image_path
+
+    def get_density_path(self):
+        return os.path.splitext(self.image_path)[0] + ".npy"
+

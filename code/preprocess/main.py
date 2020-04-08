@@ -17,11 +17,6 @@ from tqdm import tqdm
 
 from density_filter import gaussian_filter_density
 
-
-def handle_frame(frame_obj):
-    k = gaussian_filter_density(frame_obj)
-    np.save(frame_obj.get_image_path().replace('.png', '.npy'), k)
-
 class Consumer(multiprocessing.Process):
     def __init__(self, task_queue):
         multiprocessing.Process.__init__(self)
@@ -50,8 +45,11 @@ class Task(object):
         handle_frame(self.info)
 
     def __str__(self):
-        return self.info['filename']
+        return self.info.get_image_path()
 
+def handle_frame(frame_obj):
+    k = gaussian_filter_density(frame_obj)
+    np.save(frame_obj.get_density_path(), k)
 
 if __name__ == '__main__':
     import fudan
@@ -68,13 +66,16 @@ if __name__ == '__main__':
     num_consumers = multiprocessing.cpu_count() * 2
     print('Creating %d consumers' % num_consumers)
     consumers = [Consumer(tasks) for i in range(num_consumers)]
-    for w in consumers:
-        w.start()
 
     # Put every frame in the queue
     for video in videos:
         for frame_obj in video.get_frames():
             tasks.put(Task(frame_obj))
+
+    for w in consumers:
+        w.start()
+
+    del videos
 
     # Add a poison pill for each consumer
     for i in range(num_consumers):
