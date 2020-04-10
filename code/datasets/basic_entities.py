@@ -66,9 +66,6 @@ class BasicFrame:
         self.labeled = True
         self.centers.append(xy)
 
-        if bbox != None:
-            self.
-
     # Retrieve the image path
     def get_image_path(self):
         return self.image_path
