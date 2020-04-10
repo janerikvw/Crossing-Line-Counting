@@ -17,6 +17,12 @@ from tqdm import tqdm
 
 from density_filter import gaussian_filter_density
 
+# Add base path to import dir for importing datasets
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+
 class Consumer(multiprocessing.Process):
     def __init__(self, task_queue):
         multiprocessing.Process.__init__(self)
@@ -52,12 +58,17 @@ def handle_frame(frame_obj):
     np.save(frame_obj.get_density_path(), k)
 
 if __name__ == '__main__':
-    import fudan
 
     # Loading all the videos based on your dataset in BasicVideo/BasicFrame object format
-    videos = []
-    for video_path in glob('../data/Fudan/*/*'):
-        videos.append(fudan.load_video(video_path))
+    # import fudan
+    # videos = []
+    # for video_path in glob('../data/Fudan/*/*'):
+    #     videos.append(fudan.load_video(video_path))
+
+    from datasets import shanghaitech
+    frames_list = []
+    for base_path in glob('../data/ShanghaiTech/part_*/*'):
+        frames_list = frames_list + tech_parts.load_all_frames(base_path)
 
     # Establish communication queues
     tasks = multiprocessing.JoinableQueue()
@@ -68,14 +79,13 @@ if __name__ == '__main__':
     consumers = [Consumer(tasks) for i in range(num_consumers)]
 
     # Put every frame in the queue
-    for video in videos:
-        for frame_obj in video.get_frames():
+    for frame_obj in frames_list:
             tasks.put(Task(frame_obj))
 
     for w in consumers:
         w.start()
 
-    del videos
+    del frames_list
 
     # Add a poison pill for each consumer
     for i in range(num_consumers):

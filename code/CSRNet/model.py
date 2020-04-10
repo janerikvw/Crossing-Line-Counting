@@ -3,6 +3,7 @@ import torch
 from torchvision import models
 from utils import save_net,load_net
 
+
 class CSRNet(nn.Module):
     def __init__(self, load_weights=False):
         super(CSRNet, self).__init__()
@@ -17,11 +18,13 @@ class CSRNet(nn.Module):
             self._initialize_weights()
             for i in xrange(len(self.frontend.state_dict().items())):
                 self.frontend.state_dict().items()[i][1].data[:] = mod.state_dict().items()[i][1].data[:]
+
     def forward(self,x):
         x = self.frontend(x)
         x = self.backend(x)
         x = self.output_layer(x)
         return x
+
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -49,4 +52,4 @@ def make_layers(cfg, in_channels = 3,batch_norm=False,dilation = False):
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
             in_channels = v
-    return nn.Sequential(*layers)                
+    return nn.Sequential(*layers)

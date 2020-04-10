@@ -3,28 +3,29 @@ import os
 
 import warnings
 
-from model import CSRNet
+import random
 
+from model import CSRNet as Net
 from utils import save_checkpoint
+import dataset
 
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from torchvision import datasets, transforms
+from torchvision import transforms
 
 import numpy as np
 import argparse
 import json
 import cv2
-import dataset
 import time
 
 parser = argparse.ArgumentParser(description='PyTorch CSRNet')
 
-parser.add_argument('train_json', metavar='TRAIN',
-                    help='path to train json')
-parser.add_argument('test_json', metavar='TEST',
-                    help='path to test json')
+# parser.add_argument('train_json', metavar='TRAIN',
+#                     help='path to train json')
+# parser.add_argument('test_json', metavar='TEST',
+#                     help='path to test json')
 
 parser.add_argument('--pre', '-p', metavar='PRETRAINED', default=None,type=str,
                     help='path to the pretrained model')
@@ -35,8 +36,14 @@ parser.add_argument('gpu',metavar='GPU', type=str,
 parser.add_argument('task',metavar='TASK', type=str,
                     help='task id to use.')
 
+# Add base path to import dir for importing datasets
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+from datasets import factory as dataset_factory
+
 def main():
-    
     global args,best_prec1
     
     best_prec1 = 1e6
@@ -55,20 +62,22 @@ def main():
     args.seed = time.time()
     args.print_freq = 30
 
-    with open(args.train_json, 'r') as outfile:        
-        train_list = json.load(outfile)
-    with open(args.test_json, 'r') as outfile:       
-        val_list = json.load(outfile)
-    
+    train_list, val_list = dataset_factory.load_train_test_frames()
+
+    print('Train frames', len(train_list))
+    random.shuffle(train_list)
+
+    print("Test frames", len(val_list))
+    random.shuffle(val_list)
+    val_list = val_list[0:200]
+
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     torch.cuda.manual_seed(args.seed)
     
-    model = CSRNet()
-    
+    model = Net()
     model = model.cuda()
     
-    criterion = nn.MSELoss(size_average=False).cuda()
-    
+    criterion = nn.MSELoss(reduction='sum').cuda()
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.decay)
@@ -87,7 +96,6 @@ def main():
             print("=> no checkpoint found at '{}'".format(args.pre))
             
     for epoch in range(args.start_epoch, args.epochs):
-        
         adjust_learning_rate(optimizer, epoch)
         
         train(train_list, model, criterion, optimizer, epoch)
@@ -105,12 +113,12 @@ def main():
             'optimizer' : optimizer.state_dict(),
         }, is_best,args.task)
 
+
 def train(train_list, model, criterion, optimizer, epoch):
     
     losses = AverageMeter()
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    
     
     train_loader = torch.utils.data.DataLoader(
         dataset.listDataset(train_list,
@@ -124,24 +132,22 @@ def train(train_list, model, criterion, optimizer, epoch):
                        batch_size=args.batch_size,
                        num_workers=args.workers),
         batch_size=args.batch_size)
+
     print('epoch %d, processed %d samples, lr %.10f' % (epoch, epoch * len(train_loader.dataset), args.lr))
     
     model.train()
     end = time.time()
     
-    for i,(img, target)in enumerate(train_loader):
+    for i, (img, target) in enumerate(train_loader):
+
         data_time.update(time.time() - end)
         
         img = img.cuda()
         img = Variable(img)
         output = model(img)
         
-        
-        
-        
         target = target.type(torch.FloatTensor).unsqueeze(0).cuda()
         target = Variable(target)
-        
         
         loss = criterion(output, target)
         
@@ -161,9 +167,10 @@ def train(train_list, model, criterion, optimizer, epoch):
                   .format(
                    epoch, i, len(train_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
-    
+
+
 def validate(val_list, model, criterion):
-    print ('begin test')
+    print('begin test')
     test_loader = torch.utils.data.DataLoader(
     dataset.listDataset(val_list,
                    shuffle=False,
@@ -229,4 +236,3 @@ class AverageMeter(object):
     
 if __name__ == '__main__':
     main()
-    
