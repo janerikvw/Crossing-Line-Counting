@@ -19,8 +19,6 @@ from data_augmentation import flow_resize
 from flowlib import flow_to_color, write_flo
 from warp import tf_warp
 
-print("Updated model to census and occlusion")
-
 class DDFlowModel(object):
     def __init__(self, batch_size=8, iter_steps=1000000, initial_learning_rate=1e-4, decay_steps=2e5, 
                  decay_rate=0.5, is_scale=True, num_input_threads=4, buffer_size=5000,
@@ -262,6 +260,7 @@ class DDFlowModel(object):
         if self.num_gpus == 1:
             losses, regularizer_loss = self.build(iterator, regularizer_scale=regularizer_scale, train=train, trainable=trainable, is_scale=is_scale, training_mode=training_mode)
             optim_loss = losses['census']['occlusion']
+            #optim_loss = losses['abs_robust_mean']['no_occlusion']
             train_op = optim.minimize(optim_loss, var_list=tf.trainable_variables(), global_step=global_step)            
         else:
             tower_grads = []
@@ -274,6 +273,7 @@ class DDFlowModel(object):
                         with tf.name_scope('tower_{}'.format(i)) as scope:
                             losses_, regularizer_loss_ = self.build(iterator, regularizer_scale=regularizer_scale, train=train, trainable=trainable, is_scale=is_scale, training_mode=training_mode) 
                             optim_loss = losses['census']['occlusion']
+                            #optim_loss = losses['abs_robust_mean']['no_occlusion']
 
                             # Reuse variables for the next tower.
                             tf.get_variable_scope().reuse_variables()

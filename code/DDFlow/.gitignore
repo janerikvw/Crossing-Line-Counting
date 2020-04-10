@@ -8,3 +8,7 @@ test_images/
 smaller_untrained_images/
 images/
 ArenaPeds/
+Fudan/
+
+
+fudan_train.txt

@@ -7,10 +7,11 @@ BasicVideo is an object used to store individual video's with frames.
 It is the basic block for training and validating the model.
 """
 class BasicVideo:
-    def __init__(self, base_path):
+    def __init__(self, base_path, labeled=False):
         self.frames = []
         self.path = base_path
         self.pairs = None
+        self.labeled = labeled
 
     # Get all the BasicFrame objects of the video
     def get_frames(self):
@@ -37,11 +38,14 @@ class BasicVideo:
         frames = self.get_frames()
 
         for i, frame1 in enumerate(frames):
-            if i >= len(frames):
+            if i+1 >= len(frames):
                 break
 
             frame2 = frames[i+1]
             self.pairs.append(BasicFramePair(frame1, frame2))
+
+    def is_labeled(self):
+        return self.labeled
 
 
 
