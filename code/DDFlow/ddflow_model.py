@@ -259,7 +259,7 @@ class DDFlowModel(object):
     def create_train_op(self, optim, iterator, global_step, regularizer_scale=1e-4, train=True, trainable=True, is_scale=True, training_mode='no_distillation'):  
         if self.num_gpus == 1:
             losses, regularizer_loss = self.build(iterator, regularizer_scale=regularizer_scale, train=train, trainable=trainable, is_scale=is_scale, training_mode=training_mode)
-            optim_loss = losses['census']['occlusion']
+            optim_loss = losses['census']['occlusion']+losses['data_distillation']['distillation']
             #optim_loss = losses['abs_robust_mean']['no_occlusion']
             train_op = optim.minimize(optim_loss, var_list=tf.trainable_variables(), global_step=global_step)            
         else:
@@ -272,7 +272,7 @@ class DDFlowModel(object):
                     with tf.device('/gpu:%d' % i):
                         with tf.name_scope('tower_{}'.format(i)) as scope:
                             losses_, regularizer_loss_ = self.build(iterator, regularizer_scale=regularizer_scale, train=train, trainable=trainable, is_scale=is_scale, training_mode=training_mode) 
-                            optim_loss = losses['census']['occlusion']
+                            optim_loss = losses['census']['occlusion']+losses['data_distillation']['distillation']
                             #optim_loss = losses['abs_robust_mean']['no_occlusion']
 
                             # Reuse variables for the next tower.
