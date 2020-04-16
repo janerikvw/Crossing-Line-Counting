@@ -14,11 +14,10 @@ def load_video(video_path, load_labeling=True):
         frame_obj = entities.BasicFrame(frame_path)
         video.add_frame(frame_obj)
 
-
         if load_labeling:
             with open(frame_obj.get_image_path().replace('.jpg', '.json')) as json_file:
                 data = json.load(json_file)
-                data = data[data.keys()[0]]
+                data = data[list(data)[0]]  # Get the actual metadata for this frame.
 
                 for region in data['regions']:
                     region = region['shape_attributes']
