@@ -351,10 +351,11 @@ class DDFlowModel(object):
         save_name_list = dataset.data_list[:, 2]
         iterator = dataset.create_one_shot_iterator(dataset.data_list, num_parallel_calls=self.num_input_threads)
         batch_img1, batch_img2 = iterator.get_next()
+        
         flow_est = pyramid_processing(batch_img1, batch_img2, train=False, trainable=False, regularizer=None, is_scale=True)  
         flow_est_color = flow_to_color(flow_est['full_res'], mask=None, max_flow=256)
 
-        opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+        opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
 
         restore_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) 
         saver = tf.train.Saver(var_list=restore_vars)
