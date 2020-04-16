@@ -33,7 +33,7 @@ class listDataset(Dataset):
     def __len__(self):
         return self.nSamples
     def __getitem__(self, index):
-        assert index <= len(self), 'index range error' 
+        assert index <= len(self), 'index range error'
         
         frame_obj = self.lines[index]
 

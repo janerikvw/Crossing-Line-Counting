@@ -57,7 +57,7 @@ def init_fe_model(restore_model = 'DDFlow/Fudan/checkpoints/distillation_census_
     flow_est = pyramid_processing(frame_img1, frame_img2, train=False, trainable=False, regularizer=None, is_scale=True)
     flow_est_color = flow_to_color(flow_est['full_res'], mask=None, max_flow=256)
 
-    opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+    opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)
 
     restore_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
     saver = tf.train.Saver(var_list=restore_vars)
@@ -87,4 +87,4 @@ def run_fe_model(fe_model, pair):
 
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})
 
-    return np_flow_est
+    return np_flow_est, np_flow_est_color
