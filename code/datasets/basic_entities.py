@@ -49,8 +49,6 @@ class BasicVideo:
 
 
 
-
-
 """
 BasicFrame is the object which stores all the information of an individual frame
 Both the frame path and the labeled information are stored here. 
@@ -78,9 +76,16 @@ class BasicFrame:
     def get_density_path(self):
         return os.path.splitext(self.image_path)[0] + ".npy"
 
-    # Get the loaded image in an PIL object
+    # Return a Pillow link to the image file data.
     def get_image(self):
         return Image.open(self.get_image_path())
+
+    # Return the BasicFrame's corresponding RAW image data as a Numpy array.
+    def load_image_data(self):
+        img = Image.open(self.get_image_path())
+        image_data = self.image_data = np.asarray(img)
+        img.close()
+        return image_data
 
     # Get the numpy array of the density map
     def get_density(self):
