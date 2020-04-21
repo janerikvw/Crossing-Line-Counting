@@ -7,6 +7,7 @@ import LOI
 
 import scipy.misc
 from scipy.ndimage import rotate
+from scipy.ndimage.interpolation import zoom
 
 
 from CSRNet.model import CSRNet
@@ -21,6 +22,8 @@ def pixelwise_loi(counting_result, flow_result):
     return
 
 def region_to_mask(region, img_width=1920, img_height=1080):
+    # full_size = sqrt(pow(img_height) + pow(img_width))
+
     p1 = region[0]
     p2 = region[2]
     mask = np.zeros((img_width, img_height))
@@ -34,21 +37,38 @@ def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, width=5
     regions = select_regions(rotate_point(point1, -rotate_angle, center), rotate_point(point2, -rotate_angle, center),
                              width=width, regions=cregions, shrink=shrink)
 
-    return regions, rotate_angle, center
+    masks = ([], [])
+    for i, small_regions in enumerate(regions):
+        for o, region in enumerate(small_regions):
+            masks[i].append(region_to_mask(region))
+
+    return regions, rotate_angle, center, masks
 
 def regionwise_loi(counting_result, flow_result, loi_info):
-    regions, rotate_angle, center = loi_info
+    regions, rotate_angle, center, masks = loi_info
 
     sums = ([], [])
 
-    img = counting_result
-    img = rotate(img, rotate_angle, reshape=False)
+    counting_result = rotate(counting_result, rotate_angle, reshape=False)
+    flow_result = np.squeeze(rotate(flow_result['full_res'], rotate_angle, reshape=False))
 
     for i, small_regions in enumerate(regions):
         for o, region in enumerate(small_regions):
-            mask = region_to_mask(region)
-            part = mask.transpose() * img
-            sums[i].append(part.sum() / 1000)
+            cc_part = (masks[i][o].transpose()+ 0.5) * counting_result
+            img = Image.fromarray(cc_part * 255.0 / max(0.001, cc_part.max()))
+            img = img.convert("L")
+            img.save('results/mask.png')
+
+            fe_part = np.expand_dims(masks[i][o].transpose(), axis=2) * flow_result
+
+            fe_l = fe_part[:, :, 0]
+
+            sums[i].append((cc_part.sum(), fe_l[fe_l > 0].sum(), fe_l[fe_l <= 0].sum()))
+
+            # if i == 0:
+            #     over = fe_l[fe_l > 0].sum()
+            # elif i == 1:
+            #     over = fe_l[fe_l <= 0].sum()
 
     return sums
 
@@ -127,7 +147,7 @@ def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregion
 
             if loi_output:
                 msg = str(loi_output[i][o])
-                w, h = draw.textsize(msg)
+                w, h = draw.textsize(str(msg))
                 center = (
                     (region[0][0] + region[2][0] - w) / 2,
                     (region[0][1] + region[2][1] - h) / 2
@@ -162,7 +182,7 @@ def run_cc_model(cc_model, frame):
     cc_output = cc_model(img.unsqueeze(0))
     cc_output = cc_output.detach().cpu().data.numpy().squeeze()
 
-    return scipy.misc.imresize(cc_output, size=8.0)
+    return zoom(cc_output, zoom=8.0) / 64.
 
 
 # Initialize the flow estimation model
@@ -175,7 +195,7 @@ def init_fe_model(restore_model = 'DDFlow/Fudan/checkpoints/distillation_census_
     flow_est = pyramid_processing(frame_img1, frame_img2, train=False, trainable=False, regularizer=None, is_scale=True)
     flow_est_color = flow_to_color(flow_est['full_res'], mask=None, max_flow=256)
 
-    opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)
+    opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
 
     restore_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
     saver = tf.train.Saver(var_list=restore_vars)
@@ -197,6 +217,7 @@ def run_fe_model(fe_model, pair):
     img1 = tf.cast(img1, tf.float32)
     img1 /= 255
     img1 = tf.expand_dims(img1, axis=0).eval(session=sess)
+    #img1 = tf.identity(img1, name="img1")
 
     img2 = tf.image.decode_png(tf.read_file(pair.get_frames()[1].get_image_path()), channels=3)
     img2 = tf.cast(img2, tf.float32)
@@ -204,5 +225,6 @@ def run_fe_model(fe_model, pair):
     img2 = tf.expand_dims(img2, axis=0).eval(session=sess)
 
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})
+    # img1, img2, np_flow_est, np_flow_est_color = sess.run([img1, img2, flow_est, flow_est_color])
 
     return np_flow_est, np_flow_est_color
