@@ -62,14 +62,19 @@ def main():
     args.seed = time.time()
     args.print_freq = 30
 
-    train_list, val_list = dataset_factory.load_train_test_frames()
+    train_list, val_list = dataset_factory.load_train_test_frames('../')
 
     print('Train frames', len(train_list))
     random.shuffle(train_list)
 
+    # Trick, could be overfitting, but let's check that out afterwards.
+    # First assume the CSRNet is performing pretty good
+    train_list = train_list[0:5000]
+    val_list = val_list[5000:5400]
+
     print("Test frames", len(val_list))
-    random.shuffle(val_list)
-    val_list = val_list[0:200]
+    #random.shuffle(val_list)
+    #val_list = val_list[0:200]
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     torch.cuda.manual_seed(args.seed)
