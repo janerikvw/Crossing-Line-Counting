@@ -105,15 +105,23 @@ class BasicFramePair:
         self.pairs = {}
         self.labeled = labeled
 
+    # Add the point pair to the dictionary
     def add_point_pair(self, frame1_id, frame2_id):
         self.labeled = True
         self.pairs[frame1_id] = frame2_id
 
+    # Returns all the point pairs in a dictionary, where key is the id in frame 1 with the value the id in frame 2.
     def get_point_pairs(self):
         return self.pairs
 
-    def get_frames(self):
-        return self.frame1, self.frame2
+    # Get the two frames, when only requiring 1, the index of the frame is given as parameter
+    def get_frames(self, frame=None):
+        ret = (self.frame1, self.frame2)
+
+        if frame is None:
+            return ret
+        else:
+            return ret[frame]
 
     def is_labeled(self):
         return self.labeled
