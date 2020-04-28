@@ -17,3 +17,6 @@ https://drive.google.com/open?id=19c2X529VTNjl3YL1EYweBg60G70G2D-w
 
 ## ShanghaiTech part A and B
 https://drive.google.com/open?id=16dhJn7k4FWVwByRsQAEpl9lwjuV03jVI
+
+## GCC Synthetic dataset
+https://gjy3035.github.io/GCC-CL/

@@ -24,25 +24,26 @@ cc_model = LOI.init_cc_model(weights_path='CSRNet/preA_fudanmodel_best.pth.tar')
 # Load flow estimation model
 fe_model = LOI.init_fe_model()
 
-point1 = (550, 100)
+point1 = (550, 20)
 point2 = (350, 700)
-loi_region_info = LOI.init_regionwise_loi(point1, point2, shrink=0.94)
+loi_region_info = LOI.init_regionwise_loi(point1, point2, shrink=0.88)
 
 total_left = 0
 total_right = 0
 
-for i,pair in enumerate(train_pairs):
-
-    print("{}/{}".format(i+1, len(train_pairs)))
+for i, pair in enumerate(train_pairs):
+    print_i = '{:05d}'.format(i+1)
+    
+    print("{}/{}".format(print_i, len(train_pairs)))
     # Run counting model on frame A
     cc_output = LOI.run_cc_model(cc_model, pair.get_frames()[0])
     img = Image.fromarray(cc_output * 255.0 / cc_output.max())
     img = img.convert("L")
-    img.save('results/video/csr_{}.png'.format(i))
+    img.save('results/video2/csr_{}.png'.format(print_i))
 
     # Run flow estimation model on frame pair
     fe_output, fe_output_color = LOI.run_fe_model(fe_model, pair)
-    misc.imsave('results/video/flow_{}.png'.format(i), fe_output_color[0])
+    misc.imsave('results/video2/flow_{}.png'.format(print_i), fe_output_color[0])
 
     # Run the merger for the crowdcounting and flow estimation model
     # In code mention the papers based on
@@ -56,9 +57,12 @@ for i,pair in enumerate(train_pairs):
     totals = [total_left, total_right]
 
     img = pair.get_frames()[0].get_image().convert("RGB")
-    img = img.crop((point1[0] - 50, point1[1] - 200, point2[0] + 50, point2[1] + 200))
-    LOI.image_add_region_lines(img, point1, point2, loi_output, totals)
+    LOI.image_add_region_lines(img, point1, point2, loi_output)
+
+
+    img = img.crop((point2[0] - 70, point1[1] - 100, point1[0] + 70, point2[1] + 100))
+    LOI.add_total_information(img, loi_output, totals)
 
     # LOI.image_add_region_lines(img, point1, point2)
 
-    img.save('results/video/orig_{}.png'.format(i))
+    img.save('results/video2/orig_{}.png'.format(print_i))

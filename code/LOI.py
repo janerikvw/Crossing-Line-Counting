@@ -3,12 +3,10 @@ import torch
 import math
 
 import datasets
-import LOI
 
 import scipy.misc
 from scipy.ndimage import rotate
 from scipy.ndimage.interpolation import zoom
-
 
 from CSRNet.model import CSRNet
 import torchvision.transforms.functional as F
@@ -72,26 +70,25 @@ def regionwise_loi(counting_result, flow_result, loi_info):
 
     total_pixels = masks[0][0].sum()
 
+    # @TODO: small_regions to something more correct
     for i, small_regions in enumerate(regions):
         for o, region in enumerate(small_regions):
             cc_part = (masks[i][o].transpose()) * counting_result
 
-            # region_orig = regions_orig[i][o]
-            # direction = np.array([region_orig[1][0] - region_orig[2][0], region_orig[1][1] - region_orig[2][1]])
-            # direction /= sum(direction ** 2)
-            # print(direction)
-            # perp = np.sum(np.multiply(flow_result, direction), axis=2)
-            # fe_part = masks[i][o].transpose() * perp
+            region_orig = regions_orig[i][o]
+            direction = np.array([region_orig[1][0] - region_orig[2][0], region_orig[1][1] - region_orig[2][1]]).astype(
+                np.float32)
+            direction = direction / np.linalg.norm(direction)
+            perp = np.sum(np.multiply(flow_result, direction), axis=2)
+            fe_part = masks[i][o].transpose() * perp
 
-            fe_part = np.expand_dims(masks[i][o].transpose(), axis=2) * flow_result
+            # Get all the movement towards the line
+            over = fe_part[fe_part > 0].sum() / total_pixels
 
-            # print(fe_part.shape)
-            # print(fe_part.mean())
-            # print(fe_part[fe_part > 0].mean(), (fe_part > 0).sum())
-            # print(fe_part[fe_part <= 0].mean(), (fe_part <= 0).sum())
+            # If you want the movement moving away from the line.
+            # fe_part[fe_part < 0].mean()
 
-            # Over is wrong, because it doesnt rotate
-            over = fe_part[fe_part > 0].mean() if (i == 1) else -fe_part[fe_part <= 0].mean()
+
             percentage_over = over / region[4]
 
             sums[i].append(cc_part.sum() * percentage_over)
@@ -159,7 +156,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
     return regions
 
 
-def image_add_region_lines(image, dot1, dot2, loi_output=None, totals=None, width=50, nregions=5, shrink=0.90):
+def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregions=5, shrink=0.90):
     regions = select_regions(dot1, dot2, width=width, regions=nregions, shrink=shrink)
     draw = ImageDraw.Draw(image)
 
@@ -183,22 +180,24 @@ def image_add_region_lines(image, dot1, dot2, loi_output=None, totals=None, widt
                 )
                 draw.text(center, msg, fill="white")
 
-    if loi_output:
-        to_right = sum(loi_output[1])
-        to_left = sum(loi_output[0])
-
-        msg = 'Current: ({:.3f}, {:.3f}), Total: ({:.3f}, {:.3f})'.format(to_right, to_left, totals[1], totals[0])
-        w, h = draw.textsize(msg)
-
-        width, height = image.size
-        draw.rectangle([
-            20, height - h - 20,
-            20 + w, height - 20
-        ], fill="black")
-        draw.text((20, height - h - 20), msg, fill="white")
-
 
     draw.line((dot1[0], dot1[1], dot2[0], dot2[1]), fill=200, width=10)
+
+def add_total_information(image, loi_output, totals):
+    draw = ImageDraw.Draw(image)
+
+    to_right = sum(loi_output[1])
+    to_left = sum(loi_output[0])
+
+    msg = 'Current: ({:.3f}, {:.3f}), Total: ({:.3f}, {:.3f})'.format(to_right, to_left, totals[1], totals[0])
+    w, h = draw.textsize(msg)
+
+    width, height = image.size
+    draw.rectangle([
+        20, height - h - 20,
+            20 + w, height - 20
+    ], fill="black")
+    draw.text((20, height - h - 20), msg, fill="white")
 
 
 # Initialize the crowd counting model
