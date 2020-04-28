@@ -16,6 +16,7 @@ import tensorflow as tf
 from DDFlow.network import pyramid_processing
 from DDFlow.flowlib import flow_to_color
 
+
 # Give a region and turn it in a mask to extract the region information
 def region_to_mask(region, img_width=1920, img_height=1080):
     full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
@@ -48,6 +49,7 @@ def rotate_point(point, angle, center):
         r10 * point[0] + r11 * point[1] + center[1] - r10 * center[0] - r11 * center[1]
     )
     return out
+
 
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
@@ -100,6 +102,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
 
     return regions
 
+
 # Add the regions and LOI to an PIL image. The information of the LOI can be added for each region as well.
 def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregions=5, shrink=0.90):
     regions = select_regions(dot1, dot2, width=width, regions=nregions, shrink=shrink)
@@ -128,6 +131,7 @@ def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregion
     # Add the action LOI line in the middle
     draw.line((dot1[0], dot1[1], dot2[0], dot2[1]), fill=200, width=10)
 
+
 # Add the current/total information at the bottom of an image
 def add_total_information(image, loi_output, totals):
     draw = ImageDraw.Draw(image)
@@ -144,4 +148,3 @@ def add_total_information(image, loi_output, totals):
             20 + w, height - 20
     ], fill="black")
     draw.text((20, height - h - 20), msg, fill="white")
-    
