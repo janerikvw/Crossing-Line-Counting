@@ -22,17 +22,20 @@ def region_to_mask(region, img_width=1920, img_height=1080):
 
     p1 = region[0]
     p2 = region[2]
+    # Full size is the maximum size an image can get. (When an image is rotated 45 degrees it get's this size
     mask = np.zeros((full_size, full_size))
 
     fw = int((full_size - img_width)/2)
     fh = int((full_size - img_height)/2)
 
+    # Add the region mask to the empty mask
     mask[fw + min(p1[0], p2[0]):fw + max(p1[0], p2[0]), fh + min(p1[1], p2[1]):fh + max(p1[1], p2[1])] = 1
     return mask
 
 
 # Rotate an individual point with a certain angle and a given centre
 # In case of the LOI the centre is always the middle of the image
+# A standard Linear Algebra trick
 def rotate_point(point, angle, center):
     r_angle = math.radians(angle)
     r00 = math.cos(r_angle)
@@ -44,12 +47,13 @@ def rotate_point(point, angle, center):
         r00 * point[0] + r01 * point[1] + center[0] - r00 * center[0] - r01 * center[1],
         r10 * point[0] + r11 * point[1] + center[1] - r10 * center[0] - r11 * center[1]
     )
-
     return out
 
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
 def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
+    # Seperate the line into several parts with given start and end point.
+    # Provide the corner points of the regions that lie on the LOI itself.
     region_lines = []
     line_points = np.linspace(np.array(dot1), np.array(dot2), num=regions+1).astype(int)
     for i, point in enumerate(line_points):
@@ -59,17 +63,19 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
         point2 = line_points[i + 1]
         region_lines.append((tuple(list(point)),  tuple(list(point2))))
 
-    regions = ([], [])
-
     region_lines.reverse()
-
+    regions = ([], [])
     for point1, point2 in region_lines:
+
+        # The difference which we can add to the region lines corners
+        # to come to the corners on the other end of the region
         part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
         point_diff = (
-            - (point1[1] - point2[1]) / float(part_line_length) *  float(width),
+            - (point1[1] - point2[1]) / float(part_line_length) * float(width),
             (point1[0] - point2[0]) / float(part_line_length) * float(width)
         )
 
+        # Both add and substract the difference so we get the regions on both sides of the LOI.
         regions[0].append([
             point1,
             point2,
@@ -86,6 +92,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
             width
         ])
 
+        # Shrink the width for perspective
         width *= shrink
 
     regions[0].reverse()
@@ -118,7 +125,7 @@ def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregion
                 )
                 draw.text(center, msg, fill="white")
 
-
+    # Add the action LOI line in the middle
     draw.line((dot1[0], dot1[1], dot2[0], dot2[1]), fill=200, width=10)
 
 # Add the current/total information at the bottom of an image
@@ -137,3 +144,4 @@ def add_total_information(image, loi_output, totals):
             20 + w, height - 20
     ], fill="black")
     draw.text((20, height - h - 20), msg, fill="white")
+    
