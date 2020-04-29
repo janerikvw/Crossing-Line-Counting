@@ -27,7 +27,7 @@ fe_model = LOI.init_fe_model()
 
 point1 = (550, 20)
 point2 = (350, 700)
-loi_model = LOI.init_regionwise_loi(point1, point2, shrink=0.88)
+loi_model = LOI.init_regionwise_loi(point1, point2, shrink=0.92, width=35)
 
 total_left = 0
 total_right = 0

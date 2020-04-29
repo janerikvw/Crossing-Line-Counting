@@ -82,14 +82,38 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
             # Get all the movement towards the line
             total_pixels = masks[i][o].sum()
-            over = fe_part[fe_part > 0].sum() / total_pixels
+            #over = fe_part[fe_part > 0].sum() / total_pixels
 
-            # If you want the movement moving away from the line.
-            # fe_part[fe_part < 0].mean()
+            threshold = 1
+            towards_pixels = fe_part > threshold
+
+            total_crowd = cc_part.sum()
+
+            if towards_pixels.sum() == 0 or total_crowd < 0:
+                sums[i].append(0.0)
+                continue
+
+            towards_avg = fe_part[towards_pixels].sum() / float(total_pixels) # float(towards_pixels.sum())
+            away_pixels = fe_part < -threshold
+            # away_avg = fe_part[away_pixels].sum() / away_pixels.sum()
+
+            # print('towards_pixels', towards_pixels.sum())
+            # print('towards avg', towards_avg)
+            # print('away_pixels', away_pixels.sum())
+
+            pixel_percentage_towards = towards_pixels.sum() / float(away_pixels.sum()+towards_pixels.sum())
+            crowd_towards = total_crowd * pixel_percentage_towards
+
+            # print('pixel_percentage_towards', pixel_percentage_towards)
+            # print('crowd_towards', crowd_towards)
 
             # Divide the average
-            percentage_over = over / region[4]
-            sums[i].append(cc_part.sum() * percentage_over)
+            percentage_over = towards_avg / region[4]
+            # print('percentage_over', percentage_over)
+            # print('End', crowd_towards * percentage_over)
+
+            sums[i].append(crowd_towards * percentage_over)
+
 
     return sums
 
