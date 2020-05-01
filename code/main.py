@@ -10,6 +10,8 @@ from scipy import misc, io
 from scipy.ndimage import rotate
 import numpy as np
 
+import datetime
+
 from PIL import Image, ImageDraw
 
 print("--- LOADING TESTSET ---")
@@ -32,23 +34,30 @@ loi_model = LOI.init_regionwise_loi(point1, point2, shrink=0.92, width=35)
 total_left = 0
 total_right = 0
 
-for i, pair in enumerate(train_pairs):
+for i, pair in enumerate(train_pairs[0:1]):
     print_i = '{:05d}'.format(i+1)
     print("{}/{}".format(print_i, len(train_pairs)))
 
+    tbegin = datetime.datetime.now()
+
     # Run counting model on frame A
     cc_output = LOI.run_cc_model(cc_model, pair.get_frames()[0])
-    img = Image.fromarray(cc_output * 255.0 / cc_output.max())
-    img = img.convert("L")
-    img.save('results/video2/csr_{}.png'.format(print_i))
+
+    print("Crowd Counting miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
+    tbegin = datetime.datetime.now()
 
     # Run flow estimation model on frame pair
     fe_output, fe_output_color = LOI.run_fe_model(fe_model, pair)
-    misc.imsave('results/video2/flow_{}.png'.format(print_i), fe_output_color[0])
+
+    print("Flow Estimator miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
+    tbegin = datetime.datetime.now()
 
     # Run the merger for the crowdcounting and flow estimation model
     # In code mention the papers based on
     loi_output = LOI.regionwise_loi(loi_model, cc_output, fe_output)
+
+    print("LOI miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
+    tbegin = datetime.datetime.now()
 
     # Sum earlier LOI's
     to_right = sum(loi_output[1])
@@ -56,6 +65,12 @@ for i, pair in enumerate(train_pairs):
     total_left += to_left
     total_right += to_right
     totals = [total_left, total_right]
+
+    misc.imsave('results/video2/flow_{}.png'.format(print_i), fe_output_color[0])
+
+    img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+    img = img.convert("L")
+    img.save('results/video2/csr_{}.png'.format(print_i))
 
     # Generate the demo output for clear view on what happens
     img = pair.get_frames()[0].get_image().convert("RGB")
@@ -65,3 +80,5 @@ for i, pair in enumerate(train_pairs):
     utils.add_total_information(img, loi_output, totals)
 
     img.save('results/video2/orig_{}.png'.format(print_i))
+
+    print("Demo saving miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))

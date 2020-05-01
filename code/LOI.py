@@ -18,6 +18,9 @@ import tensorflow as tf
 from DDFlow.network import pyramid_processing
 from DDFlow.flowlib import flow_to_color
 
+import datetime
+
+
 # Intialize the regionwise LOI. Returns all the information required to execute the regionwise LOI optimally.
 # The initializer generates all the reqions around the LOI and the masks for extracting the data from the CC and FE.
 def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, width=50, cregions=5, shrink=0.90):
@@ -25,60 +28,68 @@ def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, width=5
     rotate_angle = math.degrees(math.atan((point2[1] - point1[1]) / float(point2[0] - point1[0])))
 
     # Select regions on a rotated image, so all the regions can be used to create simple masks
-    regions = select_regions(rotate_point(point1, -rotate_angle, center), rotate_point(point2, -rotate_angle, center),
-                             width=width, regions=cregions, shrink=shrink)
+    # regions = select_regions(rotate_point(point1, -rotate_angle, center), rotate_point(point2, -rotate_angle, center),
+    #                          width=width, regions=cregions, shrink=shrink)
 
     # Generate the original regions as well for later usage
-    regions_orig = select_regions(point1, point2,
+    regions = select_regions(point1, point2,
                              width=width, regions=cregions, shrink=shrink)
 
     # Generate per region a mask which can be used to extract the crowd counting and flow estimation
     masks = ([], [])
     for i, small_regions in enumerate(regions):
         for o, region in enumerate(small_regions):
-            masks[i].append(region_to_mask(region))
+            mask = region_to_mask2(region, rotate_angle, center)
+            masks[i].append(mask)
 
-    return regions, rotate_angle, center, masks, regions_orig
+    return regions, rotate_angle, center, masks
+
 
 # Combine both the crowd counting and the flow estimation with a regionwise method
 # Returns per region how many people are crossing the line from that side.
 def regionwise_loi(loi_info, counting_result, flow_result):
-    regions, rotate_angle, center, masks, regions_orig = loi_info
+    regions, rotate_angle, center, masks = loi_info
 
     sums = ([], [])
 
-    # Get all the sizes required to correctly extract the regions
-    ow = counting_result.shape[0]
-    oh = counting_result.shape[1]
-    full_size = int(math.sqrt(math.pow(oh, 2) + math.pow(ow, 2)))
-    f_counting_result = np.zeros((full_size, full_size))
-    f_flow_result = np.zeros((full_size, full_size, 2))
-    fw = int((full_size - counting_result.shape[0]) / 2)
-    fh = int((full_size - counting_result.shape[1]) / 2)
-
-    # Put the earlier results in bigger array to prevent rotation out of the image during rotation
-    f_counting_result[fw:fw+ow, fh:oh+fh] = counting_result
-    f_flow_result[fw:fw+ow, fh:oh+fh] = flow_result['full_res']
-
-    # Rotate the images.
-    counting_result = rotate(f_counting_result, rotate_angle, reshape=False)
-    flow_result = np.squeeze(rotate(f_flow_result, rotate_angle, reshape=False))
+    flow_result = np.squeeze(flow_result['full_res'])
 
     # @TODO: small_regions to something more correct
-    for i, small_regions in enumerate(regions):
-        for o, region in enumerate(small_regions):
+    for i, side_regions in enumerate(regions):
+        for o, region in enumerate(side_regions):
             # Get the CC region
-            cc_part = (masks[i][o].transpose()) * counting_result
+
+            mask = masks[i][o]
+
+            points = np.array(region[0:4])
+            min_x = np.min(points[:, 0])
+            max_x = np.max(points[:, 0])
+            min_y = np.min(points[:, 1])
+            max_y = np.max(points[:, 1])
+
+            cropped_mask = mask[min_y:max_y, min_x:max_x]
+
+            #mask[min_x:max_x, min_y:max_y] = 0.5
+
+            #print(mask.shape)
+
+            img = Image.fromarray(cropped_mask * 255.0)
+            img = img.convert("L")
+            img.save('mask1.png')
+
+
+            cc_part = cropped_mask * counting_result[min_y:max_y, min_x:max_x]
 
             # Project the flow estimation output on a line perpendicular to the LOI,
             # so we can calculate if the people are approach/leaving the LOI.
-            region_orig = regions_orig[i][o]
-            direction = np.array([region_orig[1][0] - region_orig[2][0], region_orig[1][1] - region_orig[2][1]]).astype(
+            direction = np.array([region[1][0] - region[2][0], region[1][1] - region[2][1]]).astype(
                 np.float32)
             direction = direction / np.linalg.norm(direction)
-            perp = np.sum(np.multiply(flow_result, direction), axis=2)
+            part_flow_result = flow_result[min_y:max_y, min_x:max_x]
+            perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
+
             # Get the FE region
-            fe_part = masks[i][o].transpose() * perp
+            fe_part = cropped_mask * perp
 
             # Get all the movement towards the line
             total_pixels = masks[i][o].sum()
@@ -96,20 +107,11 @@ def regionwise_loi(loi_info, counting_result, flow_result):
             away_pixels = fe_part < -threshold
             # away_avg = fe_part[away_pixels].sum() / away_pixels.sum()
 
-            # print('towards_pixels', towards_pixels.sum())
-            # print('towards avg', towards_avg)
-            # print('away_pixels', away_pixels.sum())
-
             pixel_percentage_towards = towards_pixels.sum() / float(away_pixels.sum()+towards_pixels.sum())
             crowd_towards = total_crowd * pixel_percentage_towards
 
-            # print('pixel_percentage_towards', pixel_percentage_towards)
-            # print('crowd_towards', crowd_towards)
-
             # Divide the average
             percentage_over = towards_avg / region[4]
-            # print('percentage_over', percentage_over)
-            # print('End', crowd_towards * percentage_over)
 
             sums[i].append(crowd_towards * percentage_over)
 
