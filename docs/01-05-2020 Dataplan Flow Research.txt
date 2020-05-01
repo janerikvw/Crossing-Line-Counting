@@ -1,0 +1,32 @@
+#################
+##  Flow Model ##
+#################
+    - "Training" (unsupervised)
+        - Marineterrein
+        - TUB Dataset (generated tracking videos)
+        - Fudan Dataset
+        - Mall Dataset
+        - USCD Pedestrian Dataset
+
+##########################
+## Crowd Counting Model ##
+##########################
+    - Training:
+        - Shanghai Dataset
+        - New Dataset (John Hopkins University Crowd Counting Dataset)
+        - Marineterrein (transfer learning)
+    - Testing:
+        - Marineterrein
+        - (+Shanghai)
+
+###############
+## LOI Model ##
+###############
+    Training:
+        - "Done" by combining flow & crowd counting models
+    Testing:
+        - TUB Dataset (generated tracking videos)
+    - Visuele Performance Assessment:
+        - Marineterrein videos (model predictions are easier to visually validate due to smaller crowds)
+        - (Video's Arena Boen? Can we use these?) (model predictions are a bit harder to visually validate due to larger crowds)
+        - (Online Youtube video's of crowded situation in the Netherlands)

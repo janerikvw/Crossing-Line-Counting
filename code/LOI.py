@@ -82,7 +82,6 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
             # Get all the movement towards the line
             total_pixels = masks[i][o].sum()
-            #over = fe_part[fe_part > 0].sum() / total_pixels
 
             threshold = 1
             towards_pixels = fe_part > threshold

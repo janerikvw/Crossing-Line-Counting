@@ -1,22 +1,42 @@
-\begin{tikzpicture}[>=latex']
-    \tikzset{block/.style= {draw, rectangle, align=center,minimum width=2cm,minimum height=1cm, inner sep=0.2cm, fill=gray!20},
-    rblock/.style={draw, shape=rectangle,rounded corners=1.5em,align=center,minimum width=2cm,minimum height=1cm, inner sep=0.2cm},
-    }
-    \node [rblock]  (start) {Input};
-    \node [block, below right =1.7cm and 0.7cm of start] (countnet) {Crowd Counting\\Network (CSRNet)};
-    \node [block, below left = 1.7cm and 0.7cm of start] (flownet) {Optical Flow\\Estimator (DDFlow)};
-    \node [block, below = 4.3cm of start] (linenet) {Crossing Line\\Network};
-    \node [rblock, below right =0.5cm and -0.5cm of linenet] (crossright) {Number\\Crossing Right};
-    \node [rblock, below left = 0.5cm and -0.5cm of linenet] (crossleft) {Number\\Crossing Left};
-    %% Coordinate on left and middle
+    \begin{tikzpicture}[>=latex']
+        \tikzset{block/.style= {draw, rectangle, align=center,minimum width=2cm,minimum height=1cm, inner sep=0.2cm, fill=gray!20},
+        rblock/.style={draw, shape=rectangle,rounded corners=1.5em, align=center,minimum width=2.0cm,minimum height=1cm, inner sep=0.2cm},
+        dotted/.style={draw,minimum height=1cm, inner sep=0.2cm, draw=none},
+        bound_loi/.style={draw,minimum height=6.7cm, minimum width=9cm}
+        }
+        \node[bound_loi, fill=gray!5] (1) at  (2.4,-10.7)  {};
+        \node [rblock]  (frame2) {Frame 2};
+        \node [block, below =1.5cm of frame2] (flownet) {Optical Flow\\Estimator (DDFlow)};
+        \node [rblock, right = 2.0cm of flownet] (frame1) {Frame 1};
+        \node [block, below = 1.5cm of frame1] (crowdnet) {Crowd Counting\\Network (CSRNet)};
+        \node [block, below = 1.5cm of flownet] (projection) {Projection on $\bot$ LOI};
+        \node [block, below = 1.9cm of projection] (mask1) {Mask region};
+        \node [dotted, right = 0.8cm of mask1] (dotting_masks) {\large $\cdots$};
+        \node [block, below = 1.9cm of crowdnet] (mask2) {Mask region};
+
+        \node [block, below = 1.6cm of mask1] (multiply1) {Sum and multiply};
+        \node [dotted, right = 0.4cm of multiply1] (dotting_multiply) {\large $\cdots$};
+        \node [block, below = 1.6cm of mask2] (multiply2) {Sum and multiply};
+        \node [block, below = 1.5cm of dotting_multiply] (sum_regions) {Sum regions};
+        \node [rblock, below right =0.5cm and -0.5cm of sum_regions] (crossright) {Number\\Crossing Right};
+        \node [rblock, below left = 0.5cm and -0.5cm of sum_regions] (crossleft) {Number\\Crossing Left};
+        %% Coordinate on left and middle
+
 
 % paths
-    \path[draw,->, every node/.style={sloped,anchor=south,auto=false, font=\scriptsize}]
-                (start) edge node {Frame A} (countnet)
-                (start) edge node {Frame pair} (flownet)
-                (countnet) edge node {Density Map} (linenet)
-                (flownet) edge node {Flow Map} (linenet)
-                (linenet) edge (crossright)
-                (linenet) edge (crossleft)
-                ;
-\end{tikzpicture}
+        \path[draw,->, every node/.style={sloped,anchor=south,auto=false, font=\scriptsize}]
+                    (frame2) edge node {Image} (flownet)
+                    (frame1) edge node {Image} (flownet)
+                    (frame1) edge node {Image} (crowdnet)
+                    (flownet) edge node {Flow Map} (projection)
+                    (projection) edge node {Projection Map} (mask1)
+                    (projection) edge node {Projection Map} (mask2)
+                    (crowdnet) edge node {Density Map} (mask1)
+                    (crowdnet) edge node {Density Map} (mask2)
+                    (mask1) edge node {Masked Map} (multiply1)
+                    (mask2) edge node {Masked Map} (multiply2)
+                    (multiply1) edge node {Region info} (sum_regions)
+                    (multiply2) edge node {Region info} (sum_regions)
+                    (sum_regions) edge (crossright)
+                    (sum_regions) edge (crossleft)
+    \end{tikzpicture}
