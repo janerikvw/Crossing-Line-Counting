@@ -57,10 +57,10 @@ def regionwise_loi(loi_info, counting_result, flow_result):
     # @TODO: small_regions to something more correct
     for i, side_regions in enumerate(regions):
         for o, region in enumerate(side_regions):
-            # Get the CC region
-
             mask = masks[i][o]
 
+            # Get which part of the mask contains the actual mask
+            # This massively improves the speed of the model
             points = np.array(region[0:4])
             min_x = np.min(points[:, 0])
             max_x = np.max(points[:, 0])
@@ -69,15 +69,7 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
             cropped_mask = mask[min_y:max_y, min_x:max_x]
 
-            #mask[min_x:max_x, min_y:max_y] = 0.5
-
-            #print(mask.shape)
-
-            img = Image.fromarray(cropped_mask * 255.0)
-            img = img.convert("L")
-            img.save('mask1.png')
-
-
+            # Use cropped mask on crowd counting result
             cc_part = cropped_mask * counting_result[min_y:max_y, min_x:max_x]
 
             # Project the flow estimation output on a line perpendicular to the LOI,
@@ -85,20 +77,22 @@ def regionwise_loi(loi_info, counting_result, flow_result):
             direction = np.array([region[1][0] - region[2][0], region[1][1] - region[2][1]]).astype(
                 np.float32)
             direction = direction / np.linalg.norm(direction)
+
+            # Crop so only cropped area gets projected
             part_flow_result = flow_result[min_y:max_y, min_x:max_x]
             perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
 
-            # Get the FE region
+            # Get the FE region with mask
             fe_part = cropped_mask * perp
 
             # Get all the movement towards the line
             total_pixels = masks[i][o].sum()
-
             threshold = 1
             towards_pixels = fe_part > threshold
 
             total_crowd = cc_part.sum()
 
+            # Too remove some noise
             if towards_pixels.sum() == 0 or total_crowd < 0:
                 sums[i].append(0.0)
                 continue
@@ -115,12 +109,11 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
             sums[i].append(crowd_towards * percentage_over)
 
-
     return sums
 
 
 # Initialize the crowd counting model
-def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar'):
+def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', scale=1.0):
     print("--- LOADING CSRNET ---")
     print("- Initialize architecture")
     cc_model = CSRNet()
@@ -131,11 +124,13 @@ def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar'):
     print("- Weights to GPU")
     cc_model.load_state_dict(checkpoint['state_dict'])
     print("--- DONE ---")
-    return cc_model
+    return cc_model, scale
 
 
 # Run the crowd counting model on frame A
-def run_cc_model(cc_model, frame):
+def run_cc_model(cc_info, frame):
+    cc_model, scale = cc_info
+
     # Load the image and normalize the image
     img = 255.0 * F.to_tensor(Image.open(frame.get_image_path()).convert('RGB'))
     img[0, :, :] = img[0, :, :] - 92.8207477031
@@ -154,7 +149,7 @@ def run_cc_model(cc_model, frame):
 
 
 # Initialize the flow estimation model
-def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000'):
+def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', scale=1.0):
     print("--- LOADING DDFLOW ---")
 
     print("- Load architecture")
@@ -175,11 +170,11 @@ def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_pr
     print("- Restore weights")
     saver.restore(sess, restore_model)
     print("--- DONE ---")
-    return sess, flow_est, flow_est_color
+    return sess, flow_est, flow_est_color, scale
 
 # Run the Flow estimation model based on a pair of frames
 def run_fe_model(fe_model, pair):
-    sess, flow_est, flow_est_color = fe_model
+    sess, flow_est, flow_est_color, scale = fe_model
 
     # Load frame 1 and normalize it
     img1 = tf.image.decode_png(tf.read_file(pair.get_frames()[0].get_image_path()), channels=3)

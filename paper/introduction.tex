@@ -1,14 +1,38 @@
 \section{Introduction}
-In a world with increasing accessibility to information, it is important to summarize this information into useful information for the users.  In this case we have access to a huge amount of surveillance camera's which are used during busy events. To monitor all these camera's it requires a lot of manual watching what is happening on those camera's. There has a lot of research been done on reducing the amount of manual watching and translating the information into more actionable and measurable tasks.
+In a world with increasing accessibility to information, it is important to summarize all this information into useful information for the intended users. In this case we have access to a large amount of surveillance camera's which are used during busy events. To monitor all these camera's it requires a lot of manual watching what is happening on those camera's. There has a lot of research been done on reducing the amount of manual watching and translating the information into more actionable and measurable tasks.
 
-The research can be ranging from quite low level to more high level. On a low level we have Crowd Counting which is to measure how how many individuals are present in an certain frame. As well as which direction a person is going, Crowd Direction. On a mid level we try to extract information over a time frame of the frame, Line of Interest is a good example of this. With Line of Interest the goal is to count how many people crossed the line in a time frame. An example of this is counting how many people went inside a stadium and went out. Lastly on a high level we want to make decisions based on both these high and mid level information, such as finding jam's inside a crowd.
+In this thesis we will focus on the Line of Interest problem (Convert this into a better term). The goal is to count the amount of pedestrians that cross a specified line in a certain time frame. In area's with low density of pedestrians a generic object tracking solution would suffice. In high density crowds the results of the solutions will degrade quickly. (Because most object trackers can handle up to 50 people, YOLOv4 paper and another solution)
 
-In this thesis we will mostly focus on Line of Interest. Line of Interest is an area which hasn't had a lot of improvements since 2016, but there were still a lot improvements around the building blocks of LOI. Which is an excelent reason to check again the current LOI state-of-the-art and try to find ways to improve the SOTA with more up to date methods.
+To handle high density crowds specialized solutions are presented over the years. Those methods typically combine two components, crowd density prediction (Region of Interest) and flow estimation. (Already citing papers, same as below?). Traditionally the density prediction is done using keypoint extraction and feeding those keypoints in a regression model (Cite some papers). Flow estimation is typically done with a Lucas-Kanade method (papers who implement this method).
 
-In the newer methods which we will be focusing on, there are two main components for Line of Interest. Which is Crowd Counting and Crowd Direction. Combining these two provides a estimation who crossed the line and who didn't.
+More recently the rise of Convolutional Networks made it possible to improve both components. Both crowd counting (Papers) and flow estimation (Papers) research fields have state of the arts which heavily rely on convolutional networks. Several papers combine these CNN focused methods to a Line of Interest solution (Papers, Zhao et al. (2016) and more) which give good and promising results.
 
-\input{pipeline}
+One of the major drawbacks of Neural Networks is the huge amounts of that that is required for training these networks (Probably should be papers, but this is like a very trivial thing in the AI field, so should it?). For the crowd density estimation several public datasets are available and labeling new images can be done easily. Labeling data for the flow estimator is much more difficult and time intensive (Should I explain this more in detail. No real paper, but can show somewhere my calculation of time). In earlier papers (Previous paragraph papers) this is done, but this is less feasible for implementation in actual applications.
 
-\subsubsection{Why unsupervised}
-For Crowd Counting there are a lot of datasets available and if new data is provided, it is pretty easy to label these and update the model. For Crowd Direction this is a bit more tricky. Older methods use conventional methods which used handcrafted features which predicted pretty well the direction in situations which were pretty standard, but completely failed in situations which were different from the standard. With the introduction of convolutional neural networks in the field this changed. These made it possible to make vastly more robust filters, but with cost of requiring a lot of labeled data (Because supervised learning). All approaches in the earlier papers had the access to huge amount of labeled data, which made this a suitable solution. In situations with not a lot of available data this makes it a lot harder.
-The supervised models for Crowd Direction are largely based on general Flow Estimation models which try to predict all the pixels in a frame. More recently there appear methods to make the supervised Flow Estimation models unsupervised. This makes it possible to accurately predict the direction of pixels without the need for huge amounts of labeled data.
+Besides supervised learning of the flow estimation, more and more traction is gained for the unsupervised flow estimation research area. These methods provide a much more scalable solution for real world applications and come closer to supervised flow estimation performance. In this thesis we will focus on a solution which utilizes the unsupervised flow estimation. (See research question 1)
+
+Besides the huge amount of data another problem with several convolutional neural networks is the running time. CNN’s can take a long time to produce their predictions. To make methods applicable for real life applications quickly producing results with minimal performance degrading is crucial. This will be our second focus of this work. (See research question 2)
+
+Lastly another major focus of the work is to make the proposed solution versatile and make it possible to easily use for new scenes. So we will focus on the minimization of extra required data when a the model is deployed on another scene. (See research question 3)
+
+\subsection{Research questions}
+In this work, we introduce a novel solution for the Line of Interest problem. The solution uses unsupervised flow estimation and supervised crowd density prediction to minimize the use of labeling.
+
+To motivate our work we endeavor to answer the next research questions:
+\begin{itemize}
+    \item What is the performance of the new model against fully supervised models?
+    \item Is it possible to let the methods run real time, and if so what is the performance?
+    \item How much new data is required to properly perform in new scenes?
+\end{itemize}
+
+\subsection{Thesis outline}
+The rest of this thesis is divided into the next chapters:
+
+ \begin{itemize}
+    \item \textbf{Related work}, which explains more in depth related work and tries to give a good background to understand the proposed solution.
+    \item \textbf{Method}, presents the method of the proposed solution. (Nothing fancy to tell about)
+    \item \textbf{Implementation}, presents the hyperparameters, evaluation methods and the used datasets.
+    \item \textbf{Results}, displays the results for the discussion.
+    \item \textbf{Discussion}, discusses the research questions and try to answer it based on the results.
+    \item \textbf{Conclusion}, wraps it up and summarizes what we can conclude
+ \end{itemize}

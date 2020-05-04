@@ -31,7 +31,7 @@ def main(_):
     if not os.path.exists(param_set['labeling_dir']):
         os.makedirs(param_set['labeling_dir'])
 
-    set_random_seed(0)
+    set_random_seed(1234)
     # GPU setting, per_process_gpu_memory_fraction means 95% GPU MEM ,allow_growth means unfixed memory
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.95, allow_growth=True)
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
