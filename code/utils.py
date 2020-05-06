@@ -18,25 +18,8 @@ from DDFlow.flowlib import flow_to_color
 
 from scipy.ndimage import rotate
 
-
 # Give a region and turn it in a mask to extract the region information
-def region_to_mask(region, img_width=1920, img_height=1080):
-    full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
-
-    p1 = region[0]
-    p2 = region[2]
-    # Full size is the maximum size an image can get. (When an image is rotated 45 degrees it get's this size
-    mask = np.zeros((full_size, full_size))
-
-    fw = int((full_size - img_width)/2)
-    fh = int((full_size - img_height)/2)
-
-    # Add the region mask to the empty mask
-    mask[fw + min(p1[0], p2[0]):fw + max(p1[0], p2[0]), fh + min(p1[1], p2[1]):fh + max(p1[1], p2[1])] = 1
-    return mask
-
-# Give a region and turn it in a mask to extract the region information
-def region_to_mask2(region, rotate_angle, center, img_width=1920, img_height=1080):
+def region_to_mask(region, rotate_angle, center, img_width=1920, img_height=1080):
     full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
 
     p1 = rotate_point(region[0], -rotate_angle, center)
@@ -175,3 +158,10 @@ def add_total_information(image, loi_output, totals):
             20 + w, height - 20
     ], fill="black")
     draw.text((20, height - h - 20), msg, fill="white")
+
+def white_to_transparency_gradient(img):
+    x = np.asarray(img.convert('RGBA')).copy()
+
+    x[:, :, 3] = (255 - np.power(x[:, :, :3].mean(axis=2)/255., 3)*255/3).astype(np.uint8)
+
+    return Image.fromarray(x)

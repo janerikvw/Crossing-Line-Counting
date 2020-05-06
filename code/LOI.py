@@ -23,7 +23,13 @@ import datetime
 
 # Intialize the regionwise LOI. Returns all the information required to execute the regionwise LOI optimally.
 # The initializer generates all the reqions around the LOI and the masks for extracting the data from the CC and FE.
-def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, width=50, cregions=5, shrink=0.90):
+def init_regionwise_loi(orig_point1, orig_point2, orig_img_width=1920, orig_img_height=1080, scale=1.0, orig_width=50, cregions=5, shrink=0.90):
+    # Rescale everything
+    width = int(orig_width * scale)
+    point1 = (orig_point1[0] * scale, orig_point1[1] * scale)
+    point2 = (orig_point2[0] * scale, orig_point2[1] * scale)
+    img_width = orig_img_width * scale
+    img_height = orig_img_height * scale
     center = (img_width / 2, img_height / 2)
     rotate_angle = math.degrees(math.atan((point2[1] - point1[1]) / float(point2[0] - point1[0])))
 
@@ -39,7 +45,7 @@ def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, width=5
     masks = ([], [])
     for i, small_regions in enumerate(regions):
         for o, region in enumerate(small_regions):
-            mask = region_to_mask2(region, rotate_angle, center)
+            mask = region_to_mask(region, rotate_angle, center)
             masks[i].append(mask)
 
     return regions, rotate_angle, center, masks
@@ -113,7 +119,7 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
 
 # Initialize the crowd counting model
-def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', scale=1.0):
+def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', scale=1.0, orig_img_width=1920, orig_img_height=1080):
     print("--- LOADING CSRNET ---")
     print("- Initialize architecture")
     cc_model = CSRNet()
@@ -124,18 +130,22 @@ def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', scale=1
     print("- Weights to GPU")
     cc_model.load_state_dict(checkpoint['state_dict'])
     print("--- DONE ---")
-    return cc_model, scale
+    return cc_model, scale, orig_img_width, orig_img_height
 
 
 # Run the crowd counting model on frame A
 def run_cc_model(cc_info, frame):
-    cc_model, scale = cc_info
+    cc_model, scale, orig_img_width, orig_img_height = cc_info
 
+    tbegin = datetime.datetime.now()
     # Load the image and normalize the image
-    img = 255.0 * F.to_tensor(Image.open(frame.get_image_path()).convert('RGB'))
+    img = Image.open(frame.get_image_path()).convert('RGB')
+    img = img.resize((int(orig_img_width*scale), int(orig_img_height*scale)))
+    img = 255.0 * F.to_tensor(img)
     img[0, :, :] = img[0, :, :] - 92.8207477031
     img[1, :, :] = img[1, :, :] - 95.2757037428
     img[2, :, :] = img[2, :, :] - 104.877445883
+    print("Loading FE images only: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
 
     # Run the model on the GPU
     img = img.cuda()
@@ -149,7 +159,7 @@ def run_cc_model(cc_info, frame):
 
 
 # Initialize the flow estimation model
-def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', scale=1.0):
+def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', scale=1.0, orig_img_width=1920, orig_img_height=1080):
     print("--- LOADING DDFLOW ---")
 
     print("- Load architecture")
@@ -170,23 +180,29 @@ def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_pr
     print("- Restore weights")
     saver.restore(sess, restore_model)
     print("--- DONE ---")
-    return sess, flow_est, flow_est_color, scale
+    return sess, flow_est, flow_est_color, scale, orig_img_width, orig_img_height
 
 # Run the Flow estimation model based on a pair of frames
 def run_fe_model(fe_model, pair):
-    sess, flow_est, flow_est_color, scale = fe_model
+    sess, flow_est, flow_est_color, scale, orig_img_width, orig_img_height = fe_model
+    tbegin = datetime.datetime.now()
 
     # Load frame 1 and normalize it
     img1 = tf.image.decode_png(tf.read_file(pair.get_frames()[0].get_image_path()), channels=3)
     img1 = tf.cast(img1, tf.float32)
     img1 /= 255
-    img1 = tf.expand_dims(img1, axis=0).eval(session=sess)
+    img1 = tf.expand_dims(img1, axis=0)
+    img1 = tf.image.resize_images(img1, (int(orig_img_height*scale), int(orig_img_width*scale)))
+    img1 = img1.eval(session=sess)
 
     # Load frame 2 and normalize it
     img2 = tf.image.decode_png(tf.read_file(pair.get_frames()[1].get_image_path()), channels=3)
     img2 = tf.cast(img2, tf.float32)
     img2 /= 255
-    img2 = tf.expand_dims(img2, axis=0).eval(session=sess)
+    img2 = tf.expand_dims(img2, axis=0)
+    img2 = tf.image.resize_images(img2, (int(orig_img_height * scale), int(orig_img_width * scale)))
+    img2 = img2.eval(session=sess)
+    print("Loading FE images only: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
 
     # Run the model and output both the raw output and the colored demo image.
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})
