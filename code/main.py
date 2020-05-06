@@ -15,10 +15,23 @@ import datetime
 from PIL import Image, ImageDraw
 import PIL
 
+# Configurable params
 scale = 1.0
 orig_frame_width = 1920
 orig_frame_height = 1080
 
+orig_point1 = (550, 20)
+orig_point2 = (350, 700)
+orig_line_width = 35  # Widest region
+orientation_shrink = 0.92  # Shrinking per region moving away from the camera (To compensate for orientation)
+
+
+point1, point2, frame_width, frame_height, line_width = utils.scale_params(orig_point1,
+                                                               orig_point2,
+                                                               orig_frame_width,
+                                                               orig_frame_height,
+                                                               orig_line_width,
+                                                               scale=scale)
 
 print("--- LOADING TESTSET ---")
 #train_pairs, test_pairs = factory.load_train_test_frame_pairs('')
@@ -28,39 +41,45 @@ print("- Loaded {} pairs".format(len(train_pairs)))
 print("--- DONE ---")
 
 # Load counting model
-cc_model = LOI.init_cc_model(weights_path='CSRNet/preA_fudanmodel_best.pth.tar', scale=scale)
+cc_model = LOI.init_cc_model(weights_path='CSRNet/preA_fudanmodel_best.pth.tar', img_width=frame_width, img_height=frame_height)
 
 # Load flow estimation model
-# fe_model = LOI.init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', scale=scale)
+fe_model = LOI.init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', img_width=frame_width, img_height=frame_height)
 
-point1 = (550, 20)
-point2 = (350, 700)
-loi_model = LOI.init_regionwise_loi(point1, point2, orig_img_width=orig_frame_width, orig_img_height=orig_frame_height, scale=scale, shrink=0.92, orig_width=35)
+loi_model = LOI.init_regionwise_loi(point1, point2, img_width=orig_frame_width, img_height=orig_frame_height, shrink=orientation_shrink, line_width=line_width)
 
 total_left = 0
 total_right = 0
 
-for i, pair in enumerate(train_pairs[0:2]):
+for i, pair in enumerate(train_pairs[0:1]):
     print_i = '{:05d}'.format(i+1)
     print("{}/{}".format(print_i, len(train_pairs)))
 
     tbegin = datetime.datetime.now()
 
+    frame1_img = Image.open(pair.get_frames()[0].get_image_path()).convert('RGB').resize((frame_width, frame_height))
+    frame2_img = Image.open(pair.get_frames()[0].get_image_path()).convert('RGB').resize((frame_width, frame_height))
+
+    img_arr = np.array(frame1_img)
+    print(img_arr.max(), )
+
+
+
     # Run counting model on frame A
-    cc_output = LOI.run_cc_model(cc_model, pair.get_frames()[0])
+    cc_output = LOI.run_cc_model(cc_model, frame1_img.copy())
 
     print("Crowd Counting miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
     tbegin = datetime.datetime.now()
 
     # Run flow estimation model on frame pair
-    # fe_output, fe_output_color = LOI.run_fe_model(fe_model, pair)
+    fe_output, fe_output_color = LOI.run_fe_model(fe_model, pair, frame1_img.copy(), frame2_img.copy())
 
     print("Flow Estimator miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
     tbegin = datetime.datetime.now()
 
     # Run the merger for the crowdcounting and flow estimation model
     # In code mention the papers based on
-    # loi_output = LOI.regionwise_loi(loi_model, cc_output, fe_output)
+    loi_output = LOI.regionwise_loi(loi_model, cc_output, fe_output)
 
     print("LOI miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
 
@@ -76,8 +95,21 @@ for i, pair in enumerate(train_pairs[0:2]):
 
     tbegin = datetime.datetime.now()
 
+    # Load and save original CC model
+    cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+    cc_img = cc_img.convert("L")
+    cc_img.save('results/video2/crowd_{}.png'.format(print_i))
+
+    # Transform CC model and merge with original image for demo
+    cc_img = np.zeros((cc_output.shape[0], cc_output.shape[1], 4))
+    cc_img = cc_img.astype(np.uint8)
+    cc_img[:, :, 3] = 255 - (cc_output * 255.0 / cc_output.max())
+    cc_img[cc_img > 2] = cc_img[cc_img > 2] * 0.4
+    cc_img = Image.fromarray(cc_img, 'RGBA')
+    total_image = Image.alpha_composite(total_image, cc_img)
+
     # Save original flow image
-    misc.imsave('results/video2/orig_flow_{}.png'.format(print_i), fe_output_color[0])
+    misc.imsave('results/video2/flow_{}.png'.format(print_i), fe_output_color[0])
 
     # Transform flow and merge with original image
     flow_img = fe_output_color[0] * 255.0
@@ -86,28 +118,11 @@ for i, pair in enumerate(train_pairs[0:2]):
     flow_img = utils.white_to_transparency_gradient(flow_img)
     total_image = Image.alpha_composite(total_image, flow_img)
 
-    # Load and save original CC model
-    cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
-    cc_img = cc_img.convert("L")
-    cc_img.save('results/video2/csr_{}.png'.format(print_i))
-
-    # Transform CC model and merge with original image for demo
-    cc_img = np.zeros((cc_output.shape[0], cc_output.shape[1], 4))
-    cc_img = cc_img.astype(np.uint8)
-    cc_img[:, :, 3] = 255 - (cc_output * 255.0 / cc_output.max())
-    cc_img[cc_img > 2] = cc_img[cc_img > 2] * 0.5
-    cc_img = Image.fromarray(cc_img, 'RGBA')
-    total_image = Image.alpha_composite(total_image, cc_img)
-
     # Save merged image
     total_image.save('results/video2/combined_{}.png'.format(print_i))
 
-    print("Combining CC/FE and orig: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
-    tbegin = datetime.datetime.now()
-
-
     # Generate the demo output for clear view on what happens
-    img = pair.get_frames()[0].get_image().convert("RGB")
+    img = total_image.convert("RGB")
     img = img.resize((int(orig_frame_width * scale), int(orig_frame_height * scale)))
     scaled_point1 = (point1[0] * scale, point1[1] * scale)
     scaled_point2 = (point2[0] * scale, point2[1] * scale)
@@ -117,6 +132,6 @@ for i, pair in enumerate(train_pairs[0:2]):
     img = img.crop((point2[0] - 70, point1[1] - 100, point1[0] + 70, point2[1] + 100))
     utils.add_total_information(img, loi_output, totals)
 
-    img.save('results/video2/orig_{}.png'.format(print_i))
+    img.save('results/video2/line_{}.png'.format(print_i))
 
-    print("Demo saving miliseconds: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
+    print("Merge results and save demo image: {}ms".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))

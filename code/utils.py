@@ -165,3 +165,12 @@ def white_to_transparency_gradient(img):
     x[:, :, 3] = (255 - np.power(x[:, :, :3].mean(axis=2)/255., 3)*255/3).astype(np.uint8)
 
     return Image.fromarray(x)
+
+# Scale all parameters correctly when it changes from the original size
+def scale_params(point1, point2, frame_width, frame_height, line_width, scale=1.0):
+    point1 = (point1[0]*scale, point1[1]*scale)
+    point2 = (point2[0] * scale, point2[1] * scale)
+    frame_width = int(frame_width * scale)
+    frame_height = int(frame_height * scale)
+    line_width *= scale
+    return point1, point2, frame_width, frame_height, line_width
