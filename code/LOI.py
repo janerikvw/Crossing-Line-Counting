@@ -170,17 +170,17 @@ def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_pr
     return sess, flow_est, flow_est_color, img_width, img_height
 
 # Run the Flow estimation model based on a pair of frames
-def run_fe_model(fe_model, pair, img1, img2):
+def run_fe_model(fe_model, pair):
     sess, flow_est, flow_est_color, img_width, img_height = fe_model
     tbegin = datetime.datetime.now()
+    # #
+    # img1 = np.expand_dims(np.array(img1).astype(np.float32), 0)
+    # img1 /= 255
+    # img2 = np.expand_dims(np.array(img2).astype(np.float32), 0)
+    # img2 /= 255
     #
-    img1 = np.expand_dims(np.array(img1).astype(np.float32), 0)
-    img1 /= 255
-    img2 = np.expand_dims(np.array(img2).astype(np.float32), 0)
-    img2 /= 255
-
-    cc_img = Image.fromarray(np.squeeze(img1) * 255.0, 'RGB')
-    cc_img.save('results/numpy.png')
+    # cc_img = Image.fromarray(np.squeeze(img1) * 255.0, 'RGB')
+    # cc_img.save('results/numpy.png')
 
     # # Load frame 1 and normalize it
     img1 = tf.image.decode_png(tf.read_file(pair.get_frames()[0].get_image_path()), channels=3)
@@ -189,9 +189,9 @@ def run_fe_model(fe_model, pair, img1, img2):
     img1 = tf.expand_dims(img1, axis=0)
     img1 = tf.image.resize_images(img1, (img_height, img_width))
     img1 = img1.eval(session=sess)
-
-    cc_img = Image.fromarray(np.squeeze(img1) * 255.0, 'RGB')
-    cc_img.save('results/tensor.png')
+    #
+    # cc_img = Image.fromarray(np.squeeze(img1) * 255.0, 'RGB')
+    # cc_img.save('results/tensor.png')
     #
     # Load frame 2 and normalize it
     img2 = tf.image.decode_png(tf.read_file(pair.get_frames()[1].get_image_path()), channels=3)
@@ -200,7 +200,7 @@ def run_fe_model(fe_model, pair, img1, img2):
     img2 = tf.expand_dims(img2, axis=0)
     img2 = tf.image.resize_images(img2, (img_height, img_width))
     img2 = img2.eval(session=sess)
-    print("Loading FE images only: {}".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
+    print("Loading FE images only: {}ms".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
 
     # Run the model and output both the raw output and the colored demo image.
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})

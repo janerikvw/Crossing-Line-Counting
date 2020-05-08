@@ -9,7 +9,9 @@ import copy
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 from skimage.measure import compare_psnr, compare_ssim
-# from guided_filter_tf.guided_filter import guided_filter
+from scipy import misc
+import numpy as np
+from guided_filter_tf.guided_filter import guided_filter
 
 
 class drnet_2D(object):
@@ -45,7 +47,7 @@ class drnet_2D(object):
         :return: mean of the l1 loss across all voxels.
         """
         absolute_residuals = tf.abs(tf.subtract(prediction, ground_truth))
-        return tf.reduce_sum(tf.sqrt(absolute_residuals ** 2 + 1e-6))
+        return tf.reduce_sum(tf.sqrt(absolute_residuals**2+1e-6))
 
     def l2_loss(self, prediction, ground_truth):
         """
@@ -57,6 +59,7 @@ class drnet_2D(object):
         residuals = tf.abs(tf.subtract(prediction, ground_truth))
         return tf.nn.l2_loss(residuals)
 
+
     def focal_loss_func(self, logits, labels, alpha=0.25, gamma=2.0):
         """
         Loss = weighted * -target*log(softmax(logits))
@@ -64,6 +67,7 @@ class drnet_2D(object):
         :param labels: ground_truth
         :return: softmax-weighted loss
         """
+
         labels = tf.dtypes.cast(labels[:, :, :, 0], tf.int32)
         gt = tf.one_hot(labels, 2)
         softmaxpred = tf.nn.softmax(logits)
@@ -85,7 +89,8 @@ class drnet_2D(object):
         print('Model: drnet_D_2D_model')
         self.pred_prob = self.drnet_D_2D_model(self.input_Img)
 
-        self.density_loss = self.l2_loss(recursive_box_filter(self.pred_prob), recursive_box_filter(self.input_Dmap))
+        self.density_loss = self.l2_loss(self.pred_prob, self.input_Dmap)
+        # self.density_loss = self.l2_loss(recursive_box_filter(self.pred_prob), recursive_box_filter(self.input_Dmap))
 
         self.total_loss = self.density_loss
         # trainable variables
@@ -189,8 +194,8 @@ class drnet_2D(object):
         pred_prob = conv2d(input=deconv2_conv1, output_chn=1, kernel_size=1, stride=1, dilation=(1, 1), use_bias=True,
                            name='pred_prob')
 
-        # guide_prob_temp = conv2d(input=conv1, output_chn=1, kernel_size=3, stride=1, dilation=(1,1), use_bias=True, name='guide_prob_temp')
-        # pred_prob = guided_filter(guide_prob_temp, pred_prob_temp)
+        #guide_prob_temp = conv2d(input=conv1, output_chn=1, kernel_size=3, stride=1, dilation=(1,1), use_bias=True, name='guide_prob_temp')
+        #pred_prob = guided_filter(guide_prob_temp, pred_prob_temp, 4)
 
         return pred_prob
 
@@ -286,6 +291,50 @@ class drnet_2D(object):
         print("Epoch: [%d], mae: %0.2f, rmse:%0.2f\n" % (step, mean_mae, mean_rmse))
         log_file.write("Epoch: [%d], mae: %0.2f, rmse:%0.2f\n" % (step, mean_mae, mean_rmse))
         log_file.flush()
+
+    def test(self):
+
+        # initialization
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)
+
+        if self.load_chkpoint(self.chkpoint_dir):
+            print(" [*] Load SUCCESS\n")
+        else:
+            print(" [!] Load failed...\n")
+
+        # get file list of testing dataset
+        img_list = glob('{}/*.jpg'.format(self.testImagePath))
+        img_list.sort()
+        dmap_list = glob('{}/*.mat'.format(self.testDmapPath))
+        dmap_list.sort()
+        img_clec, dmap_clec = load_data_pairs(img_list, dmap_list)
+
+        # self.test_training(img_list, img_clec, dmap_clec, 0, log_file)
+
+        for i_dx in xrange(len(img_clec)):
+            # train batch
+            print_i = '{:05d}'.format(i_dx + 1)
+            img_data = img_clec[i_dx]
+            print(img_data.shape)
+
+            w, h, c = img_data.shape
+            w = int(w / 4) * 4
+            h = int(h / 4) * 4
+
+            misc.imsave('output/u_i_{}.png'.format(print_i), img_data)
+            img_data = resize(img_data, (w, h, c), preserve_range=True)
+            img_data = img_data.reshape(1, w, h, c)
+
+            predicted_label = self.sess.run(self.pred_prob, feed_dict={self.input_Img: img_data})
+            predicted_label /= 100.0
+            predicted_label = np.squeeze(predicted_label)
+            predicted_label = predicted_label/predicted_label.max() * 255.
+            misc.imsave('output/u_r_{}.png'.format(print_i), predicted_label)
+
+            break
+
+        print("DONE!!!")
 
     def inference(self, img_path, dmap_path):
 
