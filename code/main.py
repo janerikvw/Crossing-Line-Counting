@@ -1,5 +1,6 @@
 import torch
 import sys
+import os
 
 import datasets.factory as factory
 import datasets.fudan as fudan
@@ -25,7 +26,7 @@ orig_point2 = (350, 700)
 orig_line_width = 35  # Widest region
 orientation_shrink = 0.92  # Shrinking per region moving away from the camera (To compensate for orientation)
 
-result_dir = 'results/video3'
+result_dir = 'results/video_half'
 
 # Create dir if not exists
 if not os.path.exists(result_dir):

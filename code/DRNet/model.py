@@ -11,7 +11,9 @@ from skimage.transform import resize
 from skimage.measure import compare_psnr, compare_ssim
 from scipy import misc
 import numpy as np
-from guided_filter_tf.guided_filter import guided_filter
+from guided_filter_new import guided_filter
+
+import datetime
 
 
 class drnet_2D(object):
@@ -191,11 +193,14 @@ class drnet_2D(object):
         print("output of decoder level11:")
         print(deconv2_conv1.get_shape())
 
-        pred_prob = conv2d(input=deconv2_conv1, output_chn=1, kernel_size=1, stride=1, dilation=(1, 1), use_bias=True,
+        pred_prob_temp = conv2d(input=deconv2_conv1, output_chn=1, kernel_size=1, stride=1, dilation=(1, 1), use_bias=True,
                            name='pred_prob')
 
-        #guide_prob_temp = conv2d(input=conv1, output_chn=1, kernel_size=3, stride=1, dilation=(1,1), use_bias=True, name='guide_prob_temp')
-        #pred_prob = guided_filter(guide_prob_temp, pred_prob_temp, 4)
+        self.test1 = pred_prob_temp
+
+        guide_prob_temp = conv2d(input=conv1, output_chn=1, kernel_size=3, stride=1, dilation=(1,1), use_bias=True, name='guide_prob_temp')
+        pred_prob = guided_filter(guide_prob_temp, pred_prob_temp, 4, eps=1e-2, nhwc=True)
+        self.test2 = pred_prob
 
         return pred_prob
 
@@ -217,12 +222,16 @@ class drnet_2D(object):
             print(" [!] Load failed...\n")
             log_file.write(" [!] Load failed...\n")
 
+        print("Load train files")
+
         # load all volume files
         img_list = glob('{}/*.jpg'.format(self.trainImagePath))
         img_list.sort()
         dmap_list = glob('{}/*.mat'.format(self.trainDmapPath))
         dmap_list.sort()
         img_clec, dmap_clec = load_data_pairs(img_list, dmap_list)
+
+        print("Load test files")
 
         # get file list of testing dataset
         test_img_list = glob('{}/*.jpg'.format(self.testImagePath))
@@ -312,7 +321,7 @@ class drnet_2D(object):
 
         # self.test_training(img_list, img_clec, dmap_clec, 0, log_file)
 
-        for i_dx in xrange(len(img_clec)):
+        for i_dx in xrange(len(img_clec[0:6])):
             # train batch
             print_i = '{:05d}'.format(i_dx + 1)
             img_data = img_clec[i_dx]
@@ -323,16 +332,17 @@ class drnet_2D(object):
             h = int(h / 4) * 4
 
             misc.imsave('output/u_i_{}.png'.format(print_i), img_data)
+
             img_data = resize(img_data, (w, h, c), preserve_range=True)
             img_data = img_data.reshape(1, w, h, c)
 
+            tbegin = datetime.datetime.now()
             predicted_label = self.sess.run(self.pred_prob, feed_dict={self.input_Img: img_data})
+            print("Running model: {}ms".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
             predicted_label /= 100.0
             predicted_label = np.squeeze(predicted_label)
             predicted_label = predicted_label/predicted_label.max() * 255.
             misc.imsave('output/u_r_{}.png'.format(print_i), predicted_label)
-
-            break
 
         print("DONE!!!")
 
