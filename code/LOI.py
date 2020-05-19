@@ -144,6 +144,13 @@ def run_cc_model(cc_info, img):
 
     return cc_output
 
+def init_drnet_init():
+    return
+
+
+def run_drnet_model(drnet_info):
+    return
+
 
 # Initialize the flow estimation model
 def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', img_width=1920, img_height=1080):

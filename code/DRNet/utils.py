@@ -175,6 +175,26 @@ def load_data_pairs_v1(img_list, dmap_list):
 
     return img_clec, dmap_clec
 
+def load_data_pairs_v2(frames):
+    """load all volume pairs"""
+    img_clec = []
+    dmap_clec = []
+
+    for frame in frames:
+        img_data = ReadImage(frame.get_image_path())
+        dmap_data = frame.get_density()
+
+        img_data = img_data.astype('float32')
+        dmap_data = dmap_data.astype('float32')
+
+        dmap_data = dmap_data * 100.0
+        img_data = img_data / 255.0
+
+        img_clec.append(img_data)
+        dmap_clec.append(dmap_data)
+
+    return img_clec, dmap_clec
+
 
 def get_batch_patches(rand_img, rand_dmap, patch_dim, batch_size):
     # print rand_img.shape

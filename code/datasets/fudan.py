@@ -41,6 +41,17 @@ def load_all_frame_pairs(base_path, load_labeling=True):
 
     return frame_pairs
 
+def load_train_test_frames(base_path, train=0.8, load_labeling=True):
+    train_frames = []
+    test_frames = []
+    for video_path in glob(os.path.join(base_path, '*')):
+        video_frames = load_video(video_path, load_labeling).get_frames()
+        len_frames = len(video_frames)
+        train_frames = train_frames + video_frames[:int(len_frames*train)]
+        test_frames = test_frames + video_frames[int(len_frames * train):]
+
+    return train_frames, test_frames
+
 
 if __name__ == '__main__':
     train_frames = load_all_frames('../data/Fudan/train_data')

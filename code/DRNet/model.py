@@ -35,6 +35,7 @@ class drnet_2D(object):
         # self.beta1 = param_set['beta1']
         self.epoch = param_set['epoch']
         self.model_name = param_set['model_name']
+        self.load_model_path = param_set['load_model_path']
         # self.save_intval = param_set['save_intval']
         # self.labeling_dir = param_set['labeling_dir']
 
@@ -91,7 +92,7 @@ class drnet_2D(object):
         print('Model: drnet_D_2D_model')
         self.pred_prob = self.drnet_D_2D_model(self.input_Img)
 
-        self.density_loss = self.l2_loss(self.pred_prob, self.input_Dmap)
+        self.density_loss = self.l1_loss(self.pred_prob, self.input_Dmap)
         # self.density_loss = self.l2_loss(recursive_box_filter(self.pred_prob), recursive_box_filter(self.input_Dmap))
 
         self.total_loss = self.density_loss
@@ -222,25 +223,40 @@ class drnet_2D(object):
             print(" [!] Load failed...\n")
             log_file.write(" [!] Load failed...\n")
 
-        print("Load train files")
+        print("Load data")
 
-        # load all volume files
-        img_list = glob('{}/*.jpg'.format(self.trainImagePath))
-        img_list.sort()
-        dmap_list = glob('{}/*.mat'.format(self.trainDmapPath))
-        dmap_list.sort()
-        img_clec, dmap_clec = load_data_pairs(img_list, dmap_list)
+        # # load all volume files
+        # img_list = glob('{}/*.jpg'.format(self.trainImagePath))
+        # img_list.sort()
+        # dmap_list = glob('{}/*.mat'.format(self.trainDmapPath))
+        # dmap_list.sort()
+        # img_clec, dmap_clec = load_data_pairs(img_list, dmap_list)
 
-        print("Load test files")
+        import os, sys, inspect
+        currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        parentdir = os.path.dirname(currentdir)
+        sys.path.insert(0, parentdir)
+        from datasets import shanghaitech, fudan
+        # frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/train_data', load_labeling=False)
+        train_frames, test_frames = fudan.load_train_test_frames('../data/Fudan/train_data')
+        import random
+        random.shuffle(train_frames)
+        random.shuffle(test_frames)
+        train_frames = train_frames[0:800]
+        test_frames = test_frames[0:150]
+        img_clec, dmap_clec = load_data_pairs_v2(train_frames)
+        test_img_clec, test_dmap_clec = load_data_pairs_v2(test_frames)
 
-        # get file list of testing dataset
-        test_img_list = glob('{}/*.jpg'.format(self.testImagePath))
-        test_img_list.sort()
-        test_dmap_list = glob('{}/*.mat'.format(self.testDmapPath))
-        test_dmap_list.sort()
-        test_img_clec, test_dmap_clec = load_data_pairs(test_img_list, test_dmap_list)
+        # # get file list of testing dataset
+        # test_img_list = glob('{}/*.jpg'.format(self.testImagePath))
+        # test_img_list.sort()
+        # test_dmap_list = glob('{}/*.mat'.format(self.testDmapPath))
+        # test_dmap_list.sort()
+        # test_img_clec, test_dmap_clec = load_data_pairs(test_img_list, test_dmap_list)
 
-        self.test_training(test_img_list, test_img_clec, test_dmap_clec, 0, log_file)
+        # frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/test_data', load_labeling=False)
+
+        self.test_training(test_img_clec, test_dmap_clec, 0, log_file)
 
         rand_idx = np.arange(len(img_clec))
         start_time = time.time()
@@ -267,12 +283,12 @@ class drnet_2D(object):
             start_time = time.time()
 
             if epoch + 1 > 0:  # np.mod(epoch+1, self.save_intval) == 0:
-                self.test_training(test_img_list, test_img_clec, test_dmap_clec, epoch + 1, log_file)
+                self.test_training(test_img_clec, test_dmap_clec, epoch + 1, log_file)
                 self.save_chkpoint(self.chkpoint_dir, self.model_name, epoch + 1)
 
         log_file.close()
 
-    def test_training(self, test_img_list, test_img_clec, test_dmap_clec, step, log_file):
+    def test_training(self, test_img_clec, test_dmap_clec, step, log_file):
         all_mae = np.zeros([len(test_img_clec)])
         all_rmse = np.zeros([len(test_img_clec)])
 
@@ -313,13 +329,23 @@ class drnet_2D(object):
             print(" [!] Load failed...\n")
 
         # get file list of testing dataset
-        img_list = glob('{}/*.jpg'.format(self.testImagePath))
-        img_list.sort()
-        dmap_list = glob('{}/*.mat'.format(self.testDmapPath))
-        dmap_list.sort()
-        img_clec, dmap_clec = load_data_pairs(img_list, dmap_list)
+        import os, sys, inspect
+        currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        parentdir = os.path.dirname(currentdir)
+        sys.path.insert(0, parentdir)
+        from datasets import shanghaitech
 
-        # self.test_training(img_list, img_clec, dmap_clec, 0, log_file)
+        frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
+        img_clec, dmap_clec = load_data_pairs_v2(frames)
+
+
+        # img_list = glob('{}/*.jpg'.format(self.testImagePath))
+        # img_list.sort()
+        # dmap_list = glob('{}/*.mat'.format(self.testDmapPath))
+        # dmap_list.sort()
+        # img_clec, dmap_clec = load_data_pairs(img_list, dmap_list)
+
+        # self.test_training(img_clec, dmap_clec, 0, log_file)
 
         for i_dx in xrange(len(img_clec[0:6])):
             # train batch
@@ -440,7 +466,7 @@ class drnet_2D(object):
     def load_chkpoint(self, checkpoint_dir):
         print(" [*] Reading checkpoint...")
 
-        checkpoint_dir = os.path.join(checkpoint_dir, self.model_name)
+        checkpoint_dir = os.path.join(checkpoint_dir, self.load_model_path)
 
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
         if ckpt and ckpt.model_checkpoint_path:

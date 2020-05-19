@@ -19,7 +19,7 @@ def load_all_frames(base_path, load_labeling=True):
             gt = mat["image_info"][0,0][0,0][0]
 
             for point in gt:
-                    frame.add_point((int(point[1]), int(point[0])))
+                    frame.add_point((int(point[0]), int(point[1])))
 
         frames.append(frame)
 

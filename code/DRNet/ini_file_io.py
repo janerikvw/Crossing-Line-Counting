@@ -27,7 +27,8 @@ def load_train_ini(ini_file):
                           epoch         = cf.getint(s[d], "epoch"),
                           model_name    = cf.get(s[d], "model_name"),
                           save_intval   = cf.getint(s[d], "save_intval"),
-                          labeling_dir  = cf.get(s[d], "labeling_dir"))
+                          labeling_dir  = cf.get(s[d], "labeling_dir"),
+                          load_model_path= cf.get(s[d], "load_model_path"))
         # add to list
         param_sections.append(level_dict)
 
