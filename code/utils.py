@@ -16,13 +16,15 @@ import tensorflow as tf
 from DDFlow.network import pyramid_processing
 from DDFlow.flowlib import flow_to_color
 
+from scipy.ndimage import rotate
 
 # Give a region and turn it in a mask to extract the region information
-def region_to_mask(region, img_width=1920, img_height=1080):
+def region_to_mask(region, rotate_angle, center, img_width=1920, img_height=1080):
     full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
 
-    p1 = region[0]
-    p2 = region[2]
+    p1 = rotate_point(region[0], -rotate_angle, center)
+    p2 = rotate_point(region[2], -rotate_angle, center)
+
     # Full size is the maximum size an image can get. (When an image is rotated 45 degrees it get's this size
     mask = np.zeros((full_size, full_size))
 
@@ -31,13 +33,17 @@ def region_to_mask(region, img_width=1920, img_height=1080):
 
     # Add the region mask to the empty mask
     mask[fw + min(p1[0], p2[0]):fw + max(p1[0], p2[0]), fh + min(p1[1], p2[1]):fh + max(p1[1], p2[1])] = 1
+
+    mask = rotate(mask, rotate_angle, reshape=False)
+    mask = mask[fw:-fw, fh:-fh]
+    mask = mask.transpose()
     return mask
 
 
 # Rotate an individual point with a certain angle and a given centre
 # In case of the LOI the centre is always the middle of the image
 # A standard Linear Algebra trick
-def rotate_point(point, angle, center):
+def rotate_point(point, angle, center, to_int=True):
     r_angle = math.radians(angle)
     r00 = math.cos(r_angle)
     r01 = -math.sin(r_angle)
@@ -48,6 +54,10 @@ def rotate_point(point, angle, center):
         r00 * point[0] + r01 * point[1] + center[0] - r00 * center[0] - r01 * center[1],
         r10 * point[0] + r11 * point[1] + center[1] - r10 * center[0] - r11 * center[1]
     )
+
+    if to_int:
+        out = int(out[0]), int(out[1])
+
     return out
 
 
@@ -148,3 +158,19 @@ def add_total_information(image, loi_output, totals):
             20 + w, height - 20
     ], fill="black")
     draw.text((20, height - h - 20), msg, fill="white")
+
+def white_to_transparency_gradient(img):
+    x = np.asarray(img.convert('RGBA')).copy()
+
+    x[:, :, 3] = (255 - np.power(x[:, :, :3].mean(axis=2)/255., 3)*255/3).astype(np.uint8)
+
+    return Image.fromarray(x)
+
+# Scale all parameters correctly when it changes from the original size
+def scale_params(point1, point2, frame_width, frame_height, line_width, scale=1.0):
+    point1 = (point1[0]*scale, point1[1]*scale)
+    point2 = (point2[0] * scale, point2[1] * scale)
+    frame_width = int(frame_width * scale)
+    frame_height = int(frame_height * scale)
+    line_width *= scale
+    return point1, point2, frame_width, frame_height, line_width

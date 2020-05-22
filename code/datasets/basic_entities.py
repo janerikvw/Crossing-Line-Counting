@@ -73,8 +73,10 @@ class BasicFrame:
         return self.image_path
 
     # Retrieve the path where the generated density map is stored
-    def get_density_path(self):
-        return os.path.splitext(self.image_path)[0] + ".npy"
+    def get_density_path(self, type = None):
+        if type is not None:
+            type = '_{}'.format(type)
+        return os.path.splitext(self.image_path)[0] + "{}.npy".format(type)
 
     # Return a Pillow link to the image file data.
     def get_image(self):
@@ -88,8 +90,8 @@ class BasicFrame:
         return image_data
 
     # Get the numpy array of the density map
-    def get_density(self):
-        return np.load(self.get_density_path())
+    def get_density(self, type = None):
+        return np.load(self.get_density_path(type))
 
     def is_labeled(self):
         return self.labeled

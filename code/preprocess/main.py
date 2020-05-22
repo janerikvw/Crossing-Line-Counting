@@ -15,7 +15,7 @@ import matplotlib
 
 from tqdm import tqdm
 
-from density_filter import gaussian_filter_density
+from density_filter import gaussian_filter_density, gaussian_filter_fixed_density
 
 # Add base path to import dir for importing datasets
 import os,sys,inspect
@@ -54,21 +54,20 @@ class Task(object):
         return self.info.get_image_path()
 
 def handle_frame(frame_obj):
-    k = gaussian_filter_density(frame_obj)
+    k = gaussian_filter_fixed_density(frame_obj)
     np.save(frame_obj.get_density_path(), k)
 
 if __name__ == '__main__':
 
     # Loading all the videos based on your dataset in BasicVideo/BasicFrame object format
-    # import fudan
-    # videos = []
-    # for video_path in glob('../data/Fudan/*/*'):
-    #     videos.append(fudan.load_video(video_path))
 
-    from datasets import shanghaitech
+    from datasets import shanghaitech, fudan
     frames_list = []
     for base_path in glob('../data/ShanghaiTech/part_*/*'):
-        frames_list = frames_list + tech_parts.load_all_frames(base_path)
+        frames_list = frames_list + shanghaitech.load_all_frames(base_path)
+
+    for base_path in glob('../data/Fudan/*_data'):
+        frames_list = frames_list + fudan.load_all_frames(base_path)
 
     # Establish communication queues
     tasks = multiprocessing.JoinableQueue()

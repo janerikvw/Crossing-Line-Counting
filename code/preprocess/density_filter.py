@@ -48,7 +48,7 @@ def gaussian_filter_density(frame):
     for i, pt in enumerate(points):
         pt2d = np.zeros(img_shape, dtype=np.float32)
         if int(pt[1])<img_shape[0] and int(pt[0])<img_shape[1]:
-            pt2d[int(pt[1]),int(pt[0])] = 1.
+            pt2d[int(pt[1]), int(pt[0])] = 1.
         else:
             continue
         if gt_count > 1:
@@ -57,4 +57,18 @@ def gaussian_filter_density(frame):
             sigma = np.average(np.array(gt.shape))/2./2.
         density += gaussian_filter(pt2d, sigma, mode='constant', truncate=3.0)
 
+    return density
+
+
+def gaussian_filter_fixed_density(frame, sigma=16):
+    img = plt.imread(frame.get_image_path())
+    img_shape = [img.shape[0], img.shape[1]]
+
+    density = np.zeros(img_shape, dtype=np.float32)
+    for dot in frame.get_centers():
+        if dot[1] >= img.shape[0] or dot[1] < 0 or dot[0] >= img.shape[1] or dot[0] < 0:
+            continue
+        density[dot[1], dot[0]] = 1
+
+    density = gaussian_filter(density, sigma, mode='constant')
     return density
