@@ -1,9 +1,12 @@
+
 import torch
 import sys
 import os
+import tensorflow as tf
 
 import datasets.factory as factory
 import datasets.fudan as fudan
+import datasets.arenapeds as arenapeds
 import LOI
 import utils
 
@@ -26,7 +29,7 @@ orig_point2 = (350, 700)
 orig_line_width = 35  # Widest region
 orientation_shrink = 0.92  # Shrinking per region moving away from the camera (To compensate for orientation)
 
-result_dir = 'results/video_half'
+result_dir = 'results/video_arenapeds'
 
 # Create dir if not exists
 if not os.path.exists(result_dir):
@@ -42,12 +45,19 @@ point1, point2, frame_width, frame_height, line_width = utils.scale_params(orig_
 print("--- LOADING TESTSET ---")
 #train_pairs, test_pairs = factory.load_train_test_frame_pairs('')
 
+
+
 train_pairs = fudan.load_video('data/Fudan/train_data/68').get_frame_pairs()
+
+# all_videos = arenapeds.load_all_videos('data/ArenaPeds/smaller_train_images')
+# train_pairs = all_videos[all_videos.keys()[1]].get_frame_pairs()
 print("- Loaded {} pairs".format(len(train_pairs)))
 print("--- DONE ---")
 
+
 # Load counting model
 cc_model = LOI.init_cc_model(weights_path='CSRNet/preA_fudanmodel_best.pth.tar', img_width=frame_width, img_height=frame_height)
+#drnet_model = LOI.init_drnet_model()
 
 # Load flow estimation model
 fe_model = LOI.init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', img_width=frame_width, img_height=frame_height)
@@ -57,7 +67,7 @@ loi_model = LOI.init_regionwise_loi(point1, point2, img_width=orig_frame_width, 
 total_left = 0
 total_right = 0
 
-for i, pair in enumerate(train_pairs[0:2]):
+for i, pair in enumerate(train_pairs[0:4]):
     print_i = '{:05d}'.format(i+1)
     print("{}/{}".format(print_i, len(train_pairs)))
 
@@ -71,6 +81,7 @@ for i, pair in enumerate(train_pairs[0:2]):
 
     # Run counting model on frame A
     cc_output = LOI.run_cc_model(cc_model, frame1_img.copy())
+    # cc_output = LOI.run_drnet_model(drnet_model, pair.get_frames()[0])
 
     print("Crowd Counting: {}ms".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
     tbegin = datetime.datetime.now()

@@ -86,21 +86,22 @@ class drnet_2D(object):
     # build model graph
     def build_model(self):
         # input
-        self.input_Img = tf.placeholder(dtype=tf.float32, shape=[None, None, None, self.inputI_chn], name='input_Img')
-        self.input_Dmap = tf.placeholder(dtype=tf.float32, shape=[None, None, None, self.output_chn], name='input_Dmap')
+        with tf.variable_scope("DRNet"):
+            self.input_Img = tf.placeholder(dtype=tf.float32, shape=[None, None, None, self.inputI_chn], name='input_Img')
+            self.input_Dmap = tf.placeholder(dtype=tf.float32, shape=[None, None, None, self.output_chn], name='input_Dmap')
 
-        print('Model: drnet_D_2D_model')
-        self.pred_prob = self.drnet_D_2D_model(self.input_Img)
+            print('Model: drnet_D_2D_model')
+            self.pred_prob = self.drnet_D_2D_model(self.input_Img)
 
-        self.density_loss = self.l1_loss(self.pred_prob, self.input_Dmap)
-        # self.density_loss = self.l2_loss(recursive_box_filter(self.pred_prob), recursive_box_filter(self.input_Dmap))
+            self.density_loss = self.l1_loss(self.pred_prob, self.input_Dmap)
+            # self.density_loss = self.l2_loss(recursive_box_filter(self.pred_prob), recursive_box_filter(self.input_Dmap))
 
-        self.total_loss = self.density_loss
-        # trainable variables
-        self.u_vars = tf.trainable_variables()
+            self.total_loss = self.density_loss
+            # trainable variables
+            self.u_vars = tf.trainable_variables()
 
-        # create model saver
-        self.saver = tf.train.Saver(max_to_keep=1000)
+            # create model saver
+            self.saver = tf.train.Saver(max_to_keep=1000)
 
     def drnet_D_2D_model(self, inputI):
         concat_dim = 3
@@ -333,10 +334,15 @@ class drnet_2D(object):
         currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         parentdir = os.path.dirname(currentdir)
         sys.path.insert(0, parentdir)
-        from datasets import shanghaitech
+        from datasets import shanghaitech, fudan
 
-        frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
-        img_clec, dmap_clec = load_data_pairs_v2(frames)
+        train_frames, test_frames = fudan.load_train_test_frames('../data/Fudan/train_data')
+        import random
+        random.seed(0)
+        random.shuffle(train_frames)
+        test_frames = train_frames[:300]
+        #frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
+        img_clec, dmap_clec = load_data_pairs_v2(test_frames)
 
 
         # img_list = glob('{}/*.jpg'.format(self.testImagePath))
@@ -368,7 +374,7 @@ class drnet_2D(object):
             predicted_label /= 100.0
             predicted_label = np.squeeze(predicted_label)
             predicted_label = predicted_label/predicted_label.max() * 255.
-            misc.imsave('output/u_r_{}.png'.format(print_i), predicted_label)
+            misc.imsave('output/u_r2_{}.png'.format(print_i), predicted_label)
 
         print("DONE!!!")
 

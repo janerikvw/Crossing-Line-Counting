@@ -128,3 +128,23 @@ class BasicFramePair:
     def is_labeled(self):
         return self.labeled
 
+class BasicLineSample:
+    def __init__(self, video, point1, point2, labeled=False):
+        self.video = video
+        self.point1 = point1
+        self.point2 = point2
+        self.labeled = labeled
+        self.crossed = (0, 0)
+
+    def set_crossed(self, to_left, to_right):
+        self.crossed = (to_left, to_right)
+        self.labeled = true
+
+    def get_crossed(self):
+        return self.crossed
+
+    def get_video(self):
+        return self.video
+
+    def get_line(self):
+        return (self.point1, self.point2)

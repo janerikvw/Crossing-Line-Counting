@@ -42,6 +42,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from datasets import factory as dataset_factory
+from datasets import shanghaitech
 
 def main():
     global args,best_prec1
@@ -55,7 +56,7 @@ def main():
     args.momentum = 0.95
     args.decay = 5*1e-4
     args.start_epoch = 0
-    args.epochs = 400
+    args.epochs = 450
     args.steps = [-1, 1, 100, 150]
     args.scales = [1, 1, 1, 1]
     args.workers = 4
@@ -63,6 +64,8 @@ def main():
     args.print_freq = 30
 
     train_list, val_list = dataset_factory.load_train_test_frames('../')
+    #train_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/train_data', load_labeling=False)
+    #val_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/test_data', load_labeling=False)
 
     print('Train frames', len(train_list))
     random.shuffle(train_list)
@@ -73,8 +76,8 @@ def main():
     val_list = val_list[5000:5400]
 
     print("Test frames", len(val_list))
-    #random.shuffle(val_list)
-    #val_list = val_list[0:200]
+    random.shuffle(val_list)
+    val_list = val_list[0:200]
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     torch.cuda.manual_seed(args.seed)

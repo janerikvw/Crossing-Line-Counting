@@ -26,6 +26,8 @@
         - "Done" by combining flow & crowd counting models
     Testing:
         - TUB Dataset (generated tracking videos)
+        - Fudan
+        - USCD (For comparing with other models?)
     - Visuele Performance Assessment:
         - Marineterrein videos (model predictions are easier to visually validate due to smaller crowds)
         - (Video's Arena Boen? Can we use these?) (model predictions are a bit harder to visually validate due to larger crowds)

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import math
+import os
 
 import datasets
 
@@ -19,6 +20,9 @@ from DDFlow.network import pyramid_processing
 from DDFlow.flowlib import flow_to_color
 
 import datetime
+
+from DRNet.model import drnet_2D
+from DRNet.ini_file_io import load_train_ini
 
 
 # Intialize the regionwise LOI. Returns all the information required to execute the regionwise LOI optimally.
@@ -144,12 +148,52 @@ def run_cc_model(cc_info, img):
 
     return cc_output
 
-def init_drnet_init():
-    return
 
 
-def run_drnet_model(drnet_info):
-    return
+def init_drnet_model(restore_model='DRNet/outcome/pretrain_B_new/pretrain_B_new-8', img_width=1920, img_height=1080):
+    print("--- LOADING DRNET ---")
+
+    print("- Load architecture")
+    ini_file = 'DRNet/ini/tr_param.ini'
+    param_sets = load_train_ini(ini_file)
+    param_set = param_sets[0]
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+    model = drnet_2D(sess, param_set)
+
+    print("- Initialize architecture")
+    model.sess.run(tf.global_variables_initializer())
+
+    print("- Restore weights")
+    model.saver.restore(model.sess, restore_model)
+
+    print("--- DONE ---")
+    return model
+
+
+def run_drnet_model(drnet_model, frame):
+    # Load image
+    img_data = np.array(Image.open(frame.get_image_path()))  # .convert('L'))
+
+    # Preprocess image
+    if (len(img_data.shape) < 3):
+        img_data = imArr[:, :, np.newaxis]
+        img_data = np.tile(img_data, (1, 1, 3))
+
+    img_data = img_data.astype('float32')
+    img_data = img_data / 255.0
+    w, h, c = img_data.shape
+    w = int(w / 4) * 4
+    h = int(h / 4) * 4
+    img_data = resize(img_data, (w, h, c), preserve_range=True)
+    img_data = img_data.reshape(1, w, h, c)
+
+    predicted_label = self.sess.run(drnet_model.pred_prob, feed_dict={drnet_model.input_Img: img_data})
+
+    predicted_label /= 100.0
+    predicted_label = np.squeeze(predicted_label)
+
+    return predicted_label
 
 
 # Initialize the flow estimation model
