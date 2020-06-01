@@ -27,6 +27,7 @@
     Testing:
         - TUB Dataset (generated tracking videos)
         - Fudan (self-tag Fudan videos for GT creation // Also test YOLO V4 to compare with CSRnet)
+        - USCD Peds Dataset: http://visal.cs.cityu.edu.hk/downloads/downloads-by-year/ 
     - Visuele Performance Assessment:
         - Marineterrein videos (model predictions are easier to visually validate due to smaller crowds)
         - (Video's Arena Boen? Can we use these?) (model predictions are a bit harder to visually validate due to larger crowds)
