@@ -64,10 +64,10 @@ def main():
     args.print_freq = 30
 
     train_list, val_list = dataset_factory.load_train_test_frames('../')
-    #train_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/train_data', load_labeling=False)
-    #val_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/test_data', load_labeling=False)
+    # train_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/train_data', load_labeling=False)
+    # val_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
 
-    print('Train frames', len(train_list))
+    print('Total frames', len(train_list))
     random.shuffle(train_list)
 
     # Trick, could be overfitting, but let's check that out afterwards.
@@ -75,9 +75,10 @@ def main():
     train_list = train_list[0:5000]
     val_list = val_list[5000:5400]
 
+    print('Train frames', len(train_list))
     print("Test frames", len(val_list))
-    random.shuffle(val_list)
-    val_list = val_list[0:200]
+    #random.shuffle(val_list)
+    #val_list = val_list[0:200]
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     torch.cuda.manual_seed(args.seed)

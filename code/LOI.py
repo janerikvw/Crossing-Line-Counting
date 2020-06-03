@@ -130,16 +130,17 @@ def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', img_wid
 
 # Run the crowd counting model on frame A
 def run_cc_model(cc_info, img):
+    from torchvision import datasets, transforms
+    transform = transforms.Compose([
+        transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                    std=[0.229, 0.224, 0.225]),
+    ])
+
     cc_model, img_width, img_height = cc_info
 
     # Normalize the image
-    img = 255.0 * F.to_tensor(img)
-    img[0, :, :] = img[0, :, :] - 92.8207477031
-    img[1, :, :] = img[1, :, :] - 95.2757037428
-    img[2, :, :] = img[2, :, :] - 104.877445883
+    img = transform(img).cuda()
 
-    # Run the model on the GPU
-    img = img.cuda()
     cc_output = cc_model(img.unsqueeze(0))
 
     # Back to numpy and resize to original size

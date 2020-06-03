@@ -9,6 +9,7 @@ import os
 import glob
 from matplotlib import pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
+from torchvision import transforms
 import scipy
 import json
 
@@ -16,8 +17,11 @@ import torch
 
 import torchvision.transforms.functional as F
 from matplotlib import cm as CM
-from image import *
 from model import CSRNet
+from PIL import Image, ImageDraw
+
+from scipy.ndimage.interpolation import zoom
+
 
 from torchvision import datasets, transforms
 transform=transforms.Compose([
@@ -26,14 +30,14 @@ transform=transforms.Compose([
                    ])
 
 
-root = '/home/jvwoerden/Thesis/code/CSRNet-pytorch'
+root = '/home/jvwoerden/Thesis/code/data/ShanghaiTech'
 
 #now generate the ShanghaiA's ground truth
 part_A_train = os.path.join(root,'part_A_final/train_data','images')
 part_A_test = os.path.join(root,'part_A_final/test_data','images')
 part_B_train = os.path.join(root,'part_B_final/train_data','images')
 part_B_test = os.path.join(root,'part_B_final/test_data','images')
-path_sets = [part_A_train]
+path_sets = [part_B_test]
 
 img_paths = []
 for path in path_sets:
@@ -44,22 +48,40 @@ for path in path_sets:
 model = CSRNet()
 
 model = model.cuda()
-checkpoint = torch.load('PartAmodel_best.pth.tar')
+checkpoint = torch.load('trainBmodel_best.pth.tar')
 model.load_state_dict(checkpoint['state_dict'])
 
 mae = 0
+result_dir = 'test'
 for i in xrange(len(img_paths)):
-    img = 255.0 * F.to_tensor(Image.open(img_paths[i]).convert('RGB'))
-
-    img[0,:,:]=img[0,:,:]-92.8207477031
-    img[1,:,:]=img[1,:,:]-95.2757037428
-    img[2,:,:]=img[2,:,:]-104.877445883
-    img = img.cuda()
-    #img = transform(Image.open(img_paths[i]).convert('RGB')).cuda()
+    # img = 255.0 * F.to_tensor(Image.open(img_paths[i]).convert('RGB'))
+    #
+    # img[0,:,:]=img[0,:,:]-92.8207477031
+    # img[1,:,:]=img[1,:,:]-95.2757037428
+    # img[2,:,:]=img[2,:,:]-104.877445883
+    # img = img.cuda()
+    img = transform(Image.open(img_paths[i]).convert('RGB')).cuda()
     gt_file = h5py.File(img_paths[i].replace('.jpg','.h5').replace('images','ground_truth'),'r')
     groundtruth = np.asarray(gt_file['density'])
     output = model(img.unsqueeze(0))
-    i_mae = abs(output.detach().cpu().sum().numpy()-np.sum(groundtruth))
-    mae += i_mae
-    print i,mae,  i_mae, np.sum(groundtruth), output.detach().cpu().sum().numpy()
-print mae/len(img_paths)
+    cc_output = output.detach().cpu()
+    i_mae = abs(cc_output.sum().numpy()-np.sum(groundtruth))
+
+
+    #test_gt_file = np.load(img_paths[i].replace('.jpg','.npy'))
+    #print(np.sum(gt_file))
+    test_gt_file = Image.fromarray(groundtruth * 255.0 / groundtruth.max())
+    test_gt_file = test_gt_file.convert("L")
+    test_gt_file.save(os.path.join(result_dir, 'gt_{}.png').format(i))
+
+    cc_output = cc_output.data.numpy().squeeze()
+    cc_output = zoom(cc_output, zoom=8.0) / 64.
+
+    cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+    cc_img = cc_img.convert("L")
+    cc_img.save(os.path.join(result_dir, 'result_{}.png').format(i))
+    Image.open(img_paths[i]).convert('RGB').save(os.path.join(result_dir, 'orig_{}.png').format(i))
+
+    print i, mae, i_mae, np.sum(groundtruth), output.detach().cpu().sum().numpy()
+    if i > 3:
+        break

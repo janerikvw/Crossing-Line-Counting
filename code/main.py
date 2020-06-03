@@ -26,10 +26,10 @@ orig_frame_height = 1080
 
 orig_point1 = (550, 20)
 orig_point2 = (350, 700)
-orig_line_width = 35  # Widest region
+orig_line_width = 50  # Widest region
 orientation_shrink = 0.92  # Shrinking per region moving away from the camera (To compensate for orientation)
 
-result_dir = 'results/video_arenapeds'
+result_dir = 'results/new_video'
 
 # Create dir if not exists
 if not os.path.exists(result_dir):
@@ -56,7 +56,7 @@ print("--- DONE ---")
 
 
 # Load counting model
-cc_model = LOI.init_cc_model(weights_path='CSRNet/preA_fudanmodel_best.pth.tar', img_width=frame_width, img_height=frame_height)
+cc_model = LOI.init_cc_model(weights_path='CSRNet/V2_PreB_Fudanmodel_best.pth.tar', img_width=frame_width, img_height=frame_height)
 #drnet_model = LOI.init_drnet_model()
 
 # Load flow estimation model
@@ -67,7 +67,7 @@ loi_model = LOI.init_regionwise_loi(point1, point2, img_width=orig_frame_width, 
 total_left = 0
 total_right = 0
 
-for i, pair in enumerate(train_pairs[0:4]):
+for i, pair in enumerate(train_pairs):
     print_i = '{:05d}'.format(i+1)
     print("{}/{}".format(print_i, len(train_pairs)))
 
@@ -140,7 +140,7 @@ for i, pair in enumerate(train_pairs[0:4]):
     utils.image_add_region_lines(img, point1, point2, loi_output, shrink=orientation_shrink, width=line_width)
 
     # Crop and add information at the bottom of the screen
-    img = img.crop((point2[0] - 70, point1[1] - 15, point1[0] + 70, point2[1] + 60))
+    img = img.crop((point2[0] - 100, point1[1] - 15, point1[0] + 100, point2[1] + 60))
     utils.add_total_information(img, loi_output, totals)
 
     img.save(os.path.join(result_dir, 'line_{}.png'.format(print_i)))
