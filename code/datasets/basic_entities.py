@@ -17,6 +17,9 @@ class BasicVideo:
     def get_frames(self):
         return self.frames
 
+    def get_frame(self, frame_id):
+        return self.frames[frame_id]
+
     # Add an individual BasicFrame to the video
     def add_frame(self, frame):
         self.frames.append(frame)
