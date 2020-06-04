@@ -252,7 +252,6 @@ def run_fe_model(fe_model, pair):
     img2 = tf.expand_dims(img2, axis=0)
     img2 = tf.image.resize_images(img2, (img_height, img_width))
     img2 = img2.eval(session=sess)
-    print("Loading FE images only: {}ms".format(int((datetime.datetime.now() - tbegin).total_seconds() * 1000)))
 
     # Run the model and output both the raw output and the colored demo image.
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})

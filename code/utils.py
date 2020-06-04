@@ -174,3 +174,17 @@ def scale_params(point1, point2, frame_width, frame_height, line_width, scale=1.
     frame_height = int(frame_height * scale)
     line_width *= scale
     return point1, point2, frame_width, frame_height, line_width
+
+
+import datetime
+class sTimer():
+    def __init__(self, name):
+        self.start = datetime.datetime.now()
+        self.name = name
+
+    def show(self, printer=True):
+        ms = int((datetime.datetime.now() - self.start).total_seconds() * 1000)
+        if printer:
+            print("{}: {}ms".format(self.name, ms))
+
+        return ms
