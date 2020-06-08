@@ -62,7 +62,7 @@ def load_all_videos(path, load_peds=True):
     videos = []
     for image_dir in glob('{}/images/IM??'.format(path)):
         base = os.path.basename(image_dir)
-        frame_files = glob('{}/*'.format(image_dir))
+        frame_files = glob('{}/*.png'.format(image_dir))
         frame_files.sort()
 
         video = entities.BasicVideo(image_dir)
@@ -78,10 +78,10 @@ def load_all_videos(path, load_peds=True):
         frames = video.get_frames()
 
         # Open pedestrians information
-        track_path = '{}/PersonTracks.pb'.format(image_dir.replace('images', 'gt_trajectories'))
-        ret = pickle.load(open(track_path, 'rb'))
-
         if load_peds:
+            track_path = '{}/PersonTracks.pb'.format(image_dir.replace('images', 'gt_trajectories'))
+            ret = pickle.load(open(track_path, 'rb'))
+
             # Loop per pedestrian over the frames
             for i, pedestrian in enumerate(ret['GT_Trajectories']):
                 arr = np.array(pedestrian)
@@ -92,6 +92,14 @@ def load_all_videos(path, load_peds=True):
                     frames[frame_id].add_point((loc[0], loc[1]))
                     # TODO: Add tracking, now we haven't connected the track between frames.
     return videos
+
+# Load all the frames from the video
+def load_all_frames(base_path, load_labeling=True):
+    frames = []
+    for video_path in load_all_videos(base_path, load_peds=load_labeling):
+        frames = frames + video_path.get_frames()
+
+    return frames
 
 # Get per video when a pedestrian crosses a line (Get all the information of all the lines of the video)
 def get_line_crossing_frames(video):
@@ -161,8 +169,8 @@ def train_val_test_split(video, crossing_frames, test_size=0.5, train_size=0.1):
     # This function splits the video into train,val and test
     frames = video.get_frames()
     count_frames = len(frames)
-    count_train_frames = floor(count_frames * train_size)
-    count_test_frames = floor(count_frames * test_size)
+    count_train_frames = int(floor(count_frames * train_size))
+    count_test_frames = int(floor(count_frames * test_size))
 
     # Get the train video
     train_frames = frames[:count_train_frames]
@@ -214,7 +222,8 @@ def train_val_test_split(video, crossing_frames, test_size=0.5, train_size=0.1):
 def get_samples_from_video(video, crossing_frames, sample_length=50, sample_overlap=50):
     # Split the long video into shorter samples and per line
     base = os.path.basename(video.get_path())
-    count_frames = len(video.get_frames())
+    frames = video.get_frames()
+    count_frames = len(frames)
 
     if base not in lines:
         print('{} has not lines'.format(base))
@@ -237,6 +246,12 @@ def get_samples_from_video(video, crossing_frames, sample_length=50, sample_over
                         valid_line_cross.append(frame_jump)
                 check_line_crosses.append(valid_line_cross)
 
-            video_samples.append([start_sample, end_sample, lines[base][line_i], check_line_crosses])
+            # Make the sample into a video
+            sample_video = entities.BasicVideo(video.get_path())
+            val_frames = frames[start_sample:end_sample]
+            for frame in val_frames:
+                sample_video.add_frame(frame)
+
+            video_samples.append([sample_video, lines[base][int(line_i)], check_line_crosses, (base, line_i)])
 
     return video_samples

@@ -40,7 +40,7 @@ def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, line_wi
     masks = ([], [])
     for i, small_regions in enumerate(regions):
         for o, region in enumerate(small_regions):
-            mask = region_to_mask(region, rotate_angle, center)
+            mask = region_to_mask(region, rotate_angle, center, img_width=img_width, img_height=img_height)
             masks[i].append(mask)
 
     return regions, rotate_angle, center, masks
@@ -48,7 +48,7 @@ def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, line_wi
 
 # Combine both the crowd counting and the flow estimation with a regionwise method
 # Returns per region how many people are crossing the line from that side.
-def regionwise_loi(loi_info, counting_result, flow_result):
+def regionwise_loi(loi_info, counting_result, flow_result, colored_flow_result):
     regions, rotate_angle, center, masks = loi_info
 
     sums = ([], [])
@@ -88,7 +88,7 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
             # Get all the movement towards the line
             total_pixels = masks[i][o].sum()
-            threshold = 1
+            threshold = 0.5
             towards_pixels = fe_part > threshold
 
             total_crowd = cc_part.sum()
@@ -98,7 +98,7 @@ def regionwise_loi(loi_info, counting_result, flow_result):
                 sums[i].append(0.0)
                 continue
 
-            towards_avg = fe_part[towards_pixels].sum() / float(total_pixels) # float(towards_pixels.sum())
+            towards_avg = fe_part[towards_pixels].sum() / float(towards_pixels.sum()) # float(total_pixels)
             away_pixels = fe_part < -threshold
             # away_avg = fe_part[away_pixels].sum() / away_pixels.sum()
 
@@ -107,6 +107,7 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
             # Divide the average
             percentage_over = towards_avg / region[4]
+            # print(total_crowd, crowd_towards, percentage_over)
 
             sums[i].append(crowd_towards * percentage_over)
 

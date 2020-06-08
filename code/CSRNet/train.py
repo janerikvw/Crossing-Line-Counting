@@ -36,6 +36,9 @@ parser.add_argument('gpu',metavar='GPU', type=str,
 parser.add_argument('task',metavar='TASK', type=str,
                     help='task id to use.')
 
+parser.add_argument('--sigma', '-s', metavar='SIGMA', default=5,type=str,
+                    help='Size of sigma (currently only 3,5,8,12,16)')
+
 # Add base path to import dir for importing datasets
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -43,6 +46,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from datasets import factory as dataset_factory
 from datasets import shanghaitech
+from datasets import tub
 
 def main():
     global args,best_prec1
@@ -56,29 +60,39 @@ def main():
     args.momentum = 0.95
     args.decay = 5*1e-4
     args.start_epoch = 0
-    args.epochs = 450
+    args.epochs = 500
     args.steps = [-1, 1, 100, 150]
     args.scales = [1, 1, 1, 1]
     args.workers = 4
     args.seed = time.time()
     args.print_freq = 30
 
-    train_list, val_list = dataset_factory.load_train_test_frames('../')
+    # train_list, val_list = dataset_factory.load_train_test_frames('../')
     # train_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/train_data', load_labeling=False)
     # val_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
+    # random.shuffle(val_list)
+    # val_list = val_list[:100]
 
-    print('Total frames', len(train_list))
+    videos = tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False)
+    train_list = []
+    val_list = []
+    for video in videos:
+        base = os.path.basename(video.get_path())
+        # crossing = tub.get_line_crossing_frames(video)
+        with open('../data/TUBCrowdFlow/crossings/{}.json'.format(base)) as json_file:
+            crossing = json.load(json_file)['crossings']
+
+        train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, crossing)
+        train_list += train_video.get_frames()
+        val_list += val_video.get_frames()
+
     random.shuffle(train_list)
-
-    # Trick, could be overfitting, but let's check that out afterwards.
-    # First assume the CSRNet is performing pretty good
-    train_list = train_list[0:5000]
-    val_list = val_list[5000:5400]
+    train_list = train_list[0:120]
+    random.shuffle(val_list)
+    val_list = val_list[:50]
 
     print('Train frames', len(train_list))
     print("Test frames", len(val_list))
-    #random.shuffle(val_list)
-    #val_list = val_list[0:200]
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     torch.cuda.manual_seed(args.seed)
@@ -96,7 +110,7 @@ def main():
             print("=> loading checkpoint '{}'".format(args.pre))
             checkpoint = torch.load(args.pre)
             args.start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
+            # best_prec1 = checkpoint['best_prec1']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -131,6 +145,7 @@ def train(train_list, model, criterion, optimizer, epoch):
     
     train_loader = torch.utils.data.DataLoader(
         dataset.listDataset(train_list,
+                       density_name = 'fixed-{}'.format(args.sigma),
                        shuffle=True,
                        transform=transforms.Compose([
                        transforms.ToTensor(),transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -182,6 +197,7 @@ def validate(val_list, model, criterion):
     print('begin test')
     test_loader = torch.utils.data.DataLoader(
     dataset.listDataset(val_list,
+                   density_name='fixed-{}'.format(args.sigma),
                    shuffle=False,
                    transform=transforms.Compose([
                        transforms.ToTensor(),transforms.Normalize(mean=[0.485, 0.456, 0.406],

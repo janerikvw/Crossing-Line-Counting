@@ -54,20 +54,28 @@ class Task(object):
         return self.info.get_image_path()
 
 def handle_frame(frame_obj):
-    k = gaussian_filter_fixed_density(frame_obj)
-    np.save(frame_obj.get_density_path(), k)
+    sizes = [3,5,8,12,16]
+
+    for size in sizes:
+        k = gaussian_filter_fixed_density(frame_obj, sigma=size)
+        np.save(frame_obj.get_density_path('fixed-{}'.format(size)), k)
+
+    # k = gaussian_filter_density(frame_obj)
+    # np.save(frame_obj.get_density_path('flex'.format(size)), k)
 
 if __name__ == '__main__':
 
     # Loading all the videos based on your dataset in BasicVideo/BasicFrame object format
 
-    from datasets import shanghaitech, fudan
+    from datasets import shanghaitech, fudan, tub
     frames_list = []
+
+    print("Loading ShanghaiTech frames")
     for base_path in glob('../data/ShanghaiTech/part_*/*'):
         frames_list = frames_list + shanghaitech.load_all_frames(base_path)
 
-    for base_path in glob('../data/Fudan/*_data'):
-        frames_list = frames_list + fudan.load_all_frames(base_path)
+    print("Loading TUB dataset frames")
+    frames_list = frames_list + tub.load_all_frames('../data/TUBCrowdFlow')
 
     # Establish communication queues
     tasks = multiprocessing.JoinableQueue()
@@ -79,7 +87,7 @@ if __name__ == '__main__':
 
     # Put every frame in the queue
     for frame_obj in frames_list:
-            tasks.put(Task(frame_obj))
+        tasks.put(Task(frame_obj))
 
     for w in consumers:
         w.start()

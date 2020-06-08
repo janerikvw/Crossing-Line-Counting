@@ -69,7 +69,7 @@ class BasicFrame:
     # Add an individual head location
     def add_point(self, xy, bbox = None):
         self.labeled = True
-        self.centers.append(xy)
+        self.centers.append((int(xy[0]), int(xy[1])))
 
     # Retrieve the image path
     def get_image_path(self):

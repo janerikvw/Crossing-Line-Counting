@@ -143,13 +143,13 @@ def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregion
 
 
 # Add the current/total information at the bottom of an image
-def add_total_information(image, loi_output, totals):
+def add_total_information(image, loi_output, totals, crosses):
     draw = ImageDraw.Draw(image)
 
     to_right = sum(loi_output[1])
     to_left = sum(loi_output[0])
 
-    msg = 'Current: ({:.3f}, {:.3f}), Total: ({:.3f}, {:.3f})'.format(to_right, to_left, totals[1], totals[0])
+    msg = '{:.2f}, {:.2f} ({:.2f}, {:.2f}) - ({}, {})'.format(to_right, to_left, totals[1], totals[0], len(crosses[0]), len(crosses[1]))
     w, h = draw.textsize(msg)
 
     width, height = image.size
@@ -166,10 +166,14 @@ def white_to_transparency_gradient(img):
 
     return Image.fromarray(x)
 
+def scale_point(point1, scale):
+    point1 = (point1[0] * scale, point1[1] * scale)
+    return point1
+
 # Scale all parameters correctly when it changes from the original size
 def scale_params(point1, point2, frame_width, frame_height, line_width, scale=1.0):
-    point1 = (point1[0]*scale, point1[1]*scale)
-    point2 = (point2[0] * scale, point2[1] * scale)
+    point1 = scale_point(point1, scale)
+    point2 = scale_point(point2, scale)
     frame_width = int(frame_width * scale)
     frame_height = int(frame_height * scale)
     line_width *= scale
