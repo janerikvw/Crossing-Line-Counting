@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import math
+import os
+from scipy import misc, io
 
 import datasets
 
@@ -19,7 +21,7 @@ from DDFlow.flowlib import flow_to_color
 from scipy.ndimage import rotate
 
 # Give a region and turn it in a mask to extract the region information
-def region_to_mask(region, rotate_angle, center, img_width=1920, img_height=1080):
+def region_to_mask(region, rotate_angle, center, img_width, img_height):
     full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
 
     p1 = rotate_point(region[0], -rotate_angle, center)
@@ -63,7 +65,7 @@ def rotate_point(point, angle, center, to_int=True):
 
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
-def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
+def select_regions(dot1, dot2, width, regions, shrink):
     # Seperate the line into several parts with given start and end point.
     # Provide the corner points of the regions that lie on the LOI itself.
     region_lines = []
@@ -114,7 +116,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
 
 
 # Add the regions and LOI to an PIL image. The information of the LOI can be added for each region as well.
-def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregions=5, shrink=0.90):
+def image_add_region_lines(image, dot1, dot2, width, nregions, shrink, loi_output=None):
     regions = select_regions(dot1, dot2, width=width, regions=nregions, shrink=shrink)
     draw = ImageDraw.Draw(image)
 
@@ -171,14 +173,53 @@ def scale_point(point1, scale):
     return point1
 
 # Scale all parameters correctly when it changes from the original size
-def scale_params(point1, point2, frame_width, frame_height, line_width, scale=1.0):
-    point1 = scale_point(point1, scale)
-    point2 = scale_point(point2, scale)
+def scale_frame(frame_width, frame_height, scale):
     frame_width = int(frame_width * scale)
     frame_height = int(frame_height * scale)
-    line_width *= scale
-    return point1, point2, frame_width, frame_height, line_width
+    return frame_width, frame_height
 
+def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_output, fe_output_color, point1, point2, line_width, nregions, orientation_shrink, loi_output, totals, crosses):
+    # Load original image or demo
+    total_image = frame1_img.copy().convert("L").convert("RGBA")
+
+    if sample_name:
+        dump_dir = os.path.join(result_dir, sample_name)
+    else:
+        dump_dir = result_dir
+
+    if not os.path.exists(dump_dir):
+        os.mkdir(dump_dir)
+
+    # Load and save original CC model
+    cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+    cc_img = cc_img.convert("L")
+    cc_img.save(os.path.join(dump_dir, 'crowd_{}.png').format(print_i))
+
+    x = np.asarray(cc_img.convert('RGBA')).copy()
+    x[:, :, 3] = (np.power(x[:, :, :3].mean(axis=2) / 255., 3) * 255 / 3).astype(np.uint8)
+    cc_img = Image.fromarray(x)
+    total_image = Image.alpha_composite(total_image, cc_img)
+
+    # Save original flow image
+    misc.imsave(os.path.join(dump_dir, 'flow_{}.png'.format(print_i)), fe_output_color[0])
+
+    # Transform flow and merge with original image
+    flow_img = fe_output_color[0] * 255.0
+    flow_img = flow_img.astype(np.uint8)
+    flow_img = Image.fromarray(flow_img, 'RGB')
+    flow_img = white_to_transparency_gradient(flow_img)
+    total_image = Image.alpha_composite(total_image, flow_img)
+
+    # Save merged image
+    total_image.save(os.path.join(dump_dir, 'combined_{}.png'.format(print_i)))
+    img = total_image.convert('RGB')
+    # Generate the demo output for clear view on what happens
+    image_add_region_lines(img, point1, point2, width=line_width, nregions=nregions, shrink=orientation_shrink, loi_output=loi_output)
+
+    # Crop and add information at the bottom of the screen
+    add_total_information(img, loi_output, totals, crosses)
+
+    img.save(os.path.join(dump_dir, 'line_{}.png'.format(print_i)))
 
 import datetime
 class sTimer():

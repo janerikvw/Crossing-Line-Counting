@@ -19,15 +19,16 @@ import tensorflow as tf
 from DDFlow.network import pyramid_processing
 from DDFlow.flowlib import flow_to_color
 
+import utils
+
 import datetime
 
 from DRNet.model import drnet_2D
 from DRNet.ini_file_io import load_train_ini
 
-
 # Intialize the regionwise LOI. Returns all the information required to execute the regionwise LOI optimally.
 # The initializer generates all the reqions around the LOI and the masks for extracting the data from the CC and FE.
-def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, line_width=50, cregions=5, shrink=0.90):
+def init_regionwise_loi(point1, point2, img_width, img_height, line_width, cregions, shrink):
     # Rescale everything
     center = (img_width / 2, img_height / 2)
     rotate_angle = math.degrees(math.atan((point2[1] - point1[1]) / float(point2[0] - point1[0])))
@@ -48,7 +49,7 @@ def init_regionwise_loi(point1, point2, img_width=1920, img_height=1080, line_wi
 
 # Combine both the crowd counting and the flow estimation with a regionwise method
 # Returns per region how many people are crossing the line from that side.
-def regionwise_loi(loi_info, counting_result, flow_result, colored_flow_result):
+def regionwise_loi(loi_info, counting_result, flow_result):
     regions, rotate_angle, center, masks = loi_info
 
     sums = ([], [])
@@ -107,7 +108,6 @@ def regionwise_loi(loi_info, counting_result, flow_result, colored_flow_result):
 
             # Divide the average
             percentage_over = towards_avg / region[4]
-            # print(total_crowd, crowd_towards, percentage_over)
 
             sums[i].append(crowd_towards * percentage_over)
 
@@ -199,10 +199,12 @@ def run_drnet_model(drnet_model, frame):
 
 
 # Initialize the flow estimation model
-def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', img_width=1920, img_height=1080):
-    print("--- LOADING DDFLOW ---")
+def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', img_width=1920, img_height=1080, display=False):
+    if display:
+        print("--- LOADING DDFLOW ---")
 
-    print("- Load architecture")
+    if display:
+        print("- Load architecture")
     frame_img1 = tf.placeholder(tf.float32, [1, None, None, 3], name='img1')
     frame_img2 = tf.placeholder(tf.float32, [1, None, None, 3], name='img2')
     flow_est = pyramid_processing(frame_img1, frame_img2, train=False, trainable=False, regularizer=None, is_scale=True)
@@ -214,27 +216,25 @@ def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_pr
     saver = tf.train.Saver(var_list=restore_vars)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=opts))
 
-    print("- Initialize architecture")
+    if display:
+        print("- Initialize architecture")
     sess.run(tf.global_variables_initializer())
 
-    print("- Restore weights")
+    if display:
+        print("- Restore weights")
     saver.restore(sess, restore_model)
-    print("--- DONE ---")
+    if display:
+        print("--- DONE ---")
     return sess, flow_est, flow_est_color, img_width, img_height
 
 # Run the Flow estimation model based on a pair of frames
 def run_fe_model(fe_model, pair):
     sess, flow_est, flow_est_color, img_width, img_height = fe_model
-    tbegin = datetime.datetime.now()
-    # #
-    # img1 = np.expand_dims(np.array(img1).astype(np.float32), 0)
-    # img1 /= 255
-    # img2 = np.expand_dims(np.array(img2).astype(np.float32), 0)
-    # img2 /= 255
-    #
-    # cc_img = Image.fromarray(np.squeeze(img1) * 255.0, 'RGB')
-    # cc_img.save('results/numpy.png')
 
+    print_time = False
+
+
+    timer = utils.sTimer('I1')
     # # Load frame 1 and normalize it
     img1 = tf.image.decode_png(tf.read_file(pair.get_frames()[0].get_image_path()), channels=3)
     img1 = tf.cast(img1, tf.float32)
@@ -242,10 +242,9 @@ def run_fe_model(fe_model, pair):
     img1 = tf.expand_dims(img1, axis=0)
     img1 = tf.image.resize_images(img1, (img_height, img_width))
     img1 = img1.eval(session=sess)
-    #
-    # cc_img = Image.fromarray(np.squeeze(img1) * 255.0, 'RGB')
-    # cc_img.save('results/tensor.png')
-    #
+    timer.show(print_time)
+
+    timer = utils.sTimer('I2')
     # Load frame 2 and normalize it
     img2 = tf.image.decode_png(tf.read_file(pair.get_frames()[1].get_image_path()), channels=3)
     img2 = tf.cast(img2, tf.float32)
@@ -253,7 +252,10 @@ def run_fe_model(fe_model, pair):
     img2 = tf.expand_dims(img2, axis=0)
     img2 = tf.image.resize_images(img2, (img_height, img_width))
     img2 = img2.eval(session=sess)
+    timer.show(print_time)
 
     # Run the model and output both the raw output and the colored demo image.
+    timer = utils.sTimer('Run')
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})
+    timer.show(print_time)
     return np_flow_est, np_flow_est_color
