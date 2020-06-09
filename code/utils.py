@@ -195,9 +195,12 @@ def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_outp
     cc_img = cc_img.convert("L")
     cc_img.save(os.path.join(dump_dir, 'crowd_{}.png').format(print_i))
 
-    x = np.asarray(cc_img.convert('RGBA')).copy()
-    x[:, :, 3] = (np.power(x[:, :, :3].mean(axis=2) / 255., 3) * 255 / 3).astype(np.uint8)
-    cc_img = Image.fromarray(x)
+    # Transform CC model and merge with original image for demo
+    cc_img = np.zeros((cc_output.shape[0], cc_output.shape[1], 4))
+    cc_img = cc_img.astype(np.uint8)
+    cc_img[:, :, 3] = 255 - (cc_output * 255.0 / cc_output.max())
+    cc_img[cc_img > 2] = cc_img[cc_img > 2] * 0.4
+    cc_img = Image.fromarray(cc_img, 'RGBA')
     total_image = Image.alpha_composite(total_image, cc_img)
 
     # Save original flow image

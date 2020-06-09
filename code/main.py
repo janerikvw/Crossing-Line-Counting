@@ -96,7 +96,7 @@ for s_i, (video, line, crosses, naming) in enumerate(video_samples):
 
     timer = utils.sTimer('Initialize LOI')
     loi_model = LOI.init_regionwise_loi(point1, point2,
-                                        img_width=orig_frame_width, img_height=orig_frame_height,
+                                        img_width=frame_width, img_height=frame_height,
                                         line_width=line_width, cregions=args.regions, shrink=args.orientation_shrink)
     timer.show(args.print_time)
 
