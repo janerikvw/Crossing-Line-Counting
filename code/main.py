@@ -35,11 +35,14 @@ parser.add_argument('--flow_file', '-f', metavar='FLOWFILE', default='DDFlow/Fud
 parser.add_argument('--region_width', '-r', metavar='REGIONWIDTH', default=0.4,type=float,
                     help='Width propotional to the length of the region')
 
+parser.add_argument('--regions', '-s', metavar='REGIONWIDTH', default=5, type=int,
+                    help='Amount of regions on each side')
+
 
 args = parser.parse_args()
 args.orig_frame_width = 1280 # Original width of the frame
 args.orig_frame_height = 720 # Original height of the frame
-args.regions = 5 # Total amount of regions on each side
+# args.regions = 5 # Total amount of regions on each side
 args.orientation_shrink = 1.00  # Shrinking per region moving away from the camera (To compensate for orientation)
 args.scale = 1. # Scale which we scrink everything to optimize for speed
 args.print_time = False # Print every timer, usefull for debugging
@@ -123,8 +126,7 @@ for s_i, (video, line, crosses, naming) in enumerate(video_samples):
         # Run flow estimation model on frame pair
         timer = utils.sTimer('FE')
         fe_output, fe_output_color = LOI.run_fe_model(fe_model, pair)  # Optimize by frame1_img.copy(), frame2_img.copy()
-        if i == 1:
-            timer.show()
+        timer.show(args.print_time)
 
         # Run the merger for the crowdcounting and flow estimation model
         timer = utils.sTimer('LOI')
@@ -137,7 +139,7 @@ for s_i, (video, line, crosses, naming) in enumerate(video_samples):
         totals = [total_left, total_right]
 
         # Last frame store everything :)
-        if True: # i == len(video.get_frame_pairs()) - 1:
+        if i == len(video.get_frame_pairs()) - 1:
             timer = utils.sTimer('Save demo')
             utils.store_processed_images(result_dir, '{}-{}_{}'.format(naming[0], naming[1], s_i), print_i, frame1_img, cc_output, fe_output_color, point1, point2, line_width, args.regions, args.orientation_shrink, loi_output, totals, crosses)
             timer.show(args.print_time)
@@ -151,13 +153,9 @@ for s_i, (video, line, crosses, naming) in enumerate(video_samples):
         pbar.set_description('{} ({}), {} ({})'.format(totals[0], len(crosses[1]), totals[1], len(crosses[0])))
         pbar.update(1)
 
-        break
-
 
 
     pbar.close()
-
-    break
 
     # print('Left to Right: {} ({})'.format(total_left, len(crosses[1])))
     # print('Right to Left: {} ({})'.format(total_right, len(crosses[0])))
