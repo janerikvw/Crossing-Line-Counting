@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description='LOI Pipeline')
 parser.add_argument('result_dir',metavar='RESULTDIR', type=str,
                     help='Directory where to store everything')
 
-parser.add_argument('--crowd_file', '-c', metavar='CROWDFILE', default='CSRNet/TUB_preShanghaiA-sigma12model_best.pth.tar',type=str,
+parser.add_argument('--crowd_file', '-c', metavar='CROWDFILE', default='CSRNet/TUB_preShanghaiA-sigma5model_best.pth.tar',type=str,
                     help='Path to pretrained model for crowd counting')
 
 parser.add_argument('--flow_file', '-f', metavar='FLOWFILE', default='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000',type=str,

@@ -114,6 +114,71 @@ def regionwise_loi(loi_info, counting_result, flow_result):
     return sums
 
 
+def regionwise_loi_v2(loi_info, counting_result, flow_result):
+    regions, rotate_angle, center, masks = loi_info
+
+    sums = ([], [])
+
+    flow_result = np.squeeze(flow_result['full_res'])
+
+    # @TODO: small_regions to something more correct
+    for i, side_regions in enumerate(regions):
+        for o, region in enumerate(side_regions):
+            mask = masks[i][o]
+
+            # Get which part of the mask contains the actual mask
+            # This massively improves the speed of the model
+            points = np.array(region[0:4])
+            min_x = np.min(points[:, 0])
+            max_x = np.max(points[:, 0])
+            min_y = np.min(points[:, 1])
+            max_y = np.max(points[:, 1])
+
+            cropped_mask = mask[min_y:max_y, min_x:max_x]
+
+            # Use cropped mask on crowd counting result
+            cc_part = cropped_mask * counting_result[min_y:max_y, min_x:max_x]
+
+            # Project the flow estimation output on a line perpendicular to the LOI,
+            # so we can calculate if the people are approach/leaving the LOI.
+            direction = np.array([region[1][0] - region[2][0], region[1][1] - region[2][1]]).astype(
+                np.float32)
+            direction = direction / np.linalg.norm(direction)
+
+            # Crop so only cropped area gets projected
+            part_flow_result = flow_result[min_y:max_y, min_x:max_x]
+            perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
+
+            # Get the FE region with mask
+            fe_part = cropped_mask * perp
+
+            # Get all the movement towards the line
+            total_pixels = masks[i][o].sum()
+            threshold = 0.5
+            towards_pixels = fe_part > threshold
+
+            total_crowd = cc_part.sum()
+
+            # Too remove some noise
+            if towards_pixels.sum() == 0 or total_crowd < 0:
+                sums[i].append(0.0)
+                continue
+
+            towards_avg = fe_part[towards_pixels].sum() / float(towards_pixels.sum()) # float(total_pixels)
+            away_pixels = fe_part < -threshold
+            # away_avg = fe_part[away_pixels].sum() / away_pixels.sum()
+
+            pixel_percentage_towards = towards_pixels.sum() / float(away_pixels.sum()+towards_pixels.sum())
+            crowd_towards = total_crowd * pixel_percentage_towards
+
+            # Divide the average
+            percentage_over = towards_avg / region[4]
+
+            sums[i].append(crowd_towards * percentage_over)
+
+    return sums
+
+
 # Initialize the crowd counting model
 def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', img_width=1920, img_height=1080):
     print("--- LOADING CSRNET ---")
