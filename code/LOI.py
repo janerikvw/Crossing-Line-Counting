@@ -281,6 +281,12 @@ def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_pr
     saver = tf.train.Saver(var_list=restore_vars)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=opts))
 
+    img1 = tf.image.decode_png(tf.read_file(tf.placeholder(tf.string, name='img_path')), channels=3)
+    img1 = tf.cast(img1, tf.float32)
+    img1 /= 255
+    img1 = tf.expand_dims(img1, axis=0)
+    img_path_graph = tf.image.resize_images(img1, (img_height, img_width))
+
     if display:
         print("- Initialize architecture")
     sess.run(tf.global_variables_initializer())
@@ -290,33 +296,23 @@ def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_pr
     saver.restore(sess, restore_model)
     if display:
         print("--- DONE ---")
-    return sess, flow_est, flow_est_color, img_width, img_height
+    return sess, flow_est, flow_est_color, img_path_graph, img_width, img_height
 
 # Run the Flow estimation model based on a pair of frames
 def run_fe_model(fe_model, pair):
-    sess, flow_est, flow_est_color, img_width, img_height = fe_model
+    sess, flow_est, flow_est_color, img_path_graph, img_width, img_height = fe_model
 
     print_time = False
 
 
     timer = utils.sTimer('I1')
     # # Load frame 1 and normalize it
-    img1 = tf.image.decode_png(tf.read_file(pair.get_frames()[0].get_image_path()), channels=3)
-    img1 = tf.cast(img1, tf.float32)
-    img1 /= 255
-    img1 = tf.expand_dims(img1, axis=0)
-    img1 = tf.image.resize_images(img1, (img_height, img_width))
-    img1 = img1.eval(session=sess)
+    img1 = img_path_graph.eval(session=sess, feed_dict={'img_path:0': pair.get_frames()[0].get_image_path()})
     timer.show(print_time)
 
     timer = utils.sTimer('I2')
     # Load frame 2 and normalize it
-    img2 = tf.image.decode_png(tf.read_file(pair.get_frames()[1].get_image_path()), channels=3)
-    img2 = tf.cast(img2, tf.float32)
-    img2 /= 255
-    img2 = tf.expand_dims(img2, axis=0)
-    img2 = tf.image.resize_images(img2, (img_height, img_width))
-    img2 = img2.eval(session=sess)
+    img2 = img_path_graph.eval(session=sess, feed_dict={'img_path:0': pair.get_frames()[1].get_image_path()})
     timer.show(print_time)
 
     # Run the model and output both the raw output and the colored demo image.
