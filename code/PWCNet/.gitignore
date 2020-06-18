@@ -1,1 +1,7 @@
 pytorch-pwc/
+network-chairs-things.pytorch
+network-default.pytorch
+
+results/
+summaries/
+weights/

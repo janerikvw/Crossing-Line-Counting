@@ -76,9 +76,8 @@ def average_gradients(tower_grads):
             average_grads.append(grad_and_var)
     return average_grads
 
-
 def length_sq(x):
-    return tf.reduce_sum(tf.square(x), 3, keepdims=True)    
+    return tf.reduce_sum(tf.square(x), 3, keepdims=True)
 
 def occlusion(flow_fw, flow_bw):
     x_shape = tf.shape(flow_fw)

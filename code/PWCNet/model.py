@@ -220,12 +220,14 @@ class PWCNet(torch.nn.Module):
         tenFirst = self.netExtractor(tenFirst)
         tenSecond = self.netExtractor(tenSecond)
 
-        objEstimate = self.netSix(tenFirst[-1], tenSecond[-1], None)
-        objEstimate = self.netFiv(tenFirst[-2], tenSecond[-2], objEstimate)
-        objEstimate = self.netFou(tenFirst[-3], tenSecond[-3], objEstimate)
-        objEstimate = self.netThr(tenFirst[-4], tenSecond[-4], objEstimate)
-        objEstimate = self.netTwo(tenFirst[-5], tenSecond[-5], objEstimate)
+        return self.decode(tenFirst, tenSecond)
+
+    def decode(self, tenFirstFeatures, tenSecondFeatures):
+        objEstimate = self.netSix(tenFirstFeatures[-1], tenSecondFeatures[-1], None)
+        objEstimate = self.netFiv(tenFirstFeatures[-2], tenSecondFeatures[-2], objEstimate)
+        objEstimate = self.netFou(tenFirstFeatures[-3], tenSecondFeatures[-3], objEstimate)
+        objEstimate = self.netThr(tenFirstFeatures[-4], tenSecondFeatures[-4], objEstimate)
+        objEstimate = self.netTwo(tenFirstFeatures[-5], tenSecondFeatures[-5], objEstimate)
 
         return objEstimate['tenFlow'] + self.netRefiner(objEstimate['tenFeat'])
-    # end
 # end

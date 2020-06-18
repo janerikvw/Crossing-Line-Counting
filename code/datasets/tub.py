@@ -2,10 +2,8 @@ from glob import glob
 from matplotlib.pyplot import imshow
 import numpy as np
 from PIL import Image, ImageDraw
-from IPython.display import display  # to display images
 import os
 from datasets import basic_entities as entities
-import scipy.io
 import pickle
 from math import floor
 
@@ -165,7 +163,7 @@ def get_line_crossing_frames(video):
     return video_crosses
 
 # Split the video and the crossing information into train and test information
-def train_val_test_split(video, crossing_frames, test_size=0.5, train_size=0.1):
+def train_val_test_split(video, crossing_frames = None, test_size=0.5, train_size=0.1):
     # This function splits the video into train,val and test
     frames = video.get_frames()
     count_frames = len(frames)
@@ -196,20 +194,24 @@ def train_val_test_split(video, crossing_frames, test_size=0.5, train_size=0.1):
     test_crossing = {}
 
     # Split the crossing notations for the train/test/val
-    for i in crossing_frames:
-        train_crossing[i] = [[], []]
-        val_crossing[i] = [[], []]
-        test_crossing[i] = [[], []]
+    if crossing_frames:
+        for i in crossing_frames:
+            train_crossing[i] = [[], []]
+            val_crossing[i] = [[], []]
+            test_crossing[i] = [[], []]
 
-        for o, crossing_side in enumerate(crossing_frames[i]):
-            for side_jump in crossing_side:
-                if side_jump < count_train_frames:
-                    train_crossing[i][o].append(side_jump)
-                elif side_jump >= (count_frames - count_test_frames):
-                    test_crossing[i][o].append(side_jump - (count_frames - count_test_frames))
-                else:
-                    val_crossing[i][o].append(side_jump - count_train_frames)
-
+            for o, crossing_side in enumerate(crossing_frames[i]):
+                for side_jump in crossing_side:
+                    if side_jump < count_train_frames:
+                        train_crossing[i][o].append(side_jump)
+                    elif side_jump >= (count_frames - count_test_frames):
+                        test_crossing[i][o].append(side_jump - (count_frames - count_test_frames))
+                    else:
+                        val_crossing[i][o].append(side_jump - count_train_frames)
+    else:
+        train_crossing = None
+        val_crossing = None
+        test_crossing = None
     # Clean val if test/train only
     if len(val_video.get_frames()) == 0:
         val_crossing = None
