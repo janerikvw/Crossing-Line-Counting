@@ -59,10 +59,9 @@ def load_dataset():
     return train_dataset, val_dataset
 
 # Perform a simple test and save for each prediction the original, flow map and occlusion map
-def simple_test(net, dataset, args, iter):
+def simple_test(net, dataset, args, iter, count=-1):
     str_i = '{0:06d}'.format(iter + 1)
 
-    net.eval()
     dataloader = DataLoader(dataset,
                             batch_size=args.batch_size,
                             num_workers=args.dataloader_workers,
@@ -70,7 +69,7 @@ def simple_test(net, dataset, args, iter):
 
     for o, (frame1, frame2) in enumerate(dataloader):
         # For now just the first one, later random sampling (So different dataloader)
-        if o != 0:
+        if o == count and -1 != count:
             break
 
         str_o = '{0:03d}'.format(o + 1)
@@ -89,12 +88,11 @@ def simple_test(net, dataset, args, iter):
         occ_fw_save = occ_fw.detach().cpu().numpy().transpose(0, 2, 3, 1)
         plt.imsave('results/{}/{}_{}_occ_fw.png'.format(args.save_dir, str_i, str_o), occ_fw_save[0].squeeze())
 
-    net.train()
+        if (o+1)%args.test_print_every == 0 and -1 != args.test_print_every:
+            print('[{0:04d}/{1:04d}]'.format(o + 1, len(dataset)))
 
 
 def train(args):
-    torch.cuda.manual_seed(args.seed)
-
     # Load model
     net = model.PWCNet()
     if args.pre:
@@ -125,7 +123,6 @@ def train(args):
     timer = utils.sTimer('Full update')
 
     for i, (frame1, frame2) in enumerate(dataloader):
-
         str_i = '{0:06d}'.format(i+1)
         frame1 = frame1.cuda()
         frame2 = frame2.cuda()
@@ -145,10 +142,12 @@ def train(args):
 
 
         # Print results every and do a speed test
-        if i < 3 or (i + 1) % args.print_every == 0:
+        if i == 0 or (i + 1) % args.print_every == 0:
             print('[{}/{}] - loss({})'.format(str_i, args.iters, loss.item()))
             # Now the training dataset is used for the test, but in real life we should apply the validation set
-            simple_test(net, val_dataset, args, i)
+            net.eval()
+            simple_test(net, val_dataset, args, i, 1)
+            net.train()
 
         # Save results every
         if (i + 1) % args.save_every == 0:
@@ -164,10 +163,60 @@ def train(args):
     writer.close()
     return
 
+def test(args):
+    # Load model
+    net = model.PWCNet()
+    if args.pre:
+        net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                             torch.load(args.pre).items()})
+    net = net.cuda()
+    net.eval()
+
+    print("Images will be saved in: {}".format(args.save_dir))
+    Path('results/{}/'.format(args.save_dir)).mkdir(parents=True, exist_ok=True)
+
+    # Get dataset and dataloader
+    _, val_dataset = load_dataset()
+    simple_test(net, val_dataset, args, 0)
+
+
+
+
+def generate(args):
+    # Load model
+    net = model.PWCNet()
+    if args.pre:
+        net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                             torch.load(args.pre).items()})
+    net = net.cuda()
+    net.eval()
+
+    train_dataset, _ = load_dataset()
+
+    dataloader = DataLoader(train_dataset,
+                            batch_size=1,
+                            num_workers=args.dataloader_workers,
+                            pin_memory=True)
+
+    for o, (frame1, frame2) in enumerate(dataloader):
+        pair = dataset.pairs[o]
+        print('{0:05d}/{1:05d} - {2}'.format(o+1, len(dataset.pairs), pair.get_frames(0).get_info_dir()))
+        pair = dataset.pairs[o]
+        frame1 = frame1.cuda()
+        frame2 = frame2.cuda()
+        flow_fw, flow_bw = net.bidirection_forward(frame1, frame2)
+        occ_fw, occ_bw = model_utils.occlusion(flow_fw, flow_bw)
+
+        numpy.save(pair.get_frames(0).get_info_dir('{}flow_bw_1b.npy'.format(args.prefix_gen)), flow_fw.detach().cpu().numpy())
+        numpy.save(pair.get_frames(0).get_info_dir('{}flow_fw_1b.npy'.format(args.prefix_gen)), flow_bw.detach().cpu().numpy())
+        numpy.save(pair.get_frames(0).get_info_dir('{}occ_fw_1b.npy'.format(args.prefix_gen)), occ_fw.detach().cpu().numpy())
+        numpy.save(pair.get_frames(0).get_info_dir('{}occ_bw_1b.npy'.format(args.prefix_gen)), occ_bw.detach().cpu().numpy())
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
     args.batch_size = 1
-    args.iters = 200000 #10
+    args.iters = 150000 #10
 
     # Keep these fixed to make sure reproducibility
     args.dataloader_workers = 1
@@ -178,10 +227,25 @@ if __name__ == '__main__':
     args.lr_decay_rate = 0.5
     args.lr_decay_every = 50000
 
-    args.print_every = 200
-    args.save_every = 2000
+    args.print_every = 500
+    args.save_every = 5000
+
+    args.prefix_gen = 'v1_'
+
+    if args.mode == 'test':
+        args.test_print_every = 10
+    else:
+        args.test_print_every = -1
+
 
     # Add date and time so we can just run everything very often :)
     args.save_dir = '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
 
-    train(args)
+    torch.cuda.manual_seed(args.seed)
+
+    if args.mode == 'test':
+        test(args)
+    elif args.mode == 'generate':
+        generate(args)
+    else:
+        train(args)
