@@ -14,10 +14,12 @@ import argparse
 from matplotlib import pyplot as plt
 import cv2
 from datetime import datetime
+from pathlib import Path
 
 import model
 import utils
 import model_utils
+import losses
 
 from dataset import SimpleDataset
 
@@ -31,75 +33,36 @@ from datasets import tub
 
 parser = argparse.ArgumentParser(description='PyTorch DDFlow (PWCNet backbone)')
 
-parser.add_argument('results_dir',metavar='RESULTS', type=str,
-                    help='Directory where to store all the results')
+parser.add_argument('name',metavar='NAME', type=str,
+                    help='Used as postfix for the save directory')
 
-parser.add_argument('--pre', '-p', metavar='PRETRAINED', default=None,type=str,
+parser.add_argument('--mode', '-m', metavar='MODUS', default='train', type=str,
+                    help='Which modus we use? train,test,generate')
+
+parser.add_argument('--pre', '-p', metavar='PRETRAINED', default='network-chairs-things.pytorch',type=str,
                     help='path to the pretrained model')
 
+# Load the FramePairs into a SimpleDataset format.
+# Makes it pretty easy to swap datasets
+def load_dataset():
+    # Get dataset and dataloader
+    train_pairs = []
+    val_pairs = []
+    for video in tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False):
+        train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, None)
+        train_pairs += train_video.get_frame_pairs()
+        val_pairs += val_video.get_frame_pairs()
 
-def forward_step(frame1, frame2, args, net):
-    int_width = frame1.shape[3]
-    int_height = frame1.shape[2]
-    int_preprocessed_width = int(math.floor(math.ceil(int_width / 64.0) * 64.0))
-    int_preprocessed_height = int(math.floor(math.ceil(int_height / 64.0) * 64.0))
+    train_dataset = SimpleDataset(train_pairs)
+    val_dataset = SimpleDataset(train_pairs)
 
-    frame1 = torch.nn.functional.interpolate(input=frame1,
-                                             size=(int_preprocessed_height, int_preprocessed_width),
-                                             mode='bilinear', align_corners=False)
-    frame2 = torch.nn.functional.interpolate(input=frame2,
-                                             size=(int_preprocessed_height, int_preprocessed_width),
-                                             mode='bilinear', align_corners=False)
+    return train_dataset, val_dataset
 
-    # Feed through encoder and decode forward and backward
-    features1 = net.netExtractor(frame1)
-    features2 = net.netExtractor(frame2)
-    flow_fw = net.decode(features1, features2)
-    flow_bw = net.decode(features2, features1)
-
-    multiplication = 20.0 # (int_height / flow_fw.shape[2]) * (int_width / flow_fw.shape[3])
-
-    flow_fw = multiplication * torch.nn.functional.interpolate(input=flow_fw, size=(int_height, int_width),
-                                                               mode='bilinear', align_corners=False)
-
-    flow_bw = multiplication * torch.nn.functional.interpolate(input=flow_bw, size=(int_height, int_width),
-                                                               mode='bilinear', align_corners=False)
-
-    flow_fw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
-    flow_fw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
-
-    flow_bw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
-    flow_bw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
-
-    return flow_fw, flow_bw
-
-def abs_robust_loss(diff, mask, q=0.4):
-    diff = torch.pow(torch.abs(diff)+0.01, q)
-    diff = torch.mul(diff, mask)
-    diff_sum = diff.sum()
-    loss_mean = diff_sum / (mask.sum() * 2 + 1e-6)
-    return loss_mean
-
-def calc_loss(frame1, frame2, flow_fw, flow_bw):
-    occ_fw, occ_bw = model_utils.occlusion(flow_fw, flow_bw)
-    mask_fw = 1. - occ_fw
-    mask_bw = 1. - occ_bw
-
-    img1_warp = model_utils.backwarp(frame1, flow_bw)
-    img2_warp = model_utils.backwarp(frame2, flow_fw)
-
-    # Calc photometric loss
-    loss1 = abs_robust_loss(frame1 - img2_warp, torch.ones_like(mask_fw))
-    loss2 = abs_robust_loss(frame2 - img1_warp, torch.ones_like(mask_bw))
-    photometric_loss = loss1 + loss2
-    return photometric_loss
-
-# Perform a simple test and save
-def test(net, dataset, args, iter):
+# Perform a simple test and save for each prediction the original, flow map and occlusion map
+def simple_test(net, dataset, args, iter):
     str_i = '{0:06d}'.format(iter + 1)
 
     net.eval()
-
     dataloader = DataLoader(dataset,
                             batch_size=args.batch_size,
                             num_workers=args.dataloader_workers,
@@ -113,7 +76,7 @@ def test(net, dataset, args, iter):
         str_o = '{0:03d}'.format(o + 1)
         frame1 = frame1.cuda()
         frame2 = frame2.cuda()
-        flow_fw, flow_bw = forward_step(frame1, frame2, args, net)
+        flow_fw, flow_bw = net.bidirection_forward(frame1, frame2)
         occ_fw, occ_bw = model_utils.occlusion(flow_fw, flow_bw)
 
         flow_fw = flow_fw.detach().cpu().numpy().transpose(0, 2, 3, 1)
@@ -142,28 +105,23 @@ def train(args):
 
 
     # Get dataset and dataloader
-    train_pairs = []
-    for video in tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False):
-        train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, None)
-        train_pairs += train_video.get_frame_pairs()
-
-    dataset = SimpleDataset(train_pairs)
-    dataloader = DataLoader(dataset,
+    train_dataset, val_dataset = load_dataset()
+    dataloader = DataLoader(train_dataset,
                             batch_size=args.batch_size,
-                            sampler=RandomSampler(dataset, replacement=True, num_samples=args.iters*args.batch_size),
+                            sampler=RandomSampler(train_dataset, replacement=True, num_samples=args.iters*args.batch_size),
                             num_workers=args.dataloader_workers,
                             pin_memory=True)
 
+    # Init optimizer and lr decay class
     optimizer = torch.optim.Adam(net.parameters(), lr=args.init_lr, weight_decay=args.regularization_weight)
     optim_lr_decay = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.lr_decay_rate)
 
-    # Start tensorboard writer
+    # Start tensorboard writer and init results directories
     writer = SummaryWriter(log_dir='summaries/{}'.format(args.save_dir))
-    os.mkdir('results/{}/'.format(args.save_dir))
-    os.mkdir('weights/{}/'.format(args.save_dir))
+    Path('results/{}/'.format(args.save_dir)).mkdir(parents=True, exist_ok=True)
+    Path('weights/{}/'.format(args.save_dir)).mkdir(parents=True, exist_ok=True)
 
-    print("Start training")
-
+    # Timer
     timer = utils.sTimer('Full update')
 
     for i, (frame1, frame2) in enumerate(dataloader):
@@ -172,20 +130,25 @@ def train(args):
         frame1 = frame1.cuda()
         frame2 = frame2.cuda()
 
-        flow_fw, flow_bw = forward_step(frame1, frame2, args, net)
-        loss = calc_loss(frame1, frame2, flow_fw, flow_bw)
+        # Extract flow forward and backward (frame2->frame2) and calculate the loss
+        flow_fw, flow_bw = net.bidirection_forward(frame1, frame2)
+        # Currently only using non_occ_photometric_loss
+        # @TODO Make more clear when changing between losses for different stages
+        loss, _ = losses.create_photometric_losses(frame1, frame2, flow_fw, flow_bw)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
+        # Add to tensorboard
         writer.add_scalar('Loss/train', loss.item(), i)
 
 
         # Print results every and do a speed test
-        if i == 0 or (i + 1) % args.print_every == 0:
+        if i < 3 or (i + 1) % args.print_every == 0:
             print('[{}/{}] - loss({})'.format(str_i, args.iters, loss.item()))
-            test(net, dataset, args, i)
+            # Now the training dataset is used for the test, but in real life we should apply the validation set
+            simple_test(net, val_dataset, args, i)
 
         # Save results every
         if (i + 1) % args.save_every == 0:
@@ -218,6 +181,7 @@ if __name__ == '__main__':
     args.print_every = 200
     args.save_every = 2000
 
-    args.save_dir = '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.results_dir)
+    # Add date and time so we can just run everything very often :)
+    args.save_dir = '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
 
     train(args)

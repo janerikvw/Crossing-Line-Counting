@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from PIL import Image
+from pathlib import Path
 
 """
 BasicVideo is an object used to store individual video's with frames.
@@ -75,11 +76,21 @@ class BasicFrame:
     def get_image_path(self):
         return self.image_path
 
+    def get_info_dir(self, file=None, check_exists=True):
+        path = os.path.splitext(self.image_path)[0]
+
+        if check_exists:
+            Path(path).mkdir(parents=True, exist_ok=True)
+
+        if file:
+            path = '{}/{}'.format(path, file)
+        return path
+
     # Retrieve the path where the generated density map is stored
-    def get_density_path(self, type = None):
-        if type is not None:
+    def get_density_path(self, type = None, check_exists=True):
+        if type:
             type = '_{}'.format(type)
-        return os.path.splitext(self.image_path)[0] + "{}.npy".format(type)
+        return self.get_info_dir("density{}.npy".format(type), check_exists)
 
     # Return a Pillow link to the image file data.
     def get_image(self):

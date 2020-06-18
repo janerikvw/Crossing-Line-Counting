@@ -1,5 +1,6 @@
 import torch
 import sys
+import math
 
 from model_utils import backwarp
 
@@ -230,4 +231,40 @@ class PWCNet(torch.nn.Module):
         objEstimate = self.netTwo(tenFirstFeatures[-5], tenSecondFeatures[-5], objEstimate)
 
         return objEstimate['tenFlow'] + self.netRefiner(objEstimate['tenFeat'])
+
+    # Calculate the flow for both forward and backward between the two frames
+    def bidirection_forward(self, frame1, frame2):
+        int_width = frame1.shape[3]
+        int_height = frame1.shape[2]
+        int_preprocessed_width = int(math.floor(math.ceil(int_width / 64.0) * 64.0))
+        int_preprocessed_height = int(math.floor(math.ceil(int_height / 64.0) * 64.0))
+
+        # Resize to get a size which fits into the network
+        frame1 = torch.nn.functional.interpolate(input=frame1,
+                                                 size=(int_preprocessed_height, int_preprocessed_width),
+                                                 mode='bilinear', align_corners=False)
+        frame2 = torch.nn.functional.interpolate(input=frame2,
+                                                 size=(int_preprocessed_height, int_preprocessed_width),
+                                                 mode='bilinear', align_corners=False)
+
+        # Feed through encoder and decode forward and backward
+        features1 = self.netExtractor(frame1)
+        features2 = self.netExtractor(frame2)
+        flow_fw = self.decode(features1, features2)
+        flow_bw = self.decode(features2, features1)
+
+        # Resize back to original size
+        flow_fw = 20.0 * torch.nn.functional.interpolate(input=flow_fw, size=(int_height, int_width),
+                                                         mode='bilinear', align_corners=False)
+        flow_bw = 20.0 * torch.nn.functional.interpolate(input=flow_bw, size=(int_height, int_width),
+                                                         mode='bilinear', align_corners=False)
+
+        # Resize weights when rescaling to original size
+        flow_fw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
+        flow_fw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
+
+        flow_bw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
+        flow_bw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
+
+        return flow_fw, flow_bw
 # end
