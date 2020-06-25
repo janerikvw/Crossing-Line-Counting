@@ -1,8 +1,6 @@
 import torch
 import sys
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  # or any {'0', '1', '2'}
-import tensorflow as tf
 
 import datasets.tub as tub
 import LOI
@@ -19,6 +17,8 @@ import PIL
 from tqdm import tqdm
 
 import math
+
+from DDFlow_pytorch.utils import flo_to_color
 
 def main(args):
     # Put all the results in the result directory
@@ -50,7 +50,7 @@ def main(args):
 
     # Load counting model
     cc_model = LOI.init_cc_model(weights_path=args.crowd_file, img_width=frame_width, img_height=frame_height)
-    fe_model = LOI.init_fe_model(restore_model=args.flow_file,
+    fe_model = LOI.init_fe_model_v2(restore_model=args.flow_file,
                                          img_width=frame_width, img_height=frame_height)
 
     # Iterate over each video sample
@@ -91,7 +91,7 @@ def main(args):
 
             # Run flow estimation model on frame pair
             timer = utils.sTimer('FE')
-            fe_output, fe_output_color = LOI.run_fe_model(fe_model, pair)  # Optimize by frame1_img.copy(), frame2_img.copy()
+            fe_output = LOI.run_fe_model_v2(fe_model, pair)  # Optimize by frame1_img.copy(), frame2_img.copy()
             timer.show(args.print_time)
 
             # Run the merger for the crowdcounting and flow estimation model
@@ -106,8 +106,9 @@ def main(args):
 
             # Last frame store everything :)
             if i == len(video.get_frame_pairs()) - 1:
+                fe_output_color = flo_to_color(fe_output)
                 timer = utils.sTimer('Save demo')
-                utils.store_processed_images(result_dir, '{}-{}_{}'.format(naming[0], naming[1], s_i), print_i, frame1_img, cc_output, fe_output_color, point1, point2, line_width, args.regions, args.orientation_shrink, loi_output, totals, crosses)
+                #utils.store_processed_images(result_dir, '{}-{}_{}'.format(naming[0], naming[1], s_i), print_i, frame1_img, cc_output, fe_output_color, point1, point2, line_width, args.regions, args.orientation_shrink, loi_output, totals, crosses)
                 timer.show(args.print_time)
 
                 result_file = open("{}/results.txt".format(result_dir), "a")
@@ -134,7 +135,7 @@ if __name__ == '__main__':
                         help='Path to pretrained model for crowd counting')
 
     parser.add_argument('--flow_file', '-f', metavar='FLOWFILE',
-                        default='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', type=str,
+                        default='DDFlow_pytorch/weights/20200622_111127_train2_v1/model_150000.pt', type=str,
                         help='Path to pretrained model for flow estimator')
 
     parser.add_argument('--region_width', '-r', metavar='REGIONWIDTH', default=0.4, type=float,
@@ -149,6 +150,6 @@ if __name__ == '__main__':
     # args.regions = 5 # Total amount of regions on each side
     ARGS.orientation_shrink = 1.00  # Shrinking per region moving away from the camera (To compensate for orientation)
     ARGS.scale = 1.  # Scale which we scrink everything to optimize for speed
-    ARGS.print_time = False  # Print every timer, usefull for debugging
+    ARGS.print_time = True  # Print every timer, usefull for debugging
 
     main(ARGS)

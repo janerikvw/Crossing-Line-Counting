@@ -14,10 +14,6 @@ from CSRNet.model import CSRNet
 import torchvision.transforms.functional as F
 from PIL import Image, ImageDraw
 
-import tensorflow as tf
-from DDFlow.network import pyramid_processing
-from DDFlow.flowlib import flow_to_color
-
 from scipy.ndimage import rotate
 
 # Give a region and turn it in a mask to extract the region information

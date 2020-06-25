@@ -5,26 +5,26 @@ import os
 
 import datasets
 
+from CSRNet.model import CSRNet
+
 from utils import *
 
 import scipy.misc
 from scipy.ndimage import rotate
 from scipy.ndimage.interpolation import zoom
-
-from CSRNet.model import CSRNet
 import torchvision.transforms.functional as F
 from PIL import Image, ImageDraw
 
-import tensorflow as tf
-from DDFlow.network import pyramid_processing
-from DDFlow.flowlib import flow_to_color
+# import tensorflow as tf
+# from DDFlow.network import pyramid_processing
+# from DDFlow.flowlib import flow_to_color
 
 import utils
 
 import datetime
-
-from DRNet.model import drnet_2D
-from DRNet.ini_file_io import load_train_ini
+#
+# from DRNet.model import drnet_2D
+# from DRNet.ini_file_io import load_train_ini
 
 # Intialize the regionwise LOI. Returns all the information required to execute the regionwise LOI optimally.
 # The initializer generates all the reqions around the LOI and the masks for extracting the data from the CC and FE.
@@ -53,8 +53,6 @@ def regionwise_loi(loi_info, counting_result, flow_result):
     regions, rotate_angle, center, masks = loi_info
 
     sums = ([], [])
-
-    flow_result = np.squeeze(flow_result['full_res'])
 
     # @TODO: small_regions to something more correct
     for i, side_regions in enumerate(regions):
@@ -183,7 +181,7 @@ def regionwise_loi_v2(loi_info, counting_result, flow_result):
 def init_cc_model(weights_path = 'CSRNet/fudan_only_model_best.pth.tar', img_width=1920, img_height=1080):
     print("--- LOADING CSRNET ---")
     print("- Initialize architecture")
-    cc_model = CSRNet()
+    cc_model = CSRNet(load_weights=True)
     print("- Architecture to GPU")
     cc_model = cc_model.cuda()
     print("- Loading weights")
@@ -262,62 +260,41 @@ def run_drnet_model(drnet_model, frame):
 
     return predicted_label
 
+from DDFlow_pytorch.model import PWCNet
 
-# Initialize the flow estimation model
-def init_fe_model(restore_model='DDFlow/Fudan/checkpoints/distillation_census_prekitty2/model-70000', img_width=1920, img_height=1080, display=False):
+def init_fe_model_v2(restore_model='DDFlow_pytorch/weights/20200618_104414_tub_d1/model_150000.pt', img_width=1920, img_height=1080, display=False):
     if display:
         print("--- LOADING DDFLOW ---")
-
-    if display:
-        print("- Load architecture")
-    frame_img1 = tf.placeholder(tf.float32, [1, None, None, 3], name='img1')
-    frame_img2 = tf.placeholder(tf.float32, [1, None, None, 3], name='img2')
-    flow_est = pyramid_processing(frame_img1, frame_img2, train=False, trainable=False, regularizer=None, is_scale=True)
-    flow_est_color = flow_to_color(flow_est['full_res'], mask=None, max_flow=256)
-
-    opts = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
-
-    restore_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-    saver = tf.train.Saver(var_list=restore_vars)
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=opts))
-
-    img1 = tf.image.decode_png(tf.read_file(tf.placeholder(tf.string, name='img_path')), channels=3)
-    img1 = tf.cast(img1, tf.float32)
-    img1 /= 255
-    img1 = tf.expand_dims(img1, axis=0)
-    img_path_graph = tf.image.resize_images(img1, (img_height, img_width))
-
     if display:
         print("- Initialize architecture")
-    sess.run(tf.global_variables_initializer())
-
+    net = PWCNet()
     if display:
         print("- Restore weights")
-    saver.restore(sess, restore_model)
+    net.load_state_dict(torch.load(restore_model))
+    if display:
+        print("- To GPU")
     if display:
         print("--- DONE ---")
-    return sess, flow_est, flow_est_color, img_path_graph, img_width, img_height
+    net = net.cuda()
+    net.eval()
+    return net, img_width, img_height
 
-# Run the Flow estimation model based on a pair of frames
-def run_fe_model(fe_model, pair):
-    sess, flow_est, flow_est_color, img_path_graph, img_width, img_height = fe_model
+def run_fe_model_v2(fe_model, pair):
+    net, img_width, img_height = fe_model
 
-    print_time = False
+    frame1 = torch.FloatTensor(np.ascontiguousarray(
+        np.array(Image.open(pair.get_frames(0).get_image_path()))[:, :, ::-1].transpose(2, 0, 1).astype(
+            np.float32) * (1.0 / 255.0)))
+    frame2 = torch.FloatTensor(np.ascontiguousarray(
+        np.array(Image.open(pair.get_frames(1).get_image_path()))[:, :, ::-1].transpose(2, 0, 1).astype(
+            np.float32) * (1.0 / 255.0)))
 
+    frame1 = frame1.cuda()
+    frame2 = frame2.cuda()
+    frame1 = frame1.unsqueeze(0)
+    frame2 = frame2.unsqueeze(0)
 
-    timer = utils.sTimer('I1')
-    # # Load frame 1 and normalize it
-    img1 = img_path_graph.eval(session=sess, feed_dict={'img_path:0': pair.get_frames()[0].get_image_path()})
-    timer.show(print_time)
+    flow = net.single_forward(frame1, frame2)
+    flow = flow.squeeze().permute(1,2,0)
 
-    timer = utils.sTimer('I2')
-    # Load frame 2 and normalize it
-    img2 = img_path_graph.eval(session=sess, feed_dict={'img_path:0': pair.get_frames()[1].get_image_path()})
-    timer.show(print_time)
-
-    # Run the model and output both the raw output and the colored demo image.
-    timer = utils.sTimer('Run')
-    np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})
-    timer.show(print_time)
-    return np_flow_est, np_flow_est_color
-
+    return flow.detach().cpu().data.numpy()
