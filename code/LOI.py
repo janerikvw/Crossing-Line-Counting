@@ -320,3 +320,4 @@ def run_fe_model(fe_model, pair):
     np_flow_est, np_flow_est_color = sess.run([flow_est, flow_est_color], feed_dict={'img1:0': img1, 'img2:0': img2})
     timer.show(print_time)
     return np_flow_est, np_flow_est_color
+
