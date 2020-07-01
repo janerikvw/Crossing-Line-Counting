@@ -50,29 +50,32 @@ def main(args):
 
     # Load counting model
     cc_model = LOI.init_cc_model(weights_path=args.crowd_file, img_width=frame_width, img_height=frame_height)
-    fe_model = LOI.init_fe_model_v2(restore_model=args.flow_file,
-                                         img_width=frame_width, img_height=frame_height)
+    fe_model = LOI.init_fe_model(weights_path=args.flow_file, img_width=frame_width, img_height=frame_height)
 
     # Iterate over each video sample
+    import random
+    #random.shuffle(video_samples)
+
     for s_i, (video, line, crosses, naming) in enumerate(video_samples):
         print('Sample {}/{}:'.format(s_i+1, len(video_samples)))
         point1 = utils.scale_point(line[0], args.scale)
         point2 = utils.scale_point(line[1], args.scale)
+        ped_size = utils.scale_point(line[2], args.scale)
         base = os.path.basename(video.get_path())
 
         # The width of a single region (args.region_width is propotional to the length of the region)
-        line_width = int(math.sqrt(pow(point1[0]-point2[0], 2) + pow(point1[1]-point2[1], 2)) / args.regions * args.region_width)
 
 
         timer = utils.sTimer('Initialize LOI')
         loi_model = LOI.init_regionwise_loi(point1, point2,
-                                            img_width=frame_width, img_height=frame_height,
-                                            line_width=line_width, cregions=args.regions, shrink=args.orientation_shrink)
+                                            img_width=frame_width, img_height=frame_height, ped_size=ped_size,
+                                            width_peds=args.width_times, height_peds=args.height_times)
         timer.show(args.print_time)
 
         total_left = 0
         total_right = 0
 
+        video.generate_frame_pairs(distance=args.pair_distance, skip_inbetween=False)
         pbar = tqdm(total=len(video.get_frame_pairs()))
 
         for i, pair in enumerate(video.get_frame_pairs()):
@@ -80,9 +83,9 @@ def main(args):
 
             # Loading images
             timer = utils.sTimer('LI')
-            frame1_img = Image.open(pair.get_frames()[0].get_image_path()).convert('RGB').resize((frame_width, frame_height))
+            frame1_img = Image.open(pair.get_frames()[0].get_image_path()).resize((frame_width, frame_height))
+            frame2_img = Image.open(pair.get_frames()[1].get_image_path()).resize((frame_width, frame_height))
             timer.show(args.print_time)
-            # frame2_img = Image.open(pair.get_frames()[0].get_image_path()).convert('RGB').resize((frame_width, frame_height))
 
             # Run counting model on frame A
             timer = utils.sTimer('CC')
@@ -91,7 +94,7 @@ def main(args):
 
             # Run flow estimation model on frame pair
             timer = utils.sTimer('FE')
-            fe_output = LOI.run_fe_model_v2(fe_model, pair)  # Optimize by frame1_img.copy(), frame2_img.copy()
+            fe_output = LOI.run_fe_model(fe_model, frame1_img, frame2_img)
             timer.show(args.print_time)
 
             # Run the merger for the crowdcounting and flow estimation model
@@ -104,11 +107,16 @@ def main(args):
             total_right += sum(loi_output[1])
             totals = [total_left, total_right]
 
+
             # Last frame store everything :)
             if i == len(video.get_frame_pairs()) - 1:
-                fe_output_color = flo_to_color(fe_output)
+
                 timer = utils.sTimer('Save demo')
-                #utils.store_processed_images(result_dir, '{}-{}_{}'.format(naming[0], naming[1], s_i), print_i, frame1_img, cc_output, fe_output_color, point1, point2, line_width, args.regions, args.orientation_shrink, loi_output, totals, crosses)
+                fe_output_color = flo_to_color(fe_output)
+                utils.store_processed_images(result_dir, '{}-{}_{}'.format(naming[0], naming[1], s_i), print_i,
+                                             frame1_img,
+                                             cc_output, fe_output_color, point1, point2, loi_model, loi_output, totals,
+                                             crosses)
                 timer.show(args.print_time)
 
                 result_file = open("{}/results.txt".format(result_dir), "a")
@@ -116,7 +124,6 @@ def main(args):
                     "{}, {}, {}, {}, {}, {}\n".format(naming[0], naming[1], total_left, total_right, float(len(crosses[1])),
                                                       float(len(crosses[0]))))
                 result_file.close()
-
             pbar.set_description('{} ({}), {} ({})'.format(totals[0], len(crosses[1]), totals[1], len(crosses[0])))
             pbar.update(1)
 
@@ -138,18 +145,20 @@ if __name__ == '__main__':
                         default='DDFlow_pytorch/weights/20200622_111127_train2_v1/model_150000.pt', type=str,
                         help='Path to pretrained model for flow estimator')
 
-    parser.add_argument('--region_width', '-r', metavar='REGIONWIDTH', default=0.4, type=float,
-                        help='Width propotional to the length of the region')
+    parser.add_argument('--width_times', '-w', metavar='WIDTHPEDS', default=3.0, type=float,
+                        help='The width of each region times the pedestrian size')
 
-    parser.add_argument('--regions', '-s', metavar='REGIONWIDTH', default=5, type=int,
-                        help='Amount of regions on each side')
+    parser.add_argument('--height_times', '-t', metavar='HEIGHTPEDS', default=1.0, type=float,
+                        help='The height of each region times the pedestrian size')
 
     ARGS = parser.parse_args()
     ARGS.orig_frame_width = 1280  # Original width of the frame
     ARGS.orig_frame_height = 720  # Original height of the frame
-    # args.regions = 5 # Total amount of regions on each side
+
     ARGS.orientation_shrink = 1.00  # Shrinking per region moving away from the camera (To compensate for orientation)
     ARGS.scale = 1.  # Scale which we scrink everything to optimize for speed
-    ARGS.print_time = True  # Print every timer, usefull for debugging
+    ARGS.print_time = False  # Print every timer, usefull for debugging
+
+    ARGS.pair_distance = 1 # Distance between frames (normally 1 for next, 25fps for TUB)
 
     main(ARGS)

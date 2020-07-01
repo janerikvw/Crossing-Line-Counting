@@ -32,21 +32,24 @@ class BasicVideo:
     # Return all frame pairs of the video
     def get_frame_pairs(self):
         if self.pairs is None:
-            self._generate_frame_pairs()
+            self.generate_frame_pairs()
 
         return self.pairs
 
-    def _generate_frame_pairs(self):
+    def generate_frame_pairs(self, distance=1, skip_inbetween=False):
         self.pairs = []
 
         frames = self.get_frames()
 
         for i, frame1 in enumerate(frames):
-            if i+1 >= len(frames):
+            if skip_inbetween and i%distance != 0:
+                continue
+
+            if i+distance >= len(frames):
                 break
 
-            frame2 = frames[i+1]
-            self.pairs.append(BasicFramePair(frame1, frame2))
+            frame2 = frames[i+distance]
+            self.pairs.append(BasicFramePair(frame1, frame2, distance=distance))
 
     def is_labeled(self):
         return self.labeled
@@ -115,11 +118,12 @@ class BasicFrame:
 An object which holds two frames and the tracking information between the two frames (if available)
 """
 class BasicFramePair:
-    def __init__(self, frame1, frame2, labeled=False):
+    def __init__(self, frame1, frame2, labeled=False, distance=1):
         self.frame1 = frame1
         self.frame2 = frame2
         self.pairs = {}
         self.labeled = labeled
+        self.distance = distance
 
     # Add the point pair to the dictionary
     def add_point_pair(self, frame1_id, frame2_id):
@@ -141,6 +145,10 @@ class BasicFramePair:
 
     def is_labeled(self):
         return self.labeled
+
+    # How many frames are between the first and second frame
+    def get_distance(self):
+        return self.distance
 
 class BasicLineSample:
     def __init__(self, video, point1, point2, labeled=False):

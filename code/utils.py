@@ -17,8 +17,9 @@ from PIL import Image, ImageDraw
 from scipy.ndimage import rotate
 
 # Give a region and turn it in a mask to extract the region information
-def region_to_mask(region, rotate_angle, center, img_width, img_height):
+def region_to_mask(region, rotate_angle, img_width, img_height):
     full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
+    center = (img_width / 2, img_height / 2)
 
     p1 = rotate_point(region[0], -rotate_angle, center)
     p2 = rotate_point(region[2], -rotate_angle, center)
@@ -61,7 +62,75 @@ def rotate_point(point, angle, center, to_int=True):
 
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
-def select_regions(dot1, dot2, width, regions, shrink):
+def select_regions(dot1, dot2, ped_size, width_peds, height_peds):
+    height_region = height_peds * ped_size[1]
+    width_region = width_peds * ped_size[0]
+
+    line_length = math.sqrt(math.pow(dot1[0]-dot2[0], 2)+math.pow(dot1[1]-dot2[1], 2))
+    a_regions = math.floor(line_length / width_region)
+    side_perc = (1.0 - a_regions*width_region/line_length) / 2
+
+    inner_points = list(np.linspace(side_perc, 1.-side_perc, num=a_regions+1).astype(float))
+    inner_points.insert(0, 0.0)
+    inner_points.append(1.0)
+    line_points = []
+    for point_multi in inner_points:
+        line_points.append((np.array(dot1) + point_multi*(np.array(dot2) - np.array(dot1))))
+
+
+
+    # Seperate the line into several parts with given start and end point.
+    # Provide the corner points of the regions that lie on the LOI itself.
+    region_lines = []
+    for i, point in enumerate(line_points):
+        if i + 1 >= len(line_points):
+            break
+
+        point2 = line_points[i + 1]
+        region_lines.append((tuple(list(point)),  tuple(list(point2))))
+
+    region_lines.reverse()
+
+    regions = ([], [])
+    for point1, point2 in region_lines:
+
+        # The difference which we can add to the region lines corners
+        # to come to the corners on the other end of the region
+        part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
+        point_diff = (
+            - (point1[1] - point2[1]) / float(part_line_length) * float(height_region),
+            (point1[0] - point2[0]) / float(part_line_length) * float(height_region)
+        )
+
+        point1 = (int(point1[0]), int(point1[1]))
+        point2 = (int(point2[0]), int(point2[1]))
+
+        # Both add and substract the difference so we get the regions on both sides of the LOI.
+        regions[0].append([
+            point1,
+            point2,
+            (int(point2[0] + point_diff[0]), int(point2[1] + point_diff[1])),
+            (int(point1[0] + point_diff[0]), int(point1[1] + point_diff[1])),
+            height_region
+        ])
+
+        regions[1].append([
+            point1,
+            point2,
+            (int(point2[0] - point_diff[0]), int(point2[1] - point_diff[1])),
+            (int(point1[0] - point_diff[0]), int(point1[1] - point_diff[1])),
+            height_region
+        ])
+
+    regions[0].reverse()
+    regions[1].reverse()
+
+    return regions
+
+
+# Generate all the regions around the LOI (given by dot1 and dot2).
+# A region is an array with all the cornerpoints and the with of the region
+def select_regions_old(dot1, dot2, width, regions, shrink, ped_size):
     # Seperate the line into several parts with given start and end point.
     # Provide the corner points of the regions that lie on the LOI itself.
     region_lines = []
@@ -74,6 +143,7 @@ def select_regions(dot1, dot2, width, regions, shrink):
         region_lines.append((tuple(list(point)),  tuple(list(point2))))
 
     region_lines.reverse()
+
     regions = ([], [])
     for point1, point2 in region_lines:
 
@@ -81,8 +151,8 @@ def select_regions(dot1, dot2, width, regions, shrink):
         # to come to the corners on the other end of the region
         part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
         point_diff = (
-            - (point1[1] - point2[1]) / float(part_line_length) * float(width),
-            (point1[0] - point2[0]) / float(part_line_length) * float(width)
+            - (point1[1] - point2[1]) / float(part_line_length) * float(height_region),
+            (point1[0] - point2[0]) / float(part_line_length) * float(height_region)
         )
 
         # Both add and substract the difference so we get the regions on both sides of the LOI.
@@ -91,7 +161,7 @@ def select_regions(dot1, dot2, width, regions, shrink):
             point2,
             (int(point2[0] + point_diff[0]), int(point2[1] + point_diff[1])),
             (int(point1[0] + point_diff[0]), int(point1[1] + point_diff[1])),
-            width
+            height_region
         ])
 
         regions[1].append([
@@ -99,7 +169,7 @@ def select_regions(dot1, dot2, width, regions, shrink):
             point2,
             (int(point2[0] - point_diff[0]), int(point2[1] - point_diff[1])),
             (int(point1[0] - point_diff[0]), int(point1[1] - point_diff[1])),
-            width
+            height_region
         ])
 
         # Shrink the width for perspective
@@ -112,8 +182,8 @@ def select_regions(dot1, dot2, width, regions, shrink):
 
 
 # Add the regions and LOI to an PIL image. The information of the LOI can be added for each region as well.
-def image_add_region_lines(image, dot1, dot2, width, nregions, shrink, loi_output=None):
-    regions = select_regions(dot1, dot2, width=width, regions=nregions, shrink=shrink)
+def image_add_region_lines(image, dot1, dot2, loi_model, loi_output=None):
+    regions = loi_model[0]
     draw = ImageDraw.Draw(image)
 
     for i, small_regions in enumerate(regions):
@@ -174,9 +244,9 @@ def scale_frame(frame_width, frame_height, scale):
     frame_height = int(frame_height * scale)
     return frame_width, frame_height
 
-def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_output, fe_output_color, point1, point2, line_width, nregions, orientation_shrink, loi_output, totals, crosses):
+def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_output, fe_output_color, point1, point2, loi_model, loi_output, totals, crosses):
     # Load original image or demo
-    total_image = frame1_img.copy().convert("L").convert("RGBA")
+    total_image = frame1_img.copy().convert('RGB')
 
     if sample_name:
         dump_dir = os.path.join(result_dir, sample_name)
@@ -185,6 +255,9 @@ def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_outp
 
     if not os.path.exists(dump_dir):
         os.mkdir(dump_dir)
+
+    total_image.save(os.path.join(dump_dir, 'orig_{}.png'.format(print_i)))
+    total_image = total_image.convert("L").convert("RGBA")
 
     # Load and save original CC model
     cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
@@ -200,12 +273,11 @@ def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_outp
     total_image = Image.alpha_composite(total_image, cc_img)
 
     # Save original flow image
-    misc.imsave(os.path.join(dump_dir, 'flow_{}.png'.format(print_i)), fe_output_color[0])
+    fe_output_color = np.uint8(fe_output_color)
+    flow_img = Image.fromarray(fe_output_color, mode='RGB')
+    flow_img.save(os.path.join(dump_dir, 'flow_{}.png'.format(print_i)))
 
     # Transform flow and merge with original image
-    flow_img = fe_output_color[0] * 255.0
-    flow_img = flow_img.astype(np.uint8)
-    flow_img = Image.fromarray(flow_img, 'RGB')
     flow_img = white_to_transparency_gradient(flow_img)
     total_image = Image.alpha_composite(total_image, flow_img)
 
@@ -213,7 +285,7 @@ def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_outp
     total_image.save(os.path.join(dump_dir, 'combined_{}.png'.format(print_i)))
     img = total_image.convert('RGB')
     # Generate the demo output for clear view on what happens
-    image_add_region_lines(img, point1, point2, width=line_width, nregions=nregions, shrink=orientation_shrink, loi_output=loi_output)
+    image_add_region_lines(img, point1, point2, loi_model=loi_model, loi_output=loi_output)
 
     # Crop and add information at the bottom of the screen
     add_total_information(img, loi_output, totals, crosses)
