@@ -21,3 +21,16 @@ def norm_to_img(tensor):
 
     channel_max = tensor.max(axis=2)[0].max(axis=1)[0]
     return tensor / channel_max
+
+import datetime
+class sTimer():
+    def __init__(self, name):
+        self.start = datetime.datetime.now()
+        self.name = name
+
+    def show(self, printer=True):
+        ms = int((datetime.datetime.now() - self.start).total_seconds() * 1000)
+        if printer:
+            print("{}: {}ms".format(self.name, ms))
+
+        return ms

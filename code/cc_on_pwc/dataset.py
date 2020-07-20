@@ -41,9 +41,9 @@ class BasicDataset(Dataset):
         frame_img = F.interpolate(input=frame_img,
                                  size=(int_preprocessed_height, int_preprocessed_width),
                                  mode='bilinear', align_corners=False)
-        frame_density = F.interpolate(input=frame_density,
-                                    size=(int_preprocessed_height, int_preprocessed_width),
-                                    mode='bilinear', align_corners=False)
+        # frame_density = F.interpolate(input=frame_density,
+        #                             size=(int_preprocessed_height, int_preprocessed_width),
+        #                             mode='bilinear', align_corners=False)
         frame_img.squeeze_(0)
         frame_density.squeeze_(0)
 

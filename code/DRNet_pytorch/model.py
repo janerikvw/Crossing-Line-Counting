@@ -16,7 +16,7 @@ class ConvBlock(torch.nn.Module):
         if bn:
             seq['batch_norm'] = nn.BatchNorm2d(channels_out)
         if relu:
-            seq['relu'] = nn.ReLU()
+            seq['relu'] = nn.ReLU(inplace=True)
         self.seq = nn.Sequential(seq)
 
     def forward(self, x):
@@ -35,7 +35,7 @@ class DeconvBlock(torch.nn.Module):
         if bn:
             seq['batch_norm'] = nn.BatchNorm2d(channels_out)
         if relu:
-            seq['relu'] = nn.ReLU()
+            seq['relu'] = nn.ReLU(inplace=True)
         self.seq = nn.Sequential(seq)
 
     def forward(self, x):

@@ -39,7 +39,7 @@ parser.add_argument('--data_path', '-d', metavar='DATA_PATH', default='../data/T
 
 def save_sample(args, dir, info, density, true, img):
     if info == 0:
-        save_image(img, '{}/{}/img_{}.png'.format(dir, args.save_dir, info))
+        save_image(img, '{}/{}/img.png'.format(dir, args.save_dir))
     save_image(utils.norm_to_img(true), '{}/{}/true_{}.png'.format(dir, args.save_dir, info))
     save_image(utils.norm_to_img(density), '{}/{}/pred_{}.png'.format(dir, args.save_dir, info))
 
@@ -94,12 +94,11 @@ def train(args):
     print('Initializing model...')
     model = load_model(args)
     criterion = nn.MSELoss(reduction='sum').cuda()
-    optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=5*1e-4) # , weight_decay=1*1e-4
-    # optimizer = optim.SGD(model.parameters(), 1e-6,
-    #                             momentum=0.95,
-    #                             weight_decay=5*1e-4)
+    # optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=5*1e-4)
+    optimizer = optim.SGD(model.parameters(), 1e-6,
+                                momentum=0.95,
+                                weight_decay=5*1e-4)
 
-    o = 0
     best_mae = None
     print('Start training...')
     for epoch in range(args.epochs):
@@ -124,25 +123,19 @@ def train(args):
             loss.backward()
             optimizer.step()
 
-            # pred_densities = pred_densities.detach()
-            # if i == 0 and epoch % args.test_epochs == args.test_epochs - 1:
-            #     save_sample(args, 'train_results', epoch, pred_densities[0], densities[0], images[0])
-
             running_loss += loss.item()
-
-            # Save every loss in tensorboard
-            o += 1
-            writer.add_scalar('CC/Loss/train', loss.item(), o)
 
             # print every 2000 mini-batches
             if i % args.print_every == args.print_every - 1:
                 print('[%d, %5d] loss: %.5f' % (epoch + 1, i + 1, running_loss / args.print_every))
-                running_loss = 0.0
 
+        writer.add_scalar('Train/Loss', running_loss, epoch)
         if epoch % args.test_epochs == args.test_epochs - 1:
+            timer = utils.sTimer('Test run')
             avg, avg_sq = test_run(args, epoch, test_dataset, model)
-            writer.add_scalar('CC/MAE/train', avg.avg, epoch)
-            writer.add_scalar('CC/MSE/train', avg_sq.avg, epoch)
+            writer.add_scalar('Val/eval_time', timer.show(False), epoch)
+            writer.add_scalar('Val/MAE', avg.avg, epoch)
+            writer.add_scalar('Val/MSE', avg_sq.avg, epoch)
 
             torch.save(model.state_dict(), 'weights/{}/last_model.pt'.format(args.save_dir))
             if best_mae is None or best_mae > avg.avg:
@@ -200,7 +193,7 @@ if __name__ == '__main__':
     args.batch_size = 1
 
     # Keep these fixed to make sure reproducibility
-    args.dataloader_workers = 2
+    args.dataloader_workers = 1
     args.seed = time.time()
 
     args.epochs = 2000

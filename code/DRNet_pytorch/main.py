@@ -39,14 +39,13 @@ def train(args):
     Path('train_results/{}/'.format(args.save_dir)).mkdir(parents=True, exist_ok=True)
 
     train_dataset = DRNetDataset(train_frames, args.density_model, args.patch_size)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=1)
 
     print('Initializing model...')
     model = DRNetModel().cuda()
     criterion = nn.L1Loss(reduction='mean').cuda()
     optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.0005)
 
-    o = 0
     print('Start training...')
     for epoch in range(args.epochs):
         running_loss = 0.0
@@ -75,25 +74,21 @@ def train(args):
 
             running_loss += loss.item()
 
-            o += 1
-            writer.add_scalar('CC/Loss/train', loss.item(), o)
-
-            # print every 2000 mini-batches
             if i % args.print_every == args.print_every-1:
-                print('[%d, %5d] loss: %.5f' % (epoch + 1, i + 1, running_loss / args.print_every))
-                running_loss = 0.0
+                print('[%d, %5d] loss: %.5f' % (epoch + 1, i + 1, running_loss / (i+1)))
 
+        writer.add_scalar('CC/Loss/train', running_loss, epoch)
         if epoch%args.test_epochs == args.test_epochs-1:
             avg, avg_sq = test_run(epoch, test_frames, model, args.density_model)
-            writer.add_scalar('CC/MAE/train', avg, epoch)
-            writer.add_scalar('CC/MSE/train', avg_sq, epoch)
+            writer.add_scalar('CC/MAE', avg, epoch)
+            writer.add_scalar('CC/MSE', avg_sq, epoch)
 
     return
 
 def test_run(epoch, frames, model, density_model):
     print("Do testrun {}:".format(epoch))
     test_dataset = DRNetDataset(frames, density_model)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=0)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=1)
 
     avg = utils.AverageMeter()
     avg_sq = utils.AverageMeter()
