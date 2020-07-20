@@ -41,7 +41,7 @@ class listDataset(Dataset):
         img = frame_obj.get_image().convert('RGB')
         target = frame_obj.get_density(self.density_name)
 
-        target = cv2.resize(target, (target.shape[1] / 8, target.shape[0] / 8), interpolation=cv2.INTER_CUBIC) * 64
+        target = cv2.resize(target, (int(target.shape[1] / 8), int(target.shape[0] / 8)), interpolation=cv2.INTER_CUBIC) * 64
 
         if self.transform is not None:
             img = self.transform(img)

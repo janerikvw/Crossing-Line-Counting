@@ -55,7 +55,10 @@ def load_dataset(args, between=1, load_gt=False):
     val_pairs = []
     for video in tub.load_all_videos(args.data_path, load_peds=False):
         train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, None)
+        train_video.generate_frame_pairs(between)
         train_pairs += train_video.get_frame_pairs()
+        
+        val_video.generate_frame_pairs(between)
         val_pairs += val_video.get_frame_pairs()
 
     return SimpleDataset(train_pairs, load_gt), SimpleDataset(val_pairs)

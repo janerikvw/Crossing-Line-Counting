@@ -69,7 +69,8 @@ def main(args):
         timer = utils.sTimer('Initialize LOI')
         loi_model = LOI.init_regionwise_loi(point1, point2,
                                             img_width=frame_width, img_height=frame_height, ped_size=ped_size,
-                                            width_peds=args.width_times, height_peds=args.height_times)
+                                            width_peds=args.width_times, height_peds=args.height_times,
+                                            select_type=ARGS.region_select)
         timer.show(args.print_time)
 
         total_left = 0
@@ -155,10 +156,11 @@ if __name__ == '__main__':
     ARGS.orig_frame_width = 1280  # Original width of the frame
     ARGS.orig_frame_height = 720  # Original height of the frame
 
-    ARGS.orientation_shrink = 1.00  # Shrinking per region moving away from the camera (To compensate for orientation)
     ARGS.scale = 1.  # Scale which we scrink everything to optimize for speed
     ARGS.print_time = False  # Print every timer, usefull for debugging
 
-    ARGS.pair_distance = 1 # Distance between frames (normally 1 for next, 25fps for TUB)
+    ARGS.pair_distance = 1  # Distance between frames (normally 1 for next, 25fps for TUB)
+
+    ARGS.region_select = 'V2'  # V1 or V2 for comparison
 
     main(ARGS)

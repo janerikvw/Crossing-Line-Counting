@@ -73,23 +73,18 @@ def main():
     # random.shuffle(val_list)
     # val_list = val_list[:100]
 
-    videos = tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False)
-    train_list = []
-    val_list = []
-    for video in videos:
-        base = os.path.basename(video.get_path())
-        # crossing = tub.get_line_crossing_frames(video)
-        with open('../data/TUBCrowdFlow/crossings/{}.json'.format(base)) as json_file:
-            crossing = json.load(json_file)['crossings']
+    train_frames = []
+    val_frames = []
+    for video in tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False):
+        train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, None)
+        train_frames += train_video.get_frames()
+        val_frames += val_video.get_frames()
 
-        train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, crossing)
-        train_list += train_video.get_frames()
-        val_list += val_video.get_frames()
+    val_frames = val_frames[::10]
 
-    random.shuffle(train_list)
-    train_list = train_list[0:120]
-    random.shuffle(val_list)
-    val_list = val_list[:50]
+
+    val_list = val_frames
+    train_list = train_frames
 
     print('Train frames', len(train_list))
     print("Test frames", len(val_list))

@@ -3,7 +3,7 @@ from matplotlib.pyplot import imshow
 import numpy as np
 from PIL import Image, ImageDraw
 import os
-from datasets import basic_entities as entities
+from . import basic_entities as entities
 import pickle
 from math import floor
 

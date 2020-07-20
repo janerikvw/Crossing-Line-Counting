@@ -2,7 +2,6 @@ import torch
 import sys
 import math
 
-print("Test")
 from .model_utils import backwarp
 
 # https://github.com/sniklaus/pytorch-pwc

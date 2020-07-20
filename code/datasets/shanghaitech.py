@@ -4,7 +4,7 @@ import json
 import scipy.io as io
 import numpy as np
 
-import basic_entities as entities
+from . import basic_entities as entities
 
 def load_all_frames(base_path, load_labeling=True):
     frame_paths = glob(os.path.join(base_path, 'images/*.jpg'))

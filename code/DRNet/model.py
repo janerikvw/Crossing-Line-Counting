@@ -238,24 +238,13 @@ class drnet_2D(object):
         parentdir = os.path.dirname(currentdir)
         sys.path.insert(0, parentdir)
         from datasets import shanghaitech, fudan
-        # frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/train_data', load_labeling=False)
-        train_frames, test_frames = fudan.load_train_test_frames('../data/Fudan/train_data')
-        import random
-        random.shuffle(train_frames)
-        random.shuffle(test_frames)
-        train_frames = train_frames[0:800]
-        test_frames = test_frames[0:150]
+        train_frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/train_data', load_labeling=False)
+        print("Loaded {} trainings frames".format(len(train_frames)))
+        test_frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
+        print("Loaded {} testing frames".format(len(test_frames)))
+
         img_clec, dmap_clec = load_data_pairs_v2(train_frames)
         test_img_clec, test_dmap_clec = load_data_pairs_v2(test_frames)
-
-        # # get file list of testing dataset
-        # test_img_list = glob('{}/*.jpg'.format(self.testImagePath))
-        # test_img_list.sort()
-        # test_dmap_list = glob('{}/*.mat'.format(self.testDmapPath))
-        # test_dmap_list.sort()
-        # test_img_clec, test_dmap_clec = load_data_pairs(test_img_list, test_dmap_list)
-
-        # frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_B_final/test_data', load_labeling=False)
 
         self.test_training(test_img_clec, test_dmap_clec, 0, log_file)
 
@@ -336,12 +325,7 @@ class drnet_2D(object):
         sys.path.insert(0, parentdir)
         from datasets import shanghaitech, fudan
 
-        train_frames, test_frames = fudan.load_train_test_frames('../data/Fudan/train_data')
-        import random
-        random.seed(0)
-        random.shuffle(train_frames)
-        test_frames = train_frames[:300]
-        #frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
+        test_frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
         img_clec, dmap_clec = load_data_pairs_v2(test_frames)
 
 

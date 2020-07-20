@@ -79,7 +79,7 @@ class BasicFrame:
     def get_image_path(self):
         return self.image_path
 
-    def get_info_dir(self, file=None, check_exists=True):
+    def get_info_dir(self, file=None, check_exists=False):
         path = os.path.splitext(self.image_path)[0]
 
         if check_exists:
@@ -90,9 +90,11 @@ class BasicFrame:
         return path
 
     # Retrieve the path where the generated density map is stored
-    def get_density_path(self, type = None, check_exists=True):
+    def get_density_path(self, type = None, check_exists=False):
         if type:
             type = '_{}'.format(type)
+        else:
+            type = ''
         return self.get_info_dir("density{}.npy".format(type), check_exists)
 
     # Return a Pillow link to the image file data.

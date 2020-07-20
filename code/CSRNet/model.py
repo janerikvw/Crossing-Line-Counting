@@ -12,13 +12,13 @@ class CSRNet(nn.Module):
         self.frontend = make_layers(self.frontend_feat)
         self.backend = make_layers(self.backend_feat,in_channels = 512,dilation = True)
         self.output_layer = nn.Conv2d(64, 1, kernel_size=1)
-        if not load_weights:
-            mod = models.vgg16(pretrained = True)
-            self._initialize_weights()
-            for i in xrange(len(self.frontend.state_dict().items())):
-                self.frontend.state_dict().items()[i][1].data[:] = mod.state_dict().items()[i][1].data[:]
+        # if not load_weights:
+        #     mod = models.vgg16(pretrained = True)
+        #     self._initialize_weights()
+        #     for i in range(len(self.frontend.state_dict().items())):
+        #         self.frontend.state_dict().items()[i][1].data[:] = mod.state_dict().items()[i][1].data[:]
 
-    def forward(self,x):
+    def forward(self, x):
         x = self.frontend(x)
         x = self.backend(x)
         x = self.output_layer(x)

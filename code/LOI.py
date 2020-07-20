@@ -24,13 +24,16 @@ import datetime
 
 # Intialize the regionwise LOI. Returns all the information required to execute the regionwise LOI optimally.
 # The initializer generates all the reqions around the LOI and the masks for extracting the data from the CC and FE.
-def init_regionwise_loi(point1, point2, img_width, img_height, ped_size,  width_peds, height_peds):
+def init_regionwise_loi(point1, point2, img_width, img_height, ped_size,  width_peds, height_peds, select_type='V2'):
     # Rescale everything
     center = (img_width / 2, img_height / 2)
     rotate_angle = math.degrees(math.atan((point2[1] - point1[1]) / float(point2[0] - point1[0])))
 
     # Generate the original regions as well for later usage
-    regions = select_regions(point1, point2, ped_size=ped_size, width_peds=width_peds, height_peds=height_peds)
+    if select_type == 'V1':
+        regions = select_regions_v1(point1, point2, width=35*height_peds, regions=5, shrink=1.0)
+    else:
+        regions = select_regions(point1, point2, ped_size=ped_size, width_peds=width_peds, height_peds=height_peds)
 
     # Generate per region a mask which can be used to extract the crowd counting and flow estimation
     masks = ([], [])

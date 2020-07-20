@@ -58,7 +58,7 @@ def handle_frame(frame_obj):
 
     for size in sizes:
         k = gaussian_filter_fixed_density(frame_obj, sigma=size)
-        np.save(frame_obj.get_density_path('fixed-{}'.format(size)), k)
+        np.save(frame_obj.get_density_path('fixed-{}'.format(size), check_exists=True), k)
 
     # k = gaussian_filter_density(frame_obj)
     # np.save(frame_obj.get_density_path('flex'.format(size)), k)
@@ -71,8 +71,8 @@ if __name__ == '__main__':
     frames_list = []
 
     print("Loading ShanghaiTech frames")
-    for base_path in glob('../data/ShanghaiTech/part_*/*'):
-        frames_list = frames_list + shanghaitech.load_all_frames(base_path)
+    # for base_path in glob('../data/ShanghaiTech/part_*/*'):
+    #     frames_list = frames_list + shanghaitech.load_all_frames(base_path)
 
     print("Loading TUB dataset frames")
     frames_list = frames_list + tub.load_all_frames('../data/TUBCrowdFlow')

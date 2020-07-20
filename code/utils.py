@@ -130,7 +130,7 @@ def select_regions(dot1, dot2, ped_size, width_peds, height_peds):
 
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
-def select_regions_old(dot1, dot2, width, regions, shrink, ped_size):
+def select_regions_v1(dot1, dot2, width, regions, shrink):
     # Seperate the line into several parts with given start and end point.
     # Provide the corner points of the regions that lie on the LOI itself.
     region_lines = []
