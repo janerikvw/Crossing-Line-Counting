@@ -54,9 +54,9 @@ class DRNetDataset(Dataset):
             # frame_density = frame_density[:, i:i + h, j:j + w]
 
             # Augmentation
-            if np.random.random() > 0.5:
-                frame_img = frame_img.flip(2)
-                frame_density = frame_density.flip(2)
+            # if np.random.random() > 0.5:
+            #     frame_img = frame_img.flip(2)
+            #     frame_density = frame_density.flip(2)
 
         return frame_img, frame_density
 

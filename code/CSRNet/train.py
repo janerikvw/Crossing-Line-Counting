@@ -67,24 +67,19 @@ def main():
     args.seed = time.time()
     args.print_freq = 30
 
-    # train_list, val_list = dataset_factory.load_train_test_frames('../')
-    # train_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/train_data', load_labeling=False)
-    # val_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
+    train_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/train_data', load_labeling=False)
+    val_list = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
     # random.shuffle(val_list)
     # val_list = val_list[:100]
 
-    train_frames = []
-    val_frames = []
-    for video in tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False):
-        train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, None)
-        train_frames += train_video.get_frames()
-        val_frames += val_video.get_frames()
-
-    val_frames = val_frames[::10]
-
-
-    val_list = val_frames
-    train_list = train_frames
+    # train_frames = []
+    # val_frames = []
+    # for video in tub.load_all_videos('../data/TUBCrowdFlow', load_peds=False):
+    #     train_video, _, val_video, _, _, _ = tub.train_val_test_split(video, None)
+    #     train_frames += train_video.get_frames()
+    #     val_frames += val_video.get_frames()
+    #
+    # val_frames = val_frames[::10]
 
     print('Train frames', len(train_list))
     print("Test frames", len(val_list))

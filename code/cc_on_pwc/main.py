@@ -1,4 +1,5 @@
 import argparse
+import time
 import math
 import random
 from datetime import datetime
@@ -37,7 +38,8 @@ parser.add_argument('--data_path', '-d', metavar='DATA_PATH', default='../data/T
 
 
 def save_sample(args, dir, info, density, true, img):
-    save_image(img, '{}/{}/img_{}.png'.format(dir, args.save_dir, info))
+    if info == 0:
+        save_image(img, '{}/{}/img_{}.png'.format(dir, args.save_dir, info))
     save_image(utils.norm_to_img(true), '{}/{}/true_{}.png'.format(dir, args.save_dir, info))
     save_image(utils.norm_to_img(density), '{}/{}/pred_{}.png'.format(dir, args.save_dir, info))
 
@@ -72,7 +74,7 @@ from CSRNet.model import CSRNet
 
 
 def load_model(args):
-    model = CSRNet().cuda()
+    model = CSRNet(load_weights=True).cuda()
 
     return model
 
@@ -92,7 +94,10 @@ def train(args):
     print('Initializing model...')
     model = load_model(args)
     criterion = nn.MSELoss(reduction='sum').cuda()
-    optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=0.0005)
+    optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=5*1e-4) # , weight_decay=1*1e-4
+    # optimizer = optim.SGD(model.parameters(), 1e-6,
+    #                             momentum=0.95,
+    #                             weight_decay=5*1e-4)
 
     o = 0
     best_mae = None
@@ -195,25 +200,25 @@ if __name__ == '__main__':
     args.batch_size = 1
 
     # Keep these fixed to make sure reproducibility
-    args.dataloader_workers = 1
-    args.seed = 127  # time.time()
+    args.dataloader_workers = 2
+    args.seed = time.time()
 
-    args.epochs = 300
-    args.print_every = 100  # Print every x amount of minibatches
+    args.epochs = 2000
+    args.print_every = 300  # Print every x amount of minibatches
     args.patch_size = (128, 128)
 
     # Add date and time so we can just run everything very often :)
     args.save_dir = '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
 
     # args.patch_size = (256, 256)
-    args.density_model = 'fixed-8'
+    args.density_model = 'flex'  # 'fixed-8'
 
     args.resize_diff = 64.0
 
     torch.cuda.manual_seed(args.seed)
     random.seed(args.seed)
 
-    args.test_epochs = 1  # Run every fifth epoch a test
+    args.test_epochs = 4  # Run every fifth epoch a test
     if args.mode == 'test':
         test(args)
     else:

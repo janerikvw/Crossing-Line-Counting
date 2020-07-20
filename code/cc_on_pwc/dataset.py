@@ -17,12 +17,15 @@ class BasicDataset(Dataset):
         self.resize_diff = resize_diff
         self.augmentation = augmentation
 
+        self.transform = T.Compose([T.ToTensor(),
+                                    T.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])])
+
     def __getitem__(self, item):
         frame = self.frames[item]
         # Load the image and normalize
-        frame_img = torch.FloatTensor(np.ascontiguousarray(
-            np.array(PIL.Image.open(frame.get_image_path()).convert('RGB'))[:, :, ::-1].transpose(2, 0, 1).astype(
-                np.float32) * (1.0 / 255.0)))
+        frame_img = PIL.Image.open(frame.get_image_path()).convert('RGB')
+        frame_img = self.transform(frame_img)
 
         # Load the density map and add single layer for PyTorch
         frame_density = torch.FloatTensor(frame.get_density(self.density_type))
