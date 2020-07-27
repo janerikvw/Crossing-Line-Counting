@@ -16,11 +16,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def norm_to_img(tensor):
-    if len(tensor.shape):
-        tensor = tensor.unsqueeze(0)
-
-    channel_max = tensor.max(axis=2)[0].max(axis=1)[0]
-    return tensor / channel_max
+    return tensor / tensor.max()
 
 import datetime
 class sTimer():

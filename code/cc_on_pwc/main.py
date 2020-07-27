@@ -33,15 +33,17 @@ parser.add_argument('name', metavar='NAME', type=str,
 parser.add_argument('--mode', '-m', metavar='MODE', type=str, default='train',
                     help='Train or test')
 
+parser.add_argument('--pre', '-p', metavar='PRETRAINED_MODEL', default='weights/20200722_091354_v02_csr_sgd_improved/best_model.pt', type=str,
+                    help='Path to the TUB dataset')
+
 parser.add_argument('--data_path', '-d', metavar='DATA_PATH', default='../data/TUBCrowdFlow', type=str,
                     help='Path to the TUB dataset')
 
 
 def save_sample(args, dir, info, density, true, img):
-    if info == 0:
-        save_image(img, '{}/{}/img.png'.format(dir, args.save_dir))
-    save_image(utils.norm_to_img(true), '{}/{}/true_{}.png'.format(dir, args.save_dir, info))
-    save_image(utils.norm_to_img(density), '{}/{}/pred_{}.png'.format(dir, args.save_dir, info))
+    save_image(img, '{}/{}/img.png'.format(dir, args.save_dir))
+    save_image(true / true.max(), '{}/{}/true.png'.format(dir, args.save_dir))
+    save_image(density / density.max(), '{}/{}/pred_{}.png'.format(dir, args.save_dir, info))
 
 
 def load_dataset(args):
@@ -57,7 +59,6 @@ def load_dataset(args):
 
     train_frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/train_data', load_labeling=False)
     val_frames = shanghaitech.load_all_frames('../data/ShanghaiTech/part_A_final/test_data', load_labeling=False)
-    #val_frames = val_frames[:100]
 
     print("Loaded {} trainings frames".format(len(train_frames)))
     print("Loaded {} testing frames".format(len(val_frames)))
@@ -71,12 +72,24 @@ current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfra
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 from CSRNet.model import CSRNet
+from DDFlow_pytorch.model import Extractor
+
+from models import ModelV1
 
 
 def load_model(args):
     model = CSRNet(load_weights=True).cuda()
+    extractor = Extractor().cuda()
 
-    return model
+    if args.pre:
+        model.load_state_dict(torch.load(args.pre))
+
+    return model, extractor
+
+def run_model(input, model, extractor):
+    # features = extractor(input)
+    out = model(input)
+    return out
 
 
 def train(args):
@@ -92,12 +105,12 @@ def train(args):
                                                num_workers=args.dataloader_workers)
 
     print('Initializing model...')
-    model = load_model(args)
+    model, extractor = load_model(args)
     criterion = nn.MSELoss(reduction='sum').cuda()
-    # optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=5*1e-4)
-    optimizer = optim.SGD(model.parameters(), 1e-6,
-                                momentum=0.95,
-                                weight_decay=5*1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
+    # optimizer = optim.SGD(model.parameters(), 1e-6,
+    #                             momentum=0.95,
+    #                             weight_decay=5*1e-4)
 
     best_mae = None
     print('Start training...')
@@ -112,12 +125,12 @@ def train(args):
             optimizer.zero_grad()
 
             # Run model and optimize
-            pred_densities = model(images)
+            pred_densities = run_model(images, model, extractor)
             factor = (densities.shape[2]*densities.shape[3]) / (pred_densities.shape[2]*pred_densities.shape[3])
 
             densities = F.interpolate(input=densities,
                                    size=(pred_densities.shape[2], pred_densities.shape[3]),
-                                   mode='bicubic', align_corners=True) * factor
+                                   mode='bicubic', align_corners=False) * factor
 
             loss = criterion(pred_densities, densities)
             loss.backward()
@@ -137,9 +150,11 @@ def train(args):
             writer.add_scalar('Val/MAE', avg.avg, epoch)
             writer.add_scalar('Val/MSE', avg_sq.avg, epoch)
 
+            torch.save(extractor.state_dict(), 'weights/{}/last_extractor.pt'.format(args.save_dir))
             torch.save(model.state_dict(), 'weights/{}/last_model.pt'.format(args.save_dir))
             if best_mae is None or best_mae > avg.avg:
                 best_mae = avg.avg
+                torch.save(extractor.state_dict(), 'weights/{}/best_extractor.pt'.format(args.save_dir))
                 torch.save(model.state_dict(), 'weights/{}/best_model.pt'.format(args.save_dir))
                 print("----- NEW BEST!! -----")
 
@@ -206,7 +221,7 @@ if __name__ == '__main__':
     # args.patch_size = (256, 256)
     args.density_model = 'flex'  # 'fixed-8'
 
-    args.resize_diff = 64.0
+    args.resize_diff = 1.0
 
     torch.cuda.manual_seed(args.seed)
     random.seed(args.seed)
