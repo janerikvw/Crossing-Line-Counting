@@ -70,9 +70,9 @@ if __name__ == '__main__':
     from datasets import shanghaitech, fudan, tub
     frames_list = []
 
-    print("Loading ShanghaiTech frames")
-    for base_path in glob('../data/ShanghaiTech/part_*/*'):
-        frames_list = frames_list + shanghaitech.load_all_frames(base_path)
+    # print("Loading ShanghaiTech frames")
+    # for base_path in glob('../data/ShanghaiTech/part_*/*'):
+    #     frames_list = frames_list + shanghaitech.load_all_frames(base_path)
 
     print("Loading TUB dataset frames")
     frames_list = frames_list + tub.load_all_frames('../data/TUBCrowdFlow')

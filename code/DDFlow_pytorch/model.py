@@ -233,7 +233,7 @@ class PWCNet(torch.nn.Module):
         return objEstimate['tenFlow'] + self.netRefiner(objEstimate['tenFeat'])
 
     # Calculate the flow for both forward and backward between the two frames
-    def bidirection_forward(self, frame1, frame2):
+    def bidirection_forward(self, frame1, frame2, ret_features=False):
         int_width = frame1.shape[3]
         int_height = frame1.shape[2]
         int_preprocessed_width = int(math.floor(math.ceil(int_width / 64.0) * 64.0))
@@ -242,10 +242,10 @@ class PWCNet(torch.nn.Module):
         # Resize to get a size which fits into the network
         frame1 = torch.nn.functional.interpolate(input=frame1,
                                                  size=(int_preprocessed_height, int_preprocessed_width),
-                                                 mode='bilinear', align_corners=False)
+                                                 mode='bicubic', align_corners=False)
         frame2 = torch.nn.functional.interpolate(input=frame2,
                                                  size=(int_preprocessed_height, int_preprocessed_width),
-                                                 mode='bilinear', align_corners=False)
+                                                 mode='bicubic', align_corners=False)
 
         # Feed through encoder and decode forward and backward
         features1 = self.netExtractor(frame1)
@@ -266,7 +266,10 @@ class PWCNet(torch.nn.Module):
         flow_bw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
         flow_bw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
 
-        return flow_fw, flow_bw
+        if ret_features:
+            return flow_fw, flow_bw, features1, features2
+        else:
+            return flow_fw, flow_bw
 
     def single_forward(self, frame1, frame2):
         int_width = frame1.shape[3]

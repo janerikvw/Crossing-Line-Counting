@@ -49,8 +49,11 @@ def main(args):
 
 
     # Load counting model
-    cc_model = LOI.init_cc_model(weights_path=args.crowd_file, img_width=frame_width, img_height=frame_height)
-    fe_model = LOI.init_fe_model(weights_path=args.flow_file, img_width=frame_width, img_height=frame_height)
+    if ARGS.merged_model:
+        full_model = LOI.init_full_model(weights_path=args.full_file)
+    else:
+        cc_model = LOI.init_cc_model(weights_path=args.crowd_file, img_width=frame_width, img_height=frame_height)
+        fe_model = LOI.init_fe_model(weights_path=args.flow_file, img_width=frame_width, img_height=frame_height)
 
     # Iterate over each video sample
     import random
@@ -70,7 +73,7 @@ def main(args):
         loi_model = LOI.init_regionwise_loi(point1, point2,
                                             img_width=frame_width, img_height=frame_height, ped_size=ped_size,
                                             width_peds=args.width_times, height_peds=args.height_times,
-                                            select_type=ARGS.region_select)
+                                            select_type=ARGS.region_select, crop_processing=ARGS.cropping)
         timer.show(args.print_time)
 
         total_left = 0
@@ -86,17 +89,25 @@ def main(args):
             timer = utils.sTimer('LI')
             frame1_img = Image.open(pair.get_frames()[0].get_image_path()).resize((frame_width, frame_height))
             frame2_img = Image.open(pair.get_frames()[1].get_image_path()).resize((frame_width, frame_height))
+            frame1_img = LOI.preprocess_image_loi(loi_model, frame1_img)
+            frame2_img = LOI.preprocess_image_loi(loi_model, frame2_img)
+
             timer.show(args.print_time)
 
-            # Run counting model on frame A
-            timer = utils.sTimer('CC')
-            cc_output = LOI.run_cc_model(cc_model, frame1_img.copy())
-            timer.show(args.print_time)
+            if ARGS.merged_model:
+                timer = utils.sTimer('Full pass')
+                fe_output, cc_output = LOI.run_full_model(full_model, frame1_img, frame2_img)
+                timer.show(args.print_time)
+            else:
+                # Run counting model on frame A
+                timer = utils.sTimer('CC')
+                cc_output = LOI.run_cc_model(cc_model, frame1_img.copy())
+                timer.show(args.print_time)
 
-            # Run flow estimation model on frame pair
-            timer = utils.sTimer('FE')
-            fe_output = LOI.run_fe_model(fe_model, frame1_img, frame2_img)
-            timer.show(args.print_time)
+                # Run flow estimation model on frame pair
+                timer = utils.sTimer('FE')
+                fe_output = LOI.run_fe_model(fe_model, frame1_img, frame2_img)
+                timer.show(args.print_time)
 
             # Run the merger for the crowdcounting and flow estimation model
             timer = utils.sTimer('LOI')
@@ -146,6 +157,10 @@ if __name__ == '__main__':
                         default='DDFlow_pytorch/weights/20200622_111127_train2_v1/model_150000.pt', type=str,
                         help='Path to pretrained model for flow estimator')
 
+    parser.add_argument('--full_file', '-g', metavar='FLOWFILE',
+                        default='full_on_pwc/weights/20200728_110816_full_test/best_model.pt', type=str,
+                        help='Path to pretrained model for flow estimator')
+
     parser.add_argument('--width_times', '-w', metavar='WIDTHPEDS', default=3.0, type=float,
                         help='The width of each region times the pedestrian size')
 
@@ -162,5 +177,8 @@ if __name__ == '__main__':
     ARGS.pair_distance = 1  # Distance between frames (normally 1 for next, 25fps for TUB)
 
     ARGS.region_select = 'V2'  # V1 or V2 for comparison
+    ARGS.cropping = 100  # Cropping for quicker processing (Give number as padding for outers to optimize performance)
+
+    ARGS.merged_model = False
 
     main(ARGS)

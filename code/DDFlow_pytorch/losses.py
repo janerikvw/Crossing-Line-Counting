@@ -1,5 +1,5 @@
 import torch
-import model_utils
+from . import model_utils
 
 
 # What exact loss is this? Look for better explaination
