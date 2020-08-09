@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision.utils import save_image
+import torchvision
 
-from model import DRNetModel
 from dataset import BasicDataset
 
 from pathlib import Path
@@ -33,11 +33,14 @@ parser.add_argument('name', metavar='NAME', type=str,
 parser.add_argument('--mode', '-m', metavar='MODE', type=str, default='train',
                     help='Train or test')
 
-parser.add_argument('--pre', '-p', metavar='PRETRAINED_MODEL', default='', type=str,
-                    help='Path to the TUB dataset')
+# parser.add_argument('--pre', '-p', metavar='PRETRAINED_MODEL', default='', type=str,
+#                     help='Path to the TUB dataset')
 
 parser.add_argument('--data_path', '-d', metavar='DATA_PATH', default='../data/TUBCrowdFlow', type=str,
                     help='Path to the TUB dataset')
+
+# parser.add_argument('--pre', '-p', metavar='PRETRAINED', default=False, type=bool,
+#                     help='Path to the TUB dataset')
 
 
 def save_sample(args, dir, info, density, true, img):
@@ -72,16 +75,20 @@ current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfra
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 from CSRNet.model import CSRNet
-from models import ModelV1, ModelV2
+from models import ModelV1, ModelV2, ResCSRNet, ResCSRNetV2
+from DRNet_pytorch.model import DRNetModel
+from pwc_models import PWCC_V1, PWCC_V2_small, PWCC_V1_deep, PWCC_V3_64, PWCC_V3_adapt
 
 def load_model(args):
-    model = ModelV2().cuda()
+    # model = ModelV2().cuda()
 
     # Pretrained model: weights/20200722_091354_v02_csr_sgd_improved/best_model.pt
-    # model = CSRNet(load_weights=True).cuda()
+    model = PWCC_V3_adapt().cuda()
+    #model = DRNetModel().cuda()
+    # model = PWCC_V1_deep(True).cuda()
 
-    if args.pre:
-        model.load_state_dict(torch.load(args.pre))
+    # if args.pre:
+    #     model.load_state_dict(torch.load(args.pre))
 
     return model
 
@@ -110,12 +117,15 @@ def train(args):
         print("Error, no correct loss function")
         exit()
 
-    optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
+    # optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=0)
+    optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=0)
     # optimizer = optim.SGD(model.parameters(), 1e-6,
     #                             momentum=0.95,
     #                             weight_decay=5*1e-4)
 
     best_mae = None
+    best_mse = None
+    best_epoch = None
     print('Start training...')
     for epoch in range(args.epochs):
         running_loss = 0.0
@@ -130,14 +140,16 @@ def train(args):
             # Run model and optimize
             pred_densities = model(images)
 
-            factor = (densities.shape[2]*densities.shape[3]) / (pred_densities.shape[2]*pred_densities.shape[3])
+            factor = int(densities.shape[2]*densities.shape[3]) / int(pred_densities.shape[2]*pred_densities.shape[3])
 
             if epoch == 0 and i == 0:
                 print("Resize factor: {}".format(factor))
 
-            densities = F.interpolate(input=densities,
-                                   size=(pred_densities.shape[2], pred_densities.shape[3]),
-                                   mode='bicubic', align_corners=False) * factor
+            pred_densities = F.interpolate(input=pred_densities,
+                                   size=(densities.shape[2], densities.shape[3]),
+                                   mode='bicubic', align_corners=False) / factor
+
+
 
             loss = criterion(pred_densities, densities)
             loss.backward()
@@ -159,8 +171,12 @@ def train(args):
             torch.save(model.state_dict(), 'weights/{}/last_model.pt'.format(args.save_dir))
             if best_mae is None or best_mae > avg.avg:
                 best_mae = avg.avg
+                best_mse = math.pow(avg_sq.avg, 0.5)
+                best_epoch = epoch
                 torch.save(model.state_dict(), 'weights/{}/best_model.pt'.format(args.save_dir))
                 print("----- NEW BEST!! -----")
+            else:
+                print("Current best MAE: {}, MSE is: {} [epoch: {}]".format(best_mae, best_mse, best_epoch))
     return
 
 def test(args):
@@ -190,6 +206,9 @@ def test_run(args, epoch, test_dataset, model, save=True):
         truth.update(densities.sum().item())
         pred.update(predictions.sum().item())
 
+        diff = densities.sum().item()-predictions.sum().item()
+        # print("{}: [{:.2f}] [{:.4f}]".format(i, diff, diff/densities.sum().item()))
+
         avg.update(abs((predictions.sum() - densities.sum()).item()))
         avg_sq.update(torch.pow(predictions.sum() - densities.sum(), 2).item())
 
@@ -210,23 +229,23 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.batch_size = 1
 
-    args.loss_function = 'L1'  # L2
+    args.loss_function = 'L2'  # L2
 
     # Keep these fixed to make sure reproducibility
     args.dataloader_workers = 1
     args.seed = time.time()
 
-    args.epochs = 4000
+    args.epochs = 3000
     args.print_every = 300  # Print every x amount of minibatches
-    args.patch_size = (128, 128)
 
     # Add date and time so we can just run everything very often :)
-    args.save_dir = '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
+    #args.save_dir = '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
+    args.save_dir = args.name
 
     # args.patch_size = (256, 256)
     args.density_model = 'flex'  # 'fixed-8'
 
-    args.resize_diff = 1.0
+    args.resize_diff = 64.0
 
     torch.cuda.manual_seed(args.seed)
     random.seed(args.seed)

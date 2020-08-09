@@ -79,7 +79,7 @@ def main(args):
         total_left = 0
         total_right = 0
 
-        video.generate_frame_pairs(distance=args.pair_distance, skip_inbetween=False)
+        video.generate_frame_pairs(distance=args.pair_distance, skip_inbetween=True)
         pbar = tqdm(total=len(video.get_frame_pairs()))
 
         for i, pair in enumerate(video.get_frame_pairs()):
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--width_times', '-w', metavar='WIDTHPEDS', default=3.0, type=float,
                         help='The width of each region times the pedestrian size')
 
-    parser.add_argument('--height_times', '-t', metavar='HEIGHTPEDS', default=1.0, type=float,
+    parser.add_argument('--height_times', '-t', metavar='HEIGHTPEDS', default=2.0, type=float,
                         help='The height of each region times the pedestrian size')
 
     ARGS = parser.parse_args()
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     ARGS.scale = 1.  # Scale which we scrink everything to optimize for speed
     ARGS.print_time = False  # Print every timer, usefull for debugging
 
-    ARGS.pair_distance = 1  # Distance between frames (normally 1 for next, 25fps for TUB)
+    ARGS.pair_distance = 5  # Distance between frames (normally 1 for next, 25fps for TUB)
 
     ARGS.region_select = 'V2'  # V1 or V2 for comparison
     ARGS.cropping = 100  # Cropping for quicker processing (Give number as padding for outers to optimize performance)

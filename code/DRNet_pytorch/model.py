@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from guided_filter.guided_filter import GuidedFilter as GuidedFilter
+from .guided_filter.guided_filter import GuidedFilter as GuidedFilter
 
 from collections import OrderedDict
 
