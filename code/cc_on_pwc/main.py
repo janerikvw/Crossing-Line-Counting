@@ -83,7 +83,7 @@ def load_model(args):
     # model = ModelV2().cuda()
 
     # Pretrained model: weights/20200722_091354_v02_csr_sgd_improved/best_model.pt
-    model = PWCC_V3_adapt().cuda()
+    model = PWCC_V3_64().cuda()
     #model = DRNetModel().cuda()
     # model = PWCC_V1_deep(True).cuda()
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     args.dataloader_workers = 1
     args.seed = time.time()
 
-    args.epochs = 3000
+    args.epochs = 6000
     args.print_every = 300  # Print every x amount of minibatches
 
     # Add date and time so we can just run everything very often :)
