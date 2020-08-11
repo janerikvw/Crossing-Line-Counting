@@ -26,3 +26,9 @@ https://github.com/tsenst/CrowdFlow
 
 ## Crowd Counting dataset
 http://www.crowd-counting.com/
+
+
+## Venice CaC dataset
+Dataset from the Context Aware Crowd Counting paper
+Video with some frames labeled
+https://sites.google.com/view/weizheliu/home/projects/context-aware-crowd-counting

@@ -3,7 +3,7 @@ import os
 import json
 import re
 
-import basic_entities as entities
+from . import basic_entities as entities
 
 
 def load_all_videos(videos_path):

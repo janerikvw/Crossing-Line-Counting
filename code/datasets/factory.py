@@ -1,5 +1,5 @@
 # Based on the config return the BasicFrames of the specific datasets through a unified function
-import fudan
+from . import fudan
 import os
 
 # Return (train_frames, test_frames) with each an array of BasicFrame's to train on.

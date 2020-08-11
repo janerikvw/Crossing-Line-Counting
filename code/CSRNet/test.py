@@ -37,7 +37,7 @@ part_A_train = os.path.join(root,'part_A_final/train_data','images')
 part_A_test = os.path.join(root,'part_A_final/test_data','images')
 part_B_train = os.path.join(root,'part_B_final/train_data','images')
 part_B_test = os.path.join(root,'part_B_final/test_data','images')
-path_sets = [part_B_test]
+path_sets = [part_A_test]
 
 img_paths = []
 for path in path_sets:
@@ -48,7 +48,7 @@ for path in path_sets:
 model = CSRNet()
 
 model = model.cuda()
-checkpoint = torch.load('trainBmodel_best.pth.tar')
+checkpoint = torch.load('ShanghaiA-sigma5checkpoint.pth.tar')
 model.load_state_dict(checkpoint['state_dict'])
 
 mae = 0
@@ -70,17 +70,17 @@ for i in xrange(len(img_paths)):
 
     #test_gt_file = np.load(img_paths[i].replace('.jpg','.npy'))
     #print(np.sum(gt_file))
-    test_gt_file = Image.fromarray(groundtruth * 255.0 / groundtruth.max())
-    test_gt_file = test_gt_file.convert("L")
-    test_gt_file.save(os.path.join(result_dir, 'gt_{}.png').format(i))
-
-    cc_output = cc_output.data.numpy().squeeze()
-    cc_output = zoom(cc_output, zoom=8.0) / 64.
-
-    cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
-    cc_img = cc_img.convert("L")
-    cc_img.save(os.path.join(result_dir, 'result_{}.png').format(i))
-    Image.open(img_paths[i]).convert('RGB').save(os.path.join(result_dir, 'orig_{}.png').format(i))
+    # test_gt_file = Image.fromarray(groundtruth * 255.0 / groundtruth.max())
+    # test_gt_file = test_gt_file.convert("L")
+    # test_gt_file.save(os.path.join(result_dir, 'gt_{}.png').format(i))
+    #
+    # cc_output = cc_output.data.numpy().squeeze()
+    # cc_output = zoom(cc_output, zoom=8.0) / 64.
+    #
+    # cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+    # cc_img = cc_img.convert("L")
+    # cc_img.save(os.path.join(result_dir, 'result_{}.png').format(i))
+    # Image.open(img_paths[i]).convert('RGB').save(os.path.join(result_dir, 'orig_{}.png').format(i))
 
     print i, mae, i_mae, np.sum(groundtruth), output.detach().cpu().sum().numpy()
     if i > 3:

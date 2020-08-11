@@ -1,0 +1,5 @@
+summaries/
+results/
+weights/
+
+chairs_extractor.pt

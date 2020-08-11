@@ -182,7 +182,7 @@ def load_data_pairs_v2(frames):
 
     for frame in frames:
         img_data = ReadImage(frame.get_image_path())
-        dmap_data = frame.get_density()
+        dmap_data = frame.get_density('fixed-8')
 
         img_data = img_data.astype('float32')
         dmap_data = dmap_data.astype('float32')

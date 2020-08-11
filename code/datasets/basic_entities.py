@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from PIL import Image
+from pathlib import Path
 
 """
 BasicVideo is an object used to store individual video's with frames.
@@ -31,21 +32,24 @@ class BasicVideo:
     # Return all frame pairs of the video
     def get_frame_pairs(self):
         if self.pairs is None:
-            self._generate_frame_pairs()
+            self.generate_frame_pairs()
 
         return self.pairs
 
-    def _generate_frame_pairs(self):
+    def generate_frame_pairs(self, distance=1, skip_inbetween=False):
         self.pairs = []
 
         frames = self.get_frames()
 
         for i, frame1 in enumerate(frames):
-            if i+1 >= len(frames):
+            if skip_inbetween and i%distance != 0:
+                continue
+
+            if i+distance >= len(frames):
                 break
 
-            frame2 = frames[i+1]
-            self.pairs.append(BasicFramePair(frame1, frame2))
+            frame2 = frames[i+distance]
+            self.pairs.append(BasicFramePair(frame1, frame2, distance=distance))
 
     def is_labeled(self):
         return self.labeled
@@ -69,17 +73,29 @@ class BasicFrame:
     # Add an individual head location
     def add_point(self, xy, bbox = None):
         self.labeled = True
-        self.centers.append(xy)
+        self.centers.append((int(xy[0]), int(xy[1])))
 
     # Retrieve the image path
     def get_image_path(self):
         return self.image_path
 
+    def get_info_dir(self, file=None, check_exists=False):
+        path = os.path.splitext(self.image_path)[0]
+
+        if check_exists:
+            Path(path).mkdir(parents=True, exist_ok=True)
+
+        if file:
+            path = '{}/{}'.format(path, file)
+        return path
+
     # Retrieve the path where the generated density map is stored
-    def get_density_path(self, type = None):
-        if type is not None:
+    def get_density_path(self, type = None, check_exists=False):
+        if type:
             type = '_{}'.format(type)
-        return os.path.splitext(self.image_path)[0] + "{}.npy".format(type)
+        else:
+            type = ''
+        return self.get_info_dir("density{}.npy".format(type), check_exists)
 
     # Return a Pillow link to the image file data.
     def get_image(self):
@@ -104,11 +120,12 @@ class BasicFrame:
 An object which holds two frames and the tracking information between the two frames (if available)
 """
 class BasicFramePair:
-    def __init__(self, frame1, frame2, labeled=False):
+    def __init__(self, frame1, frame2, labeled=False, distance=1):
         self.frame1 = frame1
         self.frame2 = frame2
         self.pairs = {}
         self.labeled = labeled
+        self.distance = distance
 
     # Add the point pair to the dictionary
     def add_point_pair(self, frame1_id, frame2_id):
@@ -130,6 +147,10 @@ class BasicFramePair:
 
     def is_labeled(self):
         return self.labeled
+
+    # How many frames are between the first and second frame
+    def get_distance(self):
+        return self.distance
 
 class BasicLineSample:
     def __init__(self, video, point1, point2, labeled=False):

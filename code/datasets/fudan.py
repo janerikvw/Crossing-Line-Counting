@@ -2,7 +2,7 @@ from glob import glob
 import os
 import json
 
-import basic_entities as entities
+from . import basic_entities as entities
 
 def load_video(video_path, load_labeling=True):
     frames = glob(os.path.join(video_path, '*.jpg'))

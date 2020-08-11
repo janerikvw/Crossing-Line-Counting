@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import math
+import os
+from scipy import misc, io
 
 import datasets
 
@@ -12,15 +14,12 @@ from CSRNet.model import CSRNet
 import torchvision.transforms.functional as F
 from PIL import Image, ImageDraw
 
-import tensorflow as tf
-from DDFlow.network import pyramid_processing
-from DDFlow.flowlib import flow_to_color
-
 from scipy.ndimage import rotate
 
 # Give a region and turn it in a mask to extract the region information
-def region_to_mask(region, rotate_angle, center, img_width=1920, img_height=1080):
+def region_to_mask(region, rotate_angle, img_width, img_height):
     full_size = int(math.sqrt(math.pow(img_height, 2) + math.pow(img_width, 2)))
+    center = (img_width / 2, img_height / 2)
 
     p1 = rotate_point(region[0], -rotate_angle, center)
     p2 = rotate_point(region[2], -rotate_angle, center)
@@ -63,7 +62,75 @@ def rotate_point(point, angle, center, to_int=True):
 
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
-def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
+def select_regions(dot1, dot2, ped_size, width_peds, height_peds):
+    height_region = height_peds * ped_size[1]
+    width_region = width_peds * ped_size[0]
+
+    line_length = math.sqrt(math.pow(dot1[0]-dot2[0], 2)+math.pow(dot1[1]-dot2[1], 2))
+    a_regions = math.floor(line_length / width_region)
+    side_perc = (1.0 - a_regions*width_region/line_length) / 2
+
+    inner_points = list(np.linspace(side_perc, 1.-side_perc, num=a_regions+1).astype(float))
+    inner_points.insert(0, 0.0)
+    inner_points.append(1.0)
+    line_points = []
+    for point_multi in inner_points:
+        line_points.append((np.array(dot1) + point_multi*(np.array(dot2) - np.array(dot1))))
+
+
+
+    # Seperate the line into several parts with given start and end point.
+    # Provide the corner points of the regions that lie on the LOI itself.
+    region_lines = []
+    for i, point in enumerate(line_points):
+        if i + 1 >= len(line_points):
+            break
+
+        point2 = line_points[i + 1]
+        region_lines.append((tuple(list(point)),  tuple(list(point2))))
+
+    region_lines.reverse()
+
+    regions = ([], [])
+    for point1, point2 in region_lines:
+
+        # The difference which we can add to the region lines corners
+        # to come to the corners on the other end of the region
+        part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
+        point_diff = (
+            - (point1[1] - point2[1]) / float(part_line_length) * float(height_region),
+            (point1[0] - point2[0]) / float(part_line_length) * float(height_region)
+        )
+
+        point1 = (int(point1[0]), int(point1[1]))
+        point2 = (int(point2[0]), int(point2[1]))
+
+        # Both add and substract the difference so we get the regions on both sides of the LOI.
+        regions[0].append([
+            point1,
+            point2,
+            (int(point2[0] + point_diff[0]), int(point2[1] + point_diff[1])),
+            (int(point1[0] + point_diff[0]), int(point1[1] + point_diff[1])),
+            height_region
+        ])
+
+        regions[1].append([
+            point1,
+            point2,
+            (int(point2[0] - point_diff[0]), int(point2[1] - point_diff[1])),
+            (int(point1[0] - point_diff[0]), int(point1[1] - point_diff[1])),
+            height_region
+        ])
+
+    regions[0].reverse()
+    regions[1].reverse()
+
+    return regions
+
+
+# Generate all the regions around the LOI (given by dot1 and dot2).
+# A region is an array with all the cornerpoints and the with of the region
+def select_regions_v1(dot1, dot2, width, regions, shrink):
     # Seperate the line into several parts with given start and end point.
     # Provide the corner points of the regions that lie on the LOI itself.
     region_lines = []
@@ -76,6 +143,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
         region_lines.append((tuple(list(point)),  tuple(list(point2))))
 
     region_lines.reverse()
+
     regions = ([], [])
     for point1, point2 in region_lines:
 
@@ -83,8 +151,8 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
         # to come to the corners on the other end of the region
         part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
         point_diff = (
-            - (point1[1] - point2[1]) / float(part_line_length) * float(width),
-            (point1[0] - point2[0]) / float(part_line_length) * float(width)
+            - (point1[1] - point2[1]) / float(part_line_length) * float(height_region),
+            (point1[0] - point2[0]) / float(part_line_length) * float(height_region)
         )
 
         # Both add and substract the difference so we get the regions on both sides of the LOI.
@@ -93,7 +161,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
             point2,
             (int(point2[0] + point_diff[0]), int(point2[1] + point_diff[1])),
             (int(point1[0] + point_diff[0]), int(point1[1] + point_diff[1])),
-            width
+            height_region
         ])
 
         regions[1].append([
@@ -101,7 +169,7 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
             point2,
             (int(point2[0] - point_diff[0]), int(point2[1] - point_diff[1])),
             (int(point1[0] - point_diff[0]), int(point1[1] - point_diff[1])),
-            width
+            height_region
         ])
 
         # Shrink the width for perspective
@@ -114,8 +182,8 @@ def select_regions(dot1, dot2, width=50, regions=5, shrink=0.90):
 
 
 # Add the regions and LOI to an PIL image. The information of the LOI can be added for each region as well.
-def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregions=5, shrink=0.90):
-    regions = select_regions(dot1, dot2, width=width, regions=nregions, shrink=shrink)
+def image_add_region_lines(image, dot1, dot2, loi_model, loi_output=None):
+    regions = loi_model[0]
     draw = ImageDraw.Draw(image)
 
     for i, small_regions in enumerate(regions):
@@ -143,13 +211,13 @@ def image_add_region_lines(image, dot1, dot2, loi_output=None, width=50, nregion
 
 
 # Add the current/total information at the bottom of an image
-def add_total_information(image, loi_output, totals):
+def add_total_information(image, loi_output, totals, crosses):
     draw = ImageDraw.Draw(image)
 
     to_right = sum(loi_output[1])
     to_left = sum(loi_output[0])
 
-    msg = 'Current: ({:.3f}, {:.3f}), Total: ({:.3f}, {:.3f})'.format(to_right, to_left, totals[1], totals[0])
+    msg = '{:.2f}, {:.2f} ({:.2f}, {:.2f}) - ({}, {})'.format(to_right, to_left, totals[1], totals[0], len(crosses[0]), len(crosses[1]))
     w, h = draw.textsize(msg)
 
     width, height = image.size
@@ -166,11 +234,73 @@ def white_to_transparency_gradient(img):
 
     return Image.fromarray(x)
 
+def scale_point(point1, scale):
+    point1 = (point1[0] * scale, point1[1] * scale)
+    return point1
+
 # Scale all parameters correctly when it changes from the original size
-def scale_params(point1, point2, frame_width, frame_height, line_width, scale=1.0):
-    point1 = (point1[0]*scale, point1[1]*scale)
-    point2 = (point2[0] * scale, point2[1] * scale)
+def scale_frame(frame_width, frame_height, scale):
     frame_width = int(frame_width * scale)
     frame_height = int(frame_height * scale)
-    line_width *= scale
-    return point1, point2, frame_width, frame_height, line_width
+    return frame_width, frame_height
+
+def store_processed_images(result_dir, sample_name, print_i, frame1_img, cc_output, fe_output_color, point1, point2, loi_model, loi_output, totals, crosses):
+    # Load original image or demo
+    total_image = frame1_img.copy().convert('RGB')
+
+    if sample_name:
+        dump_dir = os.path.join(result_dir, sample_name)
+    else:
+        dump_dir = result_dir
+
+    if not os.path.exists(dump_dir):
+        os.mkdir(dump_dir)
+
+    total_image.save(os.path.join(dump_dir, 'orig_{}.png'.format(print_i)))
+    total_image = total_image.convert("L").convert("RGBA")
+
+    # Load and save original CC model
+    cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+    cc_img = cc_img.convert("L")
+    cc_img.save(os.path.join(dump_dir, 'crowd_{}.png').format(print_i))
+
+    # Transform CC model and merge with original image for demo
+    cc_img = np.zeros((cc_output.shape[0], cc_output.shape[1], 4))
+    cc_img = cc_img.astype(np.uint8)
+    cc_img[:, :, 3] = 255 - (cc_output * 255.0 / cc_output.max())
+    cc_img[cc_img > 2] = cc_img[cc_img > 2] * 0.4
+    cc_img = Image.fromarray(cc_img, 'RGBA')
+    total_image = Image.alpha_composite(total_image, cc_img)
+
+    # Save original flow image
+    fe_output_color = np.uint8(fe_output_color)
+    flow_img = Image.fromarray(fe_output_color, mode='RGB')
+    flow_img.save(os.path.join(dump_dir, 'flow_{}.png'.format(print_i)))
+
+    # Transform flow and merge with original image
+    flow_img = white_to_transparency_gradient(flow_img)
+    total_image = Image.alpha_composite(total_image, flow_img)
+
+    # Save merged image
+    total_image.save(os.path.join(dump_dir, 'combined_{}.png'.format(print_i)))
+    img = total_image.convert('RGB')
+    # Generate the demo output for clear view on what happens
+    image_add_region_lines(img, point1, point2, loi_model=loi_model, loi_output=loi_output)
+
+    # Crop and add information at the bottom of the screen
+    add_total_information(img, loi_output, totals, crosses)
+
+    img.save(os.path.join(dump_dir, 'line_{}.png'.format(print_i)))
+
+import datetime
+class sTimer():
+    def __init__(self, name):
+        self.start = datetime.datetime.now()
+        self.name = name
+
+    def show(self, printer=True):
+        ms = int((datetime.datetime.now() - self.start).total_seconds() * 1000)
+        if printer:
+            print("{}: {}ms".format(self.name, ms))
+
+        return ms

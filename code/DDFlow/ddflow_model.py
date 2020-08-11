@@ -160,7 +160,7 @@ class DDFlowModel(object):
     
             transform_mask = self.create_mask(mask, [[max_distance, max_distance],
                                                 [max_distance, max_distance]])
-            return self.abs_robust_loss(dist, mask * transform_mask) 
+            return self.abs_robust_loss(dist, mask * transform_mask)
     
  
     def compute_losses(self, batch_img1, batch_img2, flow_fw, flow_bw, mask_fw, mask_bw, train=True, is_scale=True):
