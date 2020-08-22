@@ -1,0 +1,27 @@
+\chapter{Implementation}
+
+\section{Trainings environment}
+
+\section{Models}
+\subsection{Baseline}
+\subsection{Network}
+
+\section{Experimental Setup}
+Measure per sequence the amount of people who have crossed the Line of Interest.
+
+\subsection{Sample generation}
+
+\subsection{Metrics}
+The accuracy of the models is measured using two measurements, the Mean Average Error (\ref{eq:mae}) and the Mean Squared Error (\ref{eq:mse}).
+
+\begin{equation}
+\label{eq:mae}
+	MAE = \frac{1}{n}\sum^n_{i=1}|G_l^{(i)}-P_l^{(i)}|+|G_r^{(i)}-P_r^{(i)}|
+\end{equation}
+
+\begin{equation}
+\label{eq:mse}
+	MSE = \frac{1}{n}\sum^n_{i=1}(G_l^{(i)}-P_l^{(i)})^2+(G_r^{(i)}-P_r^{(i)})^2
+\end{equation}
+
+Where $G_l^{(i)}$ is the ground truth for sample $i$ for side left-to-right. And $P_r^{(i)}$ is the predicted value for right-to-left.

@@ -1,0 +1,14 @@
+\chapter{Method}
+For our system we split up the program into 3 parts. The Crowd Counting models, the Flow Estimation models and the Line of Interest. The methods which combine the Crowd Counting and the Flow Estimation in a single model are called Crowd Flow models (Useful as directory in the final code)
+
+train.py \# Train the models (All models should be trainable in this file, because they all share the same kind of dataloader)
+
+test.py \# Test the LOI methods using a trained network from train.py (Based on the datasets provided)
+
+run.py \# Run from a video stream live. (Would be super cool and very useful to actual demo this thing)
+
+loi\_models/ (Line of Interest models) - Pixelswise/Regionwise
+
+fe\_models/ (Flow Estimation models) - PWCNet
+cc\_models/ (Crowd Counting models) - CSRNet
+cf\_models/ (Crowd Flow models) - New Network
