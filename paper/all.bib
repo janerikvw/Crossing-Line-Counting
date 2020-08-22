@@ -164,3 +164,55 @@
   pages={1091--1100},
   year={2018}
 }
+
+@article{Fang2019,
+abstract = {Compared with single image based crowd counting, video provides the spatial-temporal information of the crowd that would help improve the robustness of crowd counting. But translation, rotation and scaling of people lead to the change of density map of heads between neighbouring frames. Meanwhile, people walking in/out or being occluded in dynamic scenes leads to the change of head counts. To alleviate these issues in video crowd counting, a Locality-constrained Spatial Transformer Network (LSTN) is proposed. Specifically, we first leverage a Convolutional Neural Networks to estimate the density map for each frame. Then to relate the density maps between neighbouring frames, a Locality-constrained Spatial Transformer (LST) module is introduced to estimate the density map of next frame with that of current frame. To facilitate the performance evaluation, a large-scale video crowd counting dataset is collected, which contains 15K frames with about 394K annotated heads captured from 13 different scenes. As far as we know, it is the largest video crowd counting dataset. Extensive experiments on our dataset and other crowd counting datasets validate the effectiveness of our LSTN for crowd counting. All our dataset are released in https://github.com/sweetyy83/Lstn-fdst-dataset.},
+archivePrefix = {arXiv},
+arxivId = {1907.07911},
+author = {Fang, Yanyan and Zhan, Biyun and Cai, Wandi and Gao, Shenghua and Hu, Bo},
+doi = {10.1109/ICME.2019.00145},
+eprint = {1907.07911},
+file = {:Users/janerik/Downloads/1907.07911.pdf:pdf},
+isbn = {9781538695524},
+issn = {1945788X},
+journal = {Proceedings - IEEE International Conference on Multimedia and Expo},
+keywords = {Convolutional neural network,Locality constrained,Spatial transformer network,Video crowd counting},
+mendeley-groups = {Datasets},
+pages = {814--819},
+title = {{Locality-constrained spatial transformer network for video crowd counting}},
+volume = {2019-July},
+year = {2019}
+}
+@article{Schroder2019,
+abstract = {The performance of optical flow algorithms greatly depends on the specifics of the content and the application for which it is used. Existing and well established optical flow datasets are limited to rather particular contents from which none is close to crowd behavior analysis; whereas such applications heavily utilize optical flow. We introduce a new optical flow dataset exploiting the possibilities of a recent video engine to generate sequences with ground-truth optical flow for large crowds in different scenarios. We break with the development of the last decade of introducing ever increasing displacements to pose new difficulties. Instead we focus on real-world surveillance scenarios where numerous small, partly independent, non rigidly moving objects observed over a long temporal range pose a challenge. By evaluating different optical flow algorithms, we find that results of established datasets can not be transferred to these new challenges. In exhaustive experiments we are able to provide new insight into optical flow for crowd analysis. Finally, the results have been validated on the real-world UCF crowd tracking benchmark while achieving competitive results compared to more sophisticated state-of-the-art crowd tracking approaches.},
+annote = {Paper of the TUB dataset. So cite this boy. It is mainly done for flow estimation, but can be used for Crowd Counting as well.},
+archivePrefix = {arXiv},
+arxivId = {1811.07170},
+author = {Schroder, Gregory and Senst, Tobias and Bochinski, Erik and Sikora, Thomas},
+doi = {10.1109/AVSS.2018.8639113},
+eprint = {1811.07170},
+file = {:Users/janerik/Downloads/1811.07170.pdf:pdf},
+isbn = {9781538692943},
+journal = {Proceedings of AVSS 2018 - 2018 15th IEEE International Conference on Advanced Video and Signal-Based Surveillance},
+mendeley-groups = {Crowd Counting,Datasets,To Read},
+title = {{Optical Flow Dataset and Benchmark for Visual Crowd Analysis}},
+year = {2019}
+}
+
+@article{Chan2008,
+abstract = {A dynamic texture is a spatio-temporal generative model for video, which represents video sequences as observations from a linear dynamical system. This work studies the mixture of dynamic textures, a statistical model for an ensemble of video sequences that is sampled from a finite collection of visual processes, each of which is a dynamic texture. An expectationmaximization (EM) algorithm is derived for learning the parameters of the model, and the model is related to previous works in linear systems, machine learning, time-series clustering, control theory, and computer vision. Through experimentation, it is shown that the mixture of dynamic textures is a suitable representation for both the appearance and dynamics of a variety of visual processes that have traditionally been challenging for computer vision (e.g. fire, steam, water, vehicle and pedestrian traffic, etc.). When compared with state-of-the-art methods in motion segmentation, including both temporal texture methods and traditional representations (e.g. optical flow or other localized motion representations), the mixture of dynamic textures achieves superior performance in the problems of clustering and segmenting video of such processes. {\textcopyright} 2008 IEEE.},
+author = {Chan, Antoni B. and Vasconcelos, Nuno},
+doi = {10.1109/TPAMI.2007.70738},
+file = {:Users/janerik/Downloads/pami08-dytexmix.pdf:pdf},
+issn = {01628828},
+journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+keywords = {Dynamic texture,Expectation-maximization,Kalman filter,Linear dynamical systems,Mixture models,Motion segmentation,Probabilistic models,Temporal textures,Time-series clustering,Video clustering,Video modeling},
+mendeley-groups = {Datasets},
+number = {5},
+pages = {909--926},
+pmid = {18369258},
+title = {{Modeling, clustering, and segmenting video with mixtures of dynamic textures}},
+volume = {30},
+year = {2008}
+}
+
