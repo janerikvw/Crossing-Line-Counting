@@ -25,3 +25,24 @@ The accuracy of the models is measured using two measurements, the Mean Average 
 \end{equation}
 
 Where $G_l^{(i)}$ is the ground truth for sample $i$ for side left-to-right. And $P_r^{(i)}$ is the predicted value for right-to-left.
+
+In this thesis we make use of four different datasets. Three of them are already public datasets and one dataset is created using City of Amsterdam footage.
+
+\section{Datasets}
+In this thesis we make use of four different datasets. Three of them are already public datasets and one dataset is created using City of Amsterdam footage.
+
+\subsection{UCSD}
+The UCSD Pedestrian dataset \cite{Chan2008} is a public dataset created in 2008. The dataset is in black and white and has only a resolution of 234x158. It has 6 scenes with each around 30 videos which each has around 10 seconds at 10fps of footage. Only a small amount of videos has precise labeled data for Crowd Counting. Most of the other video's have small parts of information about the pedestrians crossing.
+\todo{Explain more in detail which labeled data is present and add other data papers}
+
+The UCSD dataset is in previous papers used as default benchmark. Although other datasets do represent the capabilities of the presented methods much better, this dataset is used to give some comparison with older methods.
+
+\subsection{CrowdFlow}
+The CrowdFlow dataset \cite{Schroder2019} is a public dataset generated at the TU Berlin in 2018. The dataset contains 10 sequences generated from 5 different scenes. Each scene is captured once with a drone view camera and once with a fixed view camera. Each scene is a virtual urban environment and it is generated in the Unreal Engine, a 3D-engine. Each sequence is roughly 10 seconds long with 25 fps with a resolution of 1280x720. The generated sequences are dense in pedestrians and have up to 1451 pedestrians in a single frame. All the camera views are captured from a high surveillance style view.
+
+\subsection{Fudan-ShanghaiTech}
+The Fudan ShanghaiTech dataset \cite{Fang2019} is a public dataset with 100 videos of 13 different scenes. Each video contains 6 seconds of footage at 25 fps and have a resolution of 1920x1080. The scenes have between 20-100 pedestrians per frame. In each frame the pedestrians in the frame are labeled with a bounding-box and a center-point of the bounding-box.
+
+\subsection{ArenaPeds}
+For this thesis we have access to a dataset of the City of Amsterdam. It has xxx amount of footage of environments with crowds ranging from 10 pedestrians in the frame to 1000 pedestrians a few hours later. Only a tiny proportion is labeled with where each pedestrian is. So there is no labeled data on the Crowd Direction, only for the Crowd Counting. This is the reason why we want to try to give unsupervised learning a shot.
+
