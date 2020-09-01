@@ -1,13 +1,16 @@
-\section{Introduction}
+\chapter{Introduction}
+
+A novel general purpose Line of Interest method, using a multi-headed network and a pixel-wise accumulator.
+
 In a world with increasing accessibility to information, it is important to summarize all this information into useful information for the intended users. In this case we have access to a large amount of surveillance camera's which are used during busy events. To monitor all these camera's it requires a lot of manual watching what is happening on those camera's. There has a lot of research been done on reducing the amount of manual watching and translating the information into more actionable and measurable tasks.
 
-In this thesis we will focus on the Line of Interest problem (Convert this into a better term). The goal is to count the amount of pedestrians that cross a specified line in a certain time frame. In area's with low density of pedestrians a generic object tracking solution would suffice. In high density crowds the results of the solutions will degrade quickly. (Because most object trackers can handle up to 50 people, YOLOv4 paper and another solution)
+In recent years several papers have been published about extraction pedestrian information using camera's under the subfield Crowd Counting \cite{Chan2008, leibe_crossing-line_2016, wang2020nwpu, li2018csrnet, Fang2019, Liu2019}. In this thesis we will focus on the Line of Interest problem. The goal is to count the amount of pedestrians that cross a specified line in a certain time frame. In area's with low density of pedestrians a generic object tracking solution would suffice. In high density crowds the results of the solutions will degrade quickly. (Because most object trackers can handle up to 50 people, YOLOv4 paper and another solution)
 
 To handle high density crowds specialized solutions are presented over the years. Those methods typically combine two components, crowd density prediction (Region of Interest) and flow estimation. (Already citing papers, same as below?). Traditionally the density prediction is done using keypoint extraction and feeding those keypoints in a regression model (Cite some papers). Flow estimation is typically done with a Lucas-Kanade method (papers who implement this method).
 
 More recently the rise of Convolutional Networks made it possible to improve both components. Both crowd counting (Papers) and flow estimation (Papers) research fields have state of the arts which heavily rely on convolutional networks. Several papers combine these CNN focused methods to a Line of Interest solution (Papers, Zhao et al. (2016) and more) which give good and promising results.
 
-One of the major drawbacks of Neural Networks is the huge amounts of that that is required for training these networks (Probably should be papers, but this is like a very trivial thing in the AI field, so should it?). For the crowd density estimation several public datasets are available and labeling new images can be done easily. Labeling data for the flow estimator is much more difficult and time intensive (Should I explain this more in detail. No real paper, but can show somewhere my calculation of time). In earlier papers (Previous paragraph papers) this is done, but this is less feasible for implementation in actual applications.
+One of the major drawbacks of Neural Networks is the huge amounts of that that is required for training these networks (Probably should be papers, but this is like a very trivial thing in the AI field, so should it?). For the crowd density estimation several public datasets are available and labeling new images can be done easily. Labeling data for the flow estimator is much more difficult and time intensive. \todo{Should I explain this more in detail. No real paper, but can show somewhere my calculation of time} In earlier papers (Previous paragraph papers) this is done, but this is less feasible for implementation in actual applications.
 
 Besides supervised learning of the flow estimation, more and more traction is gained for the unsupervised flow estimation research area. These methods provide a much more scalable solution for real world applications and come closer to supervised flow estimation performance. In this thesis we will focus on a solution which utilizes the unsupervised flow estimation. (See research question 1)
 
@@ -15,17 +18,23 @@ Besides the huge amount of data another problem with several convolutional neura
 
 Lastly another major focus of the work is to make the proposed solution versatile and make it possible to easily use for new scenes. So we will focus on the minimization of extra required data when a the model is deployed on another scene. (See research question 3)
 
-\subsection{Research questions}
-In this work, we introduce a novel solution for the Line of Interest problem. The solution uses unsupervised flow estimation and supervised crowd density prediction to minimize the use of labeling.
+\section{Contributions}
+\todo{New, so maybe change the introduction based on this}
+In this thesis, I contribute in a threefold.
+\begin{enumerate}
+	\item A novel architecture for Line of Interest counting is proposed which uses unsupervised velocity map estimation. 
+	\item A new method is proposed to enhance the density map estimation using velocity maps. 
+	\item A new challenging dataset is introduced to showcase the capabilities of the newly proposed architecture.
+\end{enumerate}
 
-To motivate our work we endeavor to answer the next research questions:
-\begin{itemize}
-    \item What is the performance of the new model against fully supervised models?
-    \item Is it possible to let the methods run real time, and if so what is the performance?
-    \item How much new data is required to properly perform in new scenes?
-\end{itemize}
+% Can we create a multitasked model which uses the optical flow to improve in accuracy.
+% Can we create a new LOI method which uses Optical Flow and Crowd Counting results to predict the LOI.
+% Can we create a challenging dataset that shows the capabilities of this new model.
+% What is the performance of the new models in new unseen scenes?
+% A novel approach to predicting Line of Interest
 
-\subsection{Thesis outline}
+
+\section{Thesis outline}
 The rest of this thesis is divided into the next chapters:
 
  \begin{itemize}

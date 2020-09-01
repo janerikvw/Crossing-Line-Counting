@@ -1,6 +1,69 @@
-\section{Method}
+\chapter{Method}
 
-\subsection{Datasets}
+\section{Instant LOI counting}
+In our thesis two method are use to come up with instant LOI counts. Both methods use the same approach, but the region-wise uses the pixel-wise approach on a region-level to improve smoothing of the velocity and density map. This will help when the density map and velocity map don't align correctly.
 
-\subsubsection{ArenaPeds}
-For this thesis we have access to a dataset of the City of Amsterdam. It has xxx amount of footage of environments with crowds ranging from 10 pedestrians in the frame to 1000 pedestrians a few hours later. Only a tiny proportion is labeled with where each pedestrian is. So there is no labeled data on the Crowd Direction, only for the Crowd Counting. This is the reason why we want to try to give unsupervised learning a shot.
+\subsection{Pixel-level counting}
+The proposed method by \cite{leibe_crossing-line_2016} in related work section \ref{section:crossing_line_2016} uses some simplifications. By reframing the pixel-level counting in the following way. The approach is much more theoretical correct.
+
+\label{sec:pixel_level}
+We define $v_{perp}$ as the normalized directional vector perpendicular to the LOI (Two solutions are perpendicular on the LOI and this defines sides 1 and 2 of the LOI counting). Then we define the collection of the pixels on the left side of the LOI and inside the LOI area as $M_1$ (side 1) and the pixels on the right side (side 1 and inside the LOI area) as $M_2$.
+\todo{Draw picture with LOI area, sets of pixels and vperp}
+
+The velocity towards the LOI is then defined as the dot-product of $V_t$ and $v_{perp}$ (Equation \ref{eq:v_proj}).
+
+\begin{equation}
+	Q_t(p) = V_t(p) \cdot v_{perp}
+	\label{eq:v_proj}
+\end{equation}
+
+
+\begin{equation}
+\begin{aligned}
+	c_{1,t} =& \sum_{\{p \in M_1 | Q_t(p) > 0\}} C_t(p) \cdot \frac{Q_t(p)}{d}\\
+	c_{2,t} =& \sum_{\{p \in M_2 | Q_t(p) < 0\}} C_t(p) \cdot \frac{-Q_t(p)}{d}
+\end{aligned}
+\label{eq:pixel_cross}
+\end{equation}
+
+Then then the LOI count on timestep $t$ is then defined in equation \ref{eq:pixel_cross}. Where $\frac{Q_t(p)}{d}$ defines the percentage that the density on the specific pixel, has crossed the LOI area. Lastly we can sum the count over a timespan into a single count for each side as in equation \ref{eq:zhao_timeframe_sum}.
+
+\subsection{Region-level counting}
+To smooth the velocity around the LOI a new method is proposed. Instead of using the individual pixel velocities for the density map, binning is applied. Several regions have been defined to smooth out the velocity and density. Each region is defined $M_{1,r}$, which is a subset of $M$.
+
+\begin{equation}
+	\begin{aligned}
+		c_{1,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} Q_t(p)}
+		{d \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} C_t(p)\\
+		c_{2,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} -Q_t(p)}
+		{d \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} C_t(p)
+	\end{aligned}
+	\label{eq:region_cross}
+\end{equation}
+
+The same setup is applied as in section \ref{sec:pixel_level}, but equation \ref{eq:pixel_cross} is replaced for equation \ref{eq:region_cross}. Where for each region the average velocity is taken (towards the LOI), which is then multiplied with the sum of the density (towards the LOI) inside the region.
+
+\todo{Display a with regions defined LOI}
+
+\subsection{Adaptive LOI area}
+How to adaptively estimate the LOI area.
+\todo{More thorough seeking in this}
+
+
+\section{Network}
+
+
+For our system we split up the program into 3 parts. The Crowd Counting models, the Flow Estimation models and the Line of Interest. The methods which combine the Crowd Counting and the Flow Estimation in a single model are called Crowd Flow models (Useful as directory in the final code)
+
+train.py \# Train the models (All models should be trainable in this file, because they all share the same kind of dataloader)
+
+test.py \# Test the LOI methods using a trained network from train.py (Based on the datasets provided)
+
+run.py \# Run from a video stream live. (Would be super cool and very useful to actual demo this thing)
+
+loi\_models/ (Line of Interest models) - Pixelswise/Regionwise
+
+fe\_models/ (Flow Estimation models) - PWCNet
+cc\_models/ (Crowd Counting models) - CSRNet
+cf\_models/ (Crowd Flow models) - New Network
+

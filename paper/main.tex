@@ -1,19 +1,38 @@
-\documentclass{article}
+\documentclass[12pt,twoside]{report}
+\usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{mathtools}
-\usepackage{biblatex}
 \usepackage{tikz}
+\usepackage{todonotes}
+
+\usepackage[labelfont=bf]{caption}
+
 \usetikzlibrary{arrows,positioning,shapes.geometric}
 
 \title{ArenaPeds: Pedestrian Flow in a highly crowded stadium}
 \author{Jan Erik van Woerden}
-\date{October 2020}
+\date{30 October 2020}
 
 \begin{document}
 
 \maketitle
+%\chapter*{Abstract}
+%Abstract goes here
+%
+%\chapter*{Dedication}
+%To mum and dad
+%
+%\chapter*{Declaration}
+%I declare that..
+%
+%\chapter*{Acknowledgements}
+%I want to thank...
+
+\tableofcontents
 
 \input{introduction}
+
+\input{background}
 
 \input{related_work}
 
@@ -21,9 +40,14 @@
 
 \input{implementation}
 
+\input{results}
+
 \input{discussion}
 
 \bibliographystyle{apalike}
 \bibliography{all}
+
+\appendix
+\input{appendix.tex}
 
 \end{document}

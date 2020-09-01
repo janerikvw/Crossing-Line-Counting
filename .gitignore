@@ -110,3 +110,6 @@ venv.bak/
 code/data/*
 *.bcf
 paper/main.run.xml
+
+
+connect.sh
