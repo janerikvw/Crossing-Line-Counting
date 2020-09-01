@@ -4,6 +4,8 @@
 In our thesis two method are use to come up with instant LOI counts. Both methods use the same approach, but the region-wise uses the pixel-wise approach on a region-level to improve smoothing of the velocity and density map. This will help when the density map and velocity map don't align correctly.
 
 \subsection{Pixel-level counting}
+The proposed method by \cite{leibe_crossing-line_2016} in related work section \ref{section:crossing_line_2016} uses some simplifications. By reframing the pixel-level counting in the following way. The approach is much more theoretical correct.
+
 \label{sec:pixel_level}
 We define $v_{perp}$ as the normalized directional vector perpendicular to the LOI (Two solutions are perpendicular on the LOI and this defines sides 1 and 2 of the LOI counting). Then we define the collection of the pixels on the left side of the LOI and inside the LOI area as $M_1$ (side 1) and the pixels on the right side (side 1 and inside the LOI area) as $M_2$.
 \todo{Draw picture with LOI area, sets of pixels and vperp}
@@ -19,12 +21,12 @@ The velocity towards the LOI is then defined as the dot-product of $V_t$ and $v_
 \begin{equation}
 \begin{aligned}
 	c_{1,t} =& \sum_{\{p \in M_1 | Q_t(p) > 0\}} C_t(p) \cdot \frac{Q_t(p)}{d}\\
-	c_{2,t} =& \sum_{\{p \in M_2 | Q_t(p) < 0\}} C_t(p) \cdot \frac{Q_t(p)}{d}
+	c_{2,t} =& \sum_{\{p \in M_2 | Q_t(p) < 0\}} C_t(p) \cdot \frac{-Q_t(p)}{d}
 \end{aligned}
 \label{eq:pixel_cross}
 \end{equation}
 
-Then then the LOI count on timestep $t$ is then defined in equation \ref{eq:pixel_cross}. Where $\frac{Q_t(p)}{d}$ defines the percentage that the density on the specific pixel, has crossed on the LOI area. Lastly we can sum the count over a timespan into a single count for each side as in equation \ref{eq:zhao_timeframe_sum}.
+Then then the LOI count on timestep $t$ is then defined in equation \ref{eq:pixel_cross}. Where $\frac{Q_t(p)}{d}$ defines the percentage that the density on the specific pixel, has crossed the LOI area. Lastly we can sum the count over a timespan into a single count for each side as in equation \ref{eq:zhao_timeframe_sum}.
 
 \subsection{Region-level counting}
 To smooth the velocity around the LOI a new method is proposed. Instead of using the individual pixel velocities for the density map, binning is applied. Several regions have been defined to smooth out the velocity and density. Each region is defined $M_{1,r}$, which is a subset of $M$.
@@ -33,7 +35,7 @@ To smooth the velocity around the LOI a new method is proposed. Instead of using
 	\begin{aligned}
 		c_{1,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} Q_t(p)}
 		{d \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} C_t(p)\\
-		c_{2,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} Q_t(p)}
+		c_{2,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} -Q_t(p)}
 		{d \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} C_t(p)
 	\end{aligned}
 	\label{eq:region_cross}

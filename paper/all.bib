@@ -30,6 +30,25 @@
 	file = {IEEE Xplore Full Text PDF:/home/janerik/Zotero/storage/HS6ABMDT/Ma and Chan - 2016 - Counting People Crossing a Line Using Integer Prog.pdf:application/pdf;IEEE Xplore Abstract Record:/home/janerik/Zotero/storage/HS9AZF7L/7295569.html:text/html}
 }
 
+@article{Dosovitskiy2015,
+abstract = {Convolutional neural networks (CNNs) have recently been very successful in a variety of computer vision tasks, especially on those linked to recognition. Optical flow estimation has not been among the tasks CNNs succeeded at. In this paper we construct CNNs which are capable of solving the optical flow estimation problem as a supervised learning task. We propose and compare two architectures: a generic architecture and another one including a layer that correlates feature vectors at different image locations. Since existing ground truth data sets are not sufficiently large to train a CNN, we generate a large synthetic Flying Chairs dataset. We show that networks trained on this unrealistic data still generalize very well to existing datasets such as Sintel and KITTI, achieving competitive accuracy at frame rates of 5 to 10 fps.},
+archivePrefix = {arXiv},
+arxivId = {1504.06852},
+author = {Dosovitskiy, Alexey and Fischery, Philipp and Ilg, Eddy and Hausser, Philip and Hazirbas, Caner and Golkov, Vladimir and Smagt, Patrick Van Der and Cremers, Daniel and Brox, Thomas},
+doi = {10.1109/ICCV.2015.316},
+eprint = {1504.06852},
+file = {:Users/janerik/Library/Application Support/Mendeley Desktop/Downloaded/Dosovitskiy et al. - 2015 - FlowNet Learning optical flow with convolutional networks.pdf:pdf},
+isbn = {9781467383912},
+issn = {15505499},
+journal = {Proceedings of the IEEE International Conference on Computer Vision},
+mendeley-groups = {Flow Estimation},
+pages = {2758--2766},
+title = {{FlowNet: Learning optical flow with convolutional networks}},
+volume = {2015 Inter},
+year = {2015}
+}
+
+
 @article{ilg_flownet_2016,
 	title = {{FlowNet} 2.0: Evolution of Optical Flow Estimation with Deep Networks},
 	url = {http://arxiv.org/abs/1612.01925},
@@ -80,21 +99,6 @@
 	eprint = {1904.09117},
 	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
 	file = {Liu et al. - 2019 - SelFlow Self-Supervised Learning of Optical Flow.pdf:/home/janerik/Zotero/storage/6RZY8NZA/Liu et al. - 2019 - SelFlow Self-Supervised Learning of Optical Flow.pdf:application/pdf}
-}
-
-@article{fischer_flownet_2015,
-	title = {{FlowNet}: Learning Optical Flow with Convolutional Networks},
-	url = {http://arxiv.org/abs/1504.06852},
-	shorttitle = {{FlowNet}},
-	abstract = {Convolutional neural networks ({CNNs}) have recently been very successful in a variety of computer vision tasks, especially on those linked to recognition. Optical flow estimation has not been among the tasks where {CNNs} were successful. In this paper we construct appropriate {CNNs} which are capable of solving the optical flow estimation problem as a supervised learning task. We propose and compare two architectures: a generic architecture and another one including a layer that correlates feature vectors at different image locations. Since existing ground truth data sets are not sufficiently large to train a {CNN}, we generate a synthetic Flying Chairs dataset. We show that networks trained on this unrealistic data still generalize very well to existing datasets such as Sintel and {KITTI}, achieving competitive accuracy at frame rates of 5 to 10 fps.},
-	journaltitle = {{arXiv}:1504.06852 [cs]},
-	author = {Fischer, Philipp and Dosovitskiy, Alexey and Ilg, Eddy and Häusser, Philip and Hazırbaş, Caner and Golkov, Vladimir and van der Smagt, Patrick and Cremers, Daniel and Brox, Thomas},
-	urldate = {2020-02-25},
-	date = {2015-05-04},
-	eprinttype = {arxiv},
-	eprint = {1504.06852},
-	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, I.2.6, I.4.8},
-	file = {arXiv Fulltext PDF:/home/janerik/Zotero/storage/JHZ27RCX/Fischer et al. - 2015 - FlowNet Learning Optical Flow with Convolutional .pdf:application/pdf;arXiv.org Snapshot:/home/janerik/Zotero/storage/3HQZZCTU/1504.html:text/html}
 }
 
 @article{cao_large_2015,
@@ -186,6 +190,27 @@ title = {{Locality-constrained spatial transformer network for video crowd count
 volume = {2019-July},
 year = {2019}
 }
+
+@article{Liu2019,
+abstract = {State-of-the-art methods for counting people in crowded scenes rely on deep networks to estimate crowd density. They typically use the same filters over the whole image or over large image patches. Only then do they estimate local scale to compensate for perspective distortion. This is typically achieved by training an auxiliary classifier to select, for predefined image patches, the best kernel size among a limited set of choices. As such, these methods are not end-to-end trainable and restricted in the scope of context they can leverage. In this paper, we introduce an end-to-end trainable deep architecture that combines features obtained using multiple receptive field sizes and learns the importance of each such feature at each image location. In other words, our approach adaptively encodes the scale of the contextual information required to accurately predict crowd density. This yields an algorithm that outperforms state-of-the-art crowd counting methods, especially when perspective effects are strong.},
+archivePrefix = {arXiv},
+arxivId = {arXiv:1811.10452v2},
+author = {Liu, Weizhe and Salzmann, Mathieu and Fua, Pascal},
+doi = {10.1109/CVPR.2019.00524},
+eprint = {arXiv:1811.10452v2},
+file = {:Users/janerik/Downloads/1811.10452-2.pdf:pdf},
+isbn = {9781728132938},
+issn = {10636919},
+journal = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition},
+keywords = {Categorization,Deep Learning,Recognition: Detection,Retrieval,Vision Applications and Systems,Visual Reasoning},
+mendeley-groups = {Crowd Counting,To Read},
+pages = {5094--5103},
+title = {{Context-aware crowd counting}},
+volume = {2019-June},
+year = {2019}
+}
+
+
 @article{Schroder2019,
 abstract = {The performance of optical flow algorithms greatly depends on the specifics of the content and the application for which it is used. Existing and well established optical flow datasets are limited to rather particular contents from which none is close to crowd behavior analysis; whereas such applications heavily utilize optical flow. We introduce a new optical flow dataset exploiting the possibilities of a recent video engine to generate sequences with ground-truth optical flow for large crowds in different scenarios. We break with the development of the last decade of introducing ever increasing displacements to pose new difficulties. Instead we focus on real-world surveillance scenarios where numerous small, partly independent, non rigidly moving objects observed over a long temporal range pose a challenge. By evaluating different optical flow algorithms, we find that results of established datasets can not be transferred to these new challenges. In exhaustive experiments we are able to provide new insight into optical flow for crowd analysis. Finally, the results have been validated on the real-world UCF crowd tracking benchmark while achieving competitive results compared to more sophisticated state-of-the-art crowd tracking approaches.},
 annote = {Paper of the TUB dataset. So cite this boy. It is mainly done for flow estimation, but can be used for Crowd Counting as well.},
@@ -233,3 +258,333 @@ volume = {17},
 year = {1981}
 }
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% CROWD COUNTING %%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+@article{Wu2007,
+abstract = {Detection and tracking of humans in video streams is important for many applications. We present an approach to automatically detect and track multiple, possibly partially occluded humans in a walking or standing pose from a single camera, which may be stationary or moving. A human body is represented as an assembly of body parts. Part detectors are learned by boosting a number of weak classifiers which are based on edgelet features. Responses of part detectors are combined to form a joint likelihood model that includes an analysis of possible occlusions. The combined detection responses and the part detection responses provide the observations used for tracking. Trajectory initialization and termination are both automatic and rely on the confidences computed from the detection responses. An object is tracked by data association and meanshift methods. Our system can track humans with both inter-object and scene occlusions with static or non-static backgrounds. Evaluation results on a number of images and videos and comparisons with some previous methods are given. {\textcopyright} 2007 Springer Science+Business Media, LLC.},
+author = {Wu, Bo and Nevatia, Ram},
+doi = {10.1007/s11263-006-0027-7},
+file = {:Users/janerik/Downloads/Wu-Nevatia2007{\_}Article{\_}DetectionAndTrackingOfMultiple.pdf:pdf},
+issn = {09205691},
+journal = {International Journal of Computer Vision},
+keywords = {AdaBoost,Human detection,Human tracking},
+mendeley-groups = {Crowd Counting},
+number = {2},
+pages = {247--266},
+title = {{Detection and tracking of multiple, partially occluded humans by Bayesian combination of edgelet based part detectors}},
+volume = {75},
+year = {2007}
+}
+
+
+@article{Subburaman2012,
+abstract = {Crowd counting and density estimation is still one of the important task in video surveillance. Usually a regression based method is used to estimate the number of people from a sequence of images. In this paper we investigate to estimate the count of people in a crowded scene. We detect the head region since this is the most visible part of the body in a crowded scene. The head detector is based on state-of-art cascade of boosted integral features. To prune the search region we propose a novel interest point detector based on gradient orientation feature to locate regions similar to the top of head region from gray level images. Two different background subtraction methods are evaluated to further reduce the search region. We evaluate our approach on PETS 2012 and Turin metro station databases. Experiments on these databases show good performance of our method for crowd counting. {\textcopyright} 2012 IEEE.},
+author = {Subburaman, Venkatesh Bala and Descamps, Adrien and Carincotte, Cyril},
+doi = {10.1109/AVSS.2012.87},
+file = {:Users/janerik/Downloads/06328059.pdf:pdf},
+isbn = {9780769547978},
+journal = {Proceedings - 2012 IEEE 9th International Conference on Advanced Video and Signal-Based Surveillance, AVSS 2012},
+mendeley-groups = {Crowd Counting},
+pages = {470--475},
+publisher = {IEEE},
+title = {{Counting people in the crowd using a generic head detector}},
+year = {2012}
+}
+
+@article{Lin2010,
+abstract = {We propose a shape-based, hierarchical part-template matching approach to simultaneous human detection and segmentation combining local part-based and global shape-template-based schemes. The approach relies on the key idea of matching a part-template tree to images hierarchically to detect humans and estimate their poses. For learning a generic human detector, a pose-adaptive feature computation scheme is developed based on a tree matching approach. Instead of traditional concatenation-style image location-based feature encoding, we extract features adaptively in the context of human poses and train a kernel-SVM classifier to separate human/nonhuman patterns. Specifically, the features are collected in the local context of poses by tracing around the estimated shape boundaries. We also introduce an approach to multiple occluded human detection and segmentation based on an iterative occlusion compensation scheme. The output of our learned generic human detector can be used as an initial set of human hypotheses for the iterative optimization. We evaluate our approaches on three public pedestrian data sets (INRIA, MIT-CBCL, and USC-B) and two crowded sequences from Caviar Benchmark and Munich Airport data sets. {\textcopyright} 2010 IEEE.},
+author = {Lin, Zhe and Davis, Larry S.},
+doi = {10.1109/TPAMI.2009.204},
+file = {:Users/janerik/Downloads/05374413.pdf:pdf},
+issn = {01628828},
+journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+keywords = {Generic human detector,Hierarchical part-template matching,Occlusion analysis,Part-template tree,Pose-adaptive descriptor},
+mendeley-groups = {Crowd Counting},
+number = {4},
+pages = {604--618},
+pmid = {20224118},
+publisher = {IEEE},
+title = {{Shape-based human detection and segmentation via hierarchical part-template matching}},
+volume = {32},
+year = {2010}
+}
+
+
+@article{Dalal2005,
+abstract = {We study the question of feature sets for robust visual object recognition, adopting linear SVM based human detection as a test case. After reviewing existing edge and gradient based descriptors, we show experimentally that grids of Histograms of Oriented Gradient (HOG) descriptors significantly outperform existing feature sets for human detection. We study the influence of each stage of the computation on performance, concluding that fine-scale gradients, fine orientation binning, relatively coarse spatial binning, and high-quality local contrast normalization in overlapping descriptor blocks are all important for good results. The new approach gives near-perfect separation on the original MIT pedestrian database, so we introduce a more challenging dataset containing over 1800 annotated human images with a large range of pose variations and backgrounds. {\textcopyright} 2005 IEEE.},
+author = {Dalal, Navneet and Triggs, Bill},
+doi = {10.1109/CVPR.2005.177},
+file = {:Users/janerik/Downloads/01467360-2.pdf:pdf},
+isbn = {0769523722},
+journal = {Proceedings - 2005 IEEE Computer Society Conference on Computer Vision and Pattern Recognition, CVPR 2005},
+mendeley-groups = {Crowd Counting},
+pages = {886--893},
+title = {{Histograms of oriented gradients for human detection}},
+volume = {I},
+year = {2005}
+}
+
+@article{Dollar2012,
+abstract = {Pedestrian detection is a key problem in computer vision, with several applications that have the potential to positively impact quality of life. In recent years, the number of approaches to detecting pedestrians in monocular images has grown steadily. However, multiple data sets and widely varying evaluation protocols are used, making direct comparisons difficult. To address these shortcomings, we perform an extensive evaluation of the state of the art in a unified framework. We make three primary contributions: 1) We put together a large, well-annotated, and realistic monocular pedestrian detection data set and study the statistics of the size, position, and occlusion patterns of pedestrians in urban scenes, 2) we propose a refined per-frame evaluation methodology that allows us to carry out probing and informative comparisons, including measuring performance in relation to scale and occlusion, and 3) we evaluate the performance of sixteen pretrained state-of-the-art detectors across six data sets. Our study allows us to assess the state of the art and provides a framework for gauging future efforts. Our experiments show that despite significant progress, performance still has much room for improvement. In particular, detection is disappointing at low resolutions and for partially occluded pedestrians. {\textcopyright} 2012 IEEE.},
+author = {Doll{\'{a}}r, Piotr and Wojek, Christian and Schiele, Bernt and Perona, Pietro},
+doi = {10.1109/TPAMI.2011.155},
+file = {:Users/janerik/Downloads/05975165.pdf:pdf},
+issn = {01628828},
+journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+keywords = {Caltech Pedestrian data set,Pedestrian detection,benchmark,data set,evaluation,object detection},
+mendeley-groups = {Crowd Counting},
+number = {4},
+pages = {743--761},
+pmid = {21808091},
+title = {{Pedestrian detection: An evaluation of the state of the art}},
+volume = {34},
+year = {2012}
+}
+
+
+@article{Chan2009,
+abstract = {Poisson regression models the noisy output of a counting function as a Poisson random variable, with a log-mean parameter that is a linear function of the input vector. In this work, we analyze Poisson regression in a Bayesian setting, by introducing a prior distribution on the weights of the linear function. Since exact inference is analytically un- obtainable, we derive a closed-form approximation to the predictive distribution of the model. We show that the predictive distribution can be kernelized, enabling the representation of non-linear log-mean functions. We also derive an approximate marginal likelihood that can be optimized to learn the hyperparameters of the kernel. We then relate the proposed approximate Bayesian Poisson regression to Gaussian processes. Finally, we present experimental results using Bayesian Poisson regression for crowd counting from low-level features.},
+author = {Chan, AB and Vasconcelos, N},
+file = {:Users/janerik/Downloads/iccv09-bpr.pdf:pdf},
+journal = {Computer Vision, 2009 IEEE 12th International  {\ldots}},
+mendeley-groups = {Crowd Counting},
+title = {{Bayesian Poisson regression for crowd counting Cited by me}},
+url = {/citations?view{\_}op=view{\_}citation{\&}continue=/scholar{\%}3Fhl{\%}3Den{\%}26start{\%}3D70{\%}26as{\_}sdt{\%}3D0,5{\%}26scilib{\%}3D1{\&}citilm=1{\&}citation{\_}for{\_}view=1c9oQNMAAAAJ:RGFaLdJalmkC{\&}hl=en{\&}oi=p},
+year = {2009}
+}
+
+
+@article{Idrees2013,
+abstract = {We propose to leverage multiple sources of information to compute an estimate of the number of individuals present in an extremely dense crowd visible in a single image. Due to problems including perspective, occlusion, clutter, and few pixels per person, counting by human detection in such images is almost impossible. Instead, our approach relies on multiple sources such as low confidence head detections, repetition of texture elements (using SIFT), and frequency-domain analysis to estimate counts, along with confidence associated with observing individuals, in an image region. Secondly, we employ a global consistency constraint on counts using Markov Random Field. This caters for disparity in counts in local neighborhoods and across scales. We tested our approach on a new dataset of fifty crowd images containing 64K annotated humans, with the head counts ranging from 94 to 4543. This is in stark contrast to datasets used for existing methods which contain not more than tens of individuals. We experimentally demonstrate the efficacy and reliability of the proposed approach by quantifying the counting performance. {\textcopyright} 2013 IEEE.},
+author = {Idrees, Haroon and Saleemi, Imran and Seibert, Cody and Shah, Mubarak},
+doi = {10.1109/CVPR.2013.329},
+file = {:Users/janerik/Downloads/06619173.pdf:pdf},
+issn = {10636919},
+journal = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition},
+keywords = {Counting,Dense Crowds,Markov Random Field,Multi-scale Analysis},
+mendeley-groups = {Crowd Counting},
+pages = {2547--2554},
+publisher = {IEEE},
+title = {{Multi-source multi-scale counting in extremely dense crowd images}},
+year = {2013}
+}
+
+
+@article{Zhang2016,
+abstract = {This paper aims to develop a method than can accurately estimate the crowd count from an individual image with arbitrary crowd density and arbitrary perspective. To this end, we have proposed a simple but effective Multi-column Convolutional Neural Network (MCNN) architecture to map the image to its crowd density map. The proposed MCNN allows the input image to be of arbitrary size or resolution. By utilizing filters with receptive fields of different sizes, the features learned by each column CNN are adaptive to variations in people/head size due to perspective effect or image resolution. Furthermore, the true density map is computed accurately based on geometry-adaptive kernels which do not need knowing the perspective map of the input image. Since exiting crowd counting datasets do not adequately cover all the challenging situations considered in our work, we have collected and labelled a large new dataset that includes 1198 images with about 330,000 heads annotated. On this challenging new dataset, as well as all existing datasets, we conduct extensive experiments to verify the effectiveness of the proposed model and method. In particular, with the proposed simple MCNN model, our method outperforms all existing methods. In addition, experiments show that our model, once trained on one dataset, can be readily transferred to a new dataset.},
+author = {Zhang, Yingying and Zhou, Desen and Chen, Siqin and Gao, Shenghua and Ma, Yi},
+doi = {10.1109/CVPR.2016.70},
+file = {:Users/janerik/Downloads/07780439.pdf:pdf},
+isbn = {9781467388504},
+issn = {10636919},
+journal = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition},
+mendeley-groups = {Crowd Counting},
+pages = {589--597},
+title = {{Single-image crowd counting via multi-column convolutional neural network}},
+volume = {2016-December},
+year = {2016}
+}
+
+
+@article{Wan2019,
+abstract = {Crowd counting is an important topic in computer vision due to its practical usage in surveillance systems. The typical design of crowd counting algorithms is divided into two steps. First, the ground-truth density maps of crowd images are generated from the ground-truth dot maps (density map generation), e.g., by convolving with a Gaussian kernel. Second, deep learning models are designed to predict a density map from an input image (density map estimation). Most research efforts have concentrated on the density map estimation problem, while the problem of density map generation has not been adequately explored. In particular, the density map could be considered as an intermediate representation used to train a crowd counting network. In the sense of end-to-end training, the hand-crafted methods used for generating the density maps may not be optimal for the particular network or dataset used. To address this issue, we first show the impact of different density maps and that better ground-truth density maps can be obtained by refining the existing ones using a learned refinement network, which is jointly trained with the counter. Then, we propose an adaptive density map generator, which takes the annotation dot map as input, and learns a density map representation for a counter. The counter and generator are trained jointly within an end-to-end framework. The experiment results on popular counting datasets confirm the effectiveness of the proposed learnable density map representations.},
+author = {Wan, Jia and Chan, Antoni},
+doi = {10.1109/ICCV.2019.00122},
+file = {:Users/janerik/Library/Application Support/Mendeley Desktop/Downloaded/Wan, Chan - 2019 - Adaptive density map generation for crowd counting.pdf:pdf},
+isbn = {9781728148038},
+issn = {15505499},
+journal = {Proceedings of the IEEE International Conference on Computer Vision},
+mendeley-groups = {Crowd Counting},
+pages = {1130--1139},
+title = {{Adaptive density map generation for crowd counting}},
+volume = {2019-Octob},
+year = {2019}
+}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% FLOW ESTIMATION %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+@article{Memin1998,
+abstract = {In this paper, we address the issue of recovering and segmenting the apparent velocity field in sequences of images. As for motion estimation, we minimize an objective function involving two robust terms. The first one cautiously captures the optical flow constraint, while the second (a priori) term incorporates a discontinuity-preserving smoothness constraint. To cope with the nonconvex minimization problem thus defined, we design an efficient deterministic multigrid procedure. It converges fast toward estimates of good quality, while revealing the large discontinuity structures of flow fields. We then propose an extension of the model by attaching to it a flexible object-based segmentation device based on deformable closed curves (different families of curve equipped with different kinds of prior can be easily supported). Experimental results on synthetic and natural sequences are presented, including an analysis of sensitivity to parameter tuning. {\textcopyright} 1998 IEEE.},
+author = {M{\'{e}}min, Etienne and P{\'{e}}rez, Patrick},
+doi = {10.1109/83.668027},
+file = {:Users/janerik/Downloads/1998{\_}ieeeip{\_}memin2.pdf:pdf},
+issn = {10577149},
+journal = {IEEE Transactions on Image Processing},
+keywords = {Closed segmenting curve,Incremental multiresolution,Motion segmentation,Multigrid nonconvex minimization,Optical flow,Robust estimators},
+mendeley-groups = {Flow Estimation},
+number = {5},
+pages = {703--719},
+title = {{Dense estimation and object-based segmentation of the optical flow with robust techniques}},
+volume = {7},
+year = {1998}
+}
+@article{Wedel2009,
+abstract = {The accurate estimation of motion in image sequences is of central importance to numerous computer vision applications. Most competitive algorithms compute flow fields by minimizing an energy made of a data and a regularity term. To date, the best performing methods rely on rather simple purely geometric regularizes favoring smooth motion. In this paper, we revisit regularization and show that appropriate adaptive regularization substantially improves the accuracy of estimated motion fields. In particular, we systematically evaluate regularizes which adaptively favor rigid body motion (if supported by the image data) and motion field discontinuities that coincide with discontinuities of the image structure. The proposed algorithm relies on sequential convex optimization, is real-time capable and outperforms all previously published algorithms by more than one average rank on the Middlebury optic flow benchmark. {\textcopyright}2009 IEEE.},
+author = {Wedel, Andreas and Cremers, Daniel and Pock, Thomas and Bischof, Horst},
+doi = {10.1109/ICCV.2009.5459375},
+file = {:Users/janerik/Downloads/10.1.1.364.4370.pdf:pdf},
+isbn = {9781424444205},
+journal = {Proceedings of the IEEE International Conference on Computer Vision},
+mendeley-groups = {Flow Estimation},
+pages = {1663--1668},
+title = {{Structure- and motion-adaptive regularization for high accuracy optic flow}},
+year = {2009}
+}
+
+@article{Bruhn2005,
+abstract = {Differential methods belong to the most widely used techniques for optic flow computation in image sequences. They can be classified into local methods such as the Lucas-Kanade technique or Big{\"{u}}n's structure tensor method, and into global methods such as the Horn/Schunck approach and its extensions. Often local methods are more robust under noise, while global techniques yield dense flow fields. The goal of this paper is to contribute to a better understanding and the design of novel differential methods in four ways: (i) We juxtapose the role of smoothing/regularisation processes that are required in local and global differential methods for optic flow computation, (ii) This discussion motivates us to describe and evaluate a novel method that combines important advantages of local and global approaches: It yields dense flow fields that are robust against noise, (iii) Spatiotemporal and nonlinear extensions as well as multiresolution frameworks are presented for this hybrid method, (iv) We propose a simple confidence measure for optic flow methods that minimise energy functionals. It allows to sparsify a dense flow field gradually, depending on the reliability required for the resulting flow. Comparisons with experiments from the literature demonstrate the favourable performance of the proposed methods and the confidence measure.},
+author = {Bruhn, Andr{\'{e}}s and Weickert, Joachim and Schn{\"{o}}rr, Christoph},
+doi = {10.1023/B:VISI.0000045324.43199.43},
+file = {:Users/janerik/Downloads/bruhn-ijcv05c.pdf:pdf},
+issn = {09205691},
+journal = {International Journal of Computer Vision},
+keywords = {Confidence measures,Differential techniques,Optic flow,Partial differential equations,Performance evaluation,Structure tensor,Variational methods},
+mendeley-groups = {Flow Estimation},
+number = {3},
+pages = {1--21},
+title = {{Lucas/Kanade meets Horn/Schunck: Combining local and global optic flow methods}},
+volume = {61},
+year = {2005}
+}
+
+
+@article{Brox2014,
+abstract = {We study an energy functional for computing optical flow that combines three assumptions: a brightness constancy assumption, a gradient constancy assumption, and a discontinuity-preserving spatio-temporal smoothness constraint. In order to allow for large displacements, linearisations in the two data terms are strictly avoided. We present a consistent numerical scheme based on two nested fixed point iterations. By proving that this scheme implements a coarse-to-fine warping strategy, we give a theoretical foundation for warping which has been used on a mainly experimental basis so far. Our evaluation demonstrates that the novel method gives significantly smaller angular errors than previous techniques for optical flow estimation. We show that it is fairly insensitive to parameter variations, and we demonstrate its excellent robustness under noise. {\textcopyright} Springer-Verlag Berlin Heidelberg 2004.},
+author = {Brox, Thomas and Papenberg, Nils and Weickert, Joachim},
+file = {:Users/janerik/Downloads/brox-eccv04-of-2.pdf:pdf},
+issn = {03029743},
+journal = {Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics)},
+mendeley-groups = {Flow Estimation},
+number = {May},
+pages = {25--36},
+title = {{High Accuracy Optical Flow Estimation based on warping - presentation}},
+volume = {3024},
+year = {2014}
+}
+
+@article{Pock2008,
+author = {Pock, Thomas and Schoenemann, Thomas and Graber, Gottfried and Bischof, Horst},
+doi = {10.1007/978-3-540-88690-7},
+file = {:Users/janerik/Downloads/Learning{\_}Optical{\_}Flow.pdf:pdf},
+isbn = {978-3-540-88689-1},
+issn = {0302-9743},
+mendeley-groups = {Flow Estimation},
+number = {May 2014},
+title = {{Learning optical flow}},
+url = {http://link.springer.com/10.1007/978-3-540-88690-7},
+volume = {5304},
+year = {2008}
+}
+
+@article{Ranjan2017,
+abstract = {We learn to compute optical flow by combining a classical spatial-pyramid formulation with deep learning. This estimates large motions in a coarse-to-fine approach by warping one image of a pair at each pyramid level by the current flow estimate and computing an update to the flow. Instead of the standard minimization of an objective function at each pyramid level, we train one deep network per level to compute the flow update. Unlike the recent FlowNet approach, the networks do not need to deal with large motions; these are dealt with by the pyramid. This has several advantages. First, our Spatial Pyramid Network (SPyNet) is much simpler and 96{\%} smaller than FlowNet in terms of model parameters. This makes it more efficient and appropriate for embedded applications. Second, since the flow at each pyramid level is small ({\textless} 1 pixel), a convolutional approach applied to pairs of warped images is appropriate. Third, unlike FlowNet, the learned convolution filters appear similar to classical spatio-temporal filters, giving insight into the method and how to improve it. Our results are more accurate than FlowNet on most standard benchmarks, suggesting a new direction of combining classical flow methods with deep learning.},
+archivePrefix = {arXiv},
+arxivId = {1611.00850},
+author = {Ranjan, Anurag and Black, Michael J.},
+doi = {10.1109/CVPR.2017.291},
+eprint = {1611.00850},
+file = {:Users/janerik/Downloads/1611.00850.pdf:pdf},
+isbn = {9781538604571},
+journal = {Proceedings - 30th IEEE Conference on Computer Vision and Pattern Recognition, CVPR 2017},
+mendeley-groups = {Flow Estimation},
+pages = {2720--2729},
+title = {{Optical flow estimation using a spatial pyramid network}},
+volume = {2017-January},
+year = {2017}
+}
+@article{Hui2018,
+abstract = {FlowNet2 [14], the state-of-the-art convolutional neural network (CNN) for optical flow estimation, requires over 160M parameters to achieve accurate flow estimation. In this paper we present an alternative network that attains performance on par with FlowNet2 on the challenging Sintel final pass and KITTI benchmarks, while being 30 times smaller in the model size and 1.36 times faster in the running speed. This is made possible by drilling down to architectural details that might have been missed in the current frameworks: (1) We present a more effective flow inference approach at each pyramid level through a lightweight cascaded network. It not only improves flow estimation accuracy through early correction, but also permits seamless incorporation of descriptor matching in our network. (2) We present a novel flow regularization layer to ameliorate the issue of outliers and vague flow boundaries by using a feature-driven local convolution. (3) Our network owns an effective structure for pyramidal feature extraction and embraces feature warping rather than image warping as practiced in FlowNet2. Our code and trained models are available at github.com/twhui/LiteFlowNet.},
+archivePrefix = {arXiv},
+arxivId = {1805.07036},
+author = {Hui, Tak Wai and Tang, Xiaoou and Loy, Chen Change},
+doi = {10.1109/CVPR.2018.00936},
+eprint = {1805.07036},
+file = {:Users/janerik/Downloads/1805.07036.pdf:pdf},
+isbn = {9781538664209},
+issn = {10636919},
+journal = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition},
+mendeley-groups = {Flow Estimation},
+pages = {8981--8989},
+title = {{LiteFlowNet: A Lightweight Convolutional Neural Network for Optical Flow Estimation}},
+year = {2018}
+}
+
+
+
+
+%%%%%%%%%%%%
+%%%% UNSUPERVISED FLOW %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+@article{Yu2016,
+abstract = {Recently, convolutional networks (convnets) have proven useful for predicting optical flow. Much of this success is predicated on the availability of large datasets that require expensive and involved data acquisition and laborious labeling. To bypass these challenges, we propose an unsupervised approach (i.e., without leveraging groundtruth flow) to train a convnet end-to-end for predicting optical flow between two images. We use a loss function that combines a data term that measures photometric constancy over time with a spatial term that models the expected variation of flow across the image. Together these losses form a proxy measure for losses based on the groundtruth flow. Empirically, we show that a strong convnet baseline trained with the proposed unsupervised approach outperforms the same network trained with supervision on the KITTI dataset.},
+archivePrefix = {arXiv},
+arxivId = {1608.05842},
+author = {Yu, Jason J. and Harley, Adam W. and Derpanis, Konstantinos G.},
+doi = {10.1007/978-3-319-49409-8_1},
+eprint = {1608.05842},
+file = {:Users/janerik/Downloads/1608.05842.pdf:pdf},
+isbn = {9783319494081},
+issn = {16113349},
+journal = {Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics)},
+mendeley-groups = {To Read,Flow Estimation},
+pages = {3--10},
+title = {{Back to basics: Unsupervised learning of optical flow via brightness constancy and motion smoothness}},
+volume = {9915 LNCS},
+year = {2016}
+}
+
+
+@article{Liu2008,
+abstract = {Obtaining ground-truth motion for arbitrary, real-world video sequences is a challenging but important task for both algorithm evaluation and model design. Existing ground-truth databases are either synthetic, such as the Yosemite sequence, or limited to indoor, experimental setups, such as the database developed in [5]. We propose a human-in-loop methodology to create a ground-truth motion database for the videos taken with ordinary cameras in both indoor and outdoor scenes, using the fact that human beings are experts at segmenting objects and inspecting the match between two frames. We designed an interactive computer vision system to allow a user to efficiently annotate motion. Our methodology is cross-validated by showing that human annotated motion is repeatable, consistent across annotators, and close to the ground truth obtained by [5]. Using our system, we collected and annotated 10 indoor and outdoor real-world videos to form a ground-truth motion database. The source code, annotation tool and database is online for public evaluation and benchmarking. {\textcopyright}2008 IEEE.},
+author = {Liu, Ce and Freeman, William T. and Adelson, Edward H. and Weiss, Yair},
+doi = {10.1109/CVPR.2008.4587845},
+file = {:Users/janerik/Downloads/motion.pdf:pdf},
+isbn = {9781424422432},
+journal = {26th IEEE Conference on Computer Vision and Pattern Recognition, CVPR},
+mendeley-groups = {Flow Estimation},
+title = {{Human-assisted motion annotation}},
+year = {2008}
+}
+
+
+@article{Yu2016,
+abstract = {Recently, convolutional networks (convnets) have proven useful for predicting optical flow. Much of this success is predicated on the availability of large datasets that require expensive and involved data acquisition and laborious labeling. To bypass these challenges, we propose an unsupervised approach (i.e., without leveraging groundtruth flow) to train a convnet end-to-end for predicting optical flow between two images. We use a loss function that combines a data term that measures photometric constancy over time with a spatial term that models the expected variation of flow across the image. Together these losses form a proxy measure for losses based on the groundtruth flow. Empirically, we show that a strong convnet baseline trained with the proposed unsupervised approach outperforms the same network trained with supervision on the KITTI dataset.},
+archivePrefix = {arXiv},
+arxivId = {1608.05842},
+author = {Yu, Jason J. and Harley, Adam W. and Derpanis, Konstantinos G.},
+doi = {10.1007/978-3-319-49409-8_1},
+eprint = {1608.05842},
+file = {:Users/janerik/Downloads/1608.05842.pdf:pdf},
+isbn = {9783319494081},
+issn = {16113349},
+journal = {Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics)},
+mendeley-groups = {To Read,Flow Estimation},
+pages = {3--10},
+title = {{Back to basics: Unsupervised learning of optical flow via brightness constancy and motion smoothness}},
+volume = {9915 LNCS},
+year = {2016}
+}
+@article{Janai2018,
+abstract = {Learning optical flow with neural networks is hampered by the need for obtaining training data with associated ground truth. Unsupervised learning is a promising direction, yet the performance of current unsupervised methods is still limited. In particular, the lack of proper occlusion handling in commonly used data terms constitutes a major source of error. While most optical flow methods process pairs of consecutive frames, more advanced occlusion reasoning can be realized when considering multiple frames. In this paper, we propose a framework for unsupervised learning of optical flow and occlusions over multiple frames. More specifically, we exploit the minimal configuration of three frames to strengthen the photometric loss and explicitly reason about occlusions. We demonstrate that our multi-frame, occlusion-sensitive formulation outperforms existing unsupervised two-frame methods and even produces results on par with some fully supervised methods.},
+author = {Janai, Joel and G{\"{u}}ney, Fatma and Ranjan, Anurag and Black, Michael and Geiger, Andreas},
+doi = {10.1007/978-3-030-01270-0_42},
+file = {:Users/janerik/Downloads/Janai2018ECCV.pdf:pdf},
+isbn = {9783030012694},
+issn = {16113349},
+journal = {Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics)},
+mendeley-groups = {Flow Estimation},
+pages = {713--731},
+title = {{Unsupervised Learning of Multi-Frame Optical Flow with Occlusions}},
+volume = {11220 LNCS},
+year = {2018}
+}

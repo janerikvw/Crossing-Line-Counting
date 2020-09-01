@@ -1,11 +1,6 @@
 \chapter{Related Work}
 In this chapter we try to explain a couple of key papers on which the proposed methods are build.
 
-\section{Region of Interest}
-\subsection{CSRNet}
-In 2018 CSRNet \cite{li2018csrnet} was introduced. This model had a massive improvement over earlier proposed models in the Region of Interest field. In the proposed model they proposed the use of dilated convolutions which use convolution filters over a much wider area. With this method the area a convolution filter stretches is much higher, without increasing the amount of processing time.
-\todo{Explain in depth the contribution}
-\todo{We don't use CSRNet, so maybe just skip this part}
 \section{Flow Estimation}
 
 \subsection{PWCNet}
@@ -29,15 +24,14 @@ A popular Flow Estimation network is PWCNet \cite{sun_pwc-net_2018}. It uses the
 PWCNet uses a pyramid shape architecture to predict the velocity map (See figure \ref{fig:pwc_approach}). The encoder encodes both input frames seperately into two feature volumes. During decoding several decoding steps are taken. After the initial velocity map estimation, each decoding step upscales the so-far estimated map and further refines the map. At the start of each decoding step the estimated velocity map is used to warp the feature volume of the second frame and correlate this warped volume with the volume of the first image to focus on area of refinement in the velocity map.
 
 \subsection{DDFlow}
-In DDFlow \cite{liu_ddflow_2019} a general method is proposed to estimate a velocity map in an unsupervised matter. Earlier methods already proposed several methods to optimize using a photometric loss and ignore occluded-pixels during loss calculation. However all these earlier methods used handcrafted methods to estimate the occluded-pixels.
+In DDFlow \cite{liu_ddflow_2019} a general method is proposed to estimate a velocity map in an unsupervised matter. Earlier methods already proposed several methods to optimize using a photometric loss \cite{Yu2016} and ignore occluded-pixels during loss calculation \cite{Janai2018}. However all these earlier methods used handcrafted methods to estimate the occluded-pixels.
 
-The paper proposes a method which learns occluded-pixels using a distillation from unlabeled data without supervision of humans to label the ground truth. Because of the generality of the method, the method can be wrapped around all existing supervised flow estimation architectures.
+The paper \cite{liu_ddflow_2019} proposes a method which learns occluded-pixels using a distillation from unlabeled data without supervision of humans to label the ground truth. Because of the generality of the method, the method can be wrapped around all existing supervised flow estimation architectures.
 
 The method uses a teacher and a student approach to train the occluded pixels. The teacher network is trained on all the non-occluded pixels, with exclusion of the occluded pixels using only the photometric loss with occlusion-awareness. After training the teacher network, the velocity maps of the teacher network are used as ground-truth for the student network.
 
 The student network is then trained on patches of the original predicted velocity map. On the borders of the patches, occluded pixels will appear, because moving pixels from inside the patched frame will move to outside the patched frame. These border pixels will be marked as occluded pixel by the student network, but will be non-occluded pixels according to the ground-truth of the teacher network.
 
-\todo{Should this part be moved to background or keep in related work? Seems both valid.}
 \begin{equation}
 \begin{aligned}
 L_{p}=& \sum \psi\left(I_{1}-I_{2}^{w}\right) \odot\left(1-O_{f}\right) / \sum\left(1-O_{f}\right) \\
@@ -46,7 +40,7 @@ L_{p}=& \sum \psi\left(I_{1}-I_{2}^{w}\right) \odot\left(1-O_{f}\right) / \sum\l
 \label{eq:photometric_loss}
 \end{equation}
 
-The photometric loss with occlusion-awareness proposed in the earlier papers is defined in equation \ref{eq:photometric_loss}. Where $I_1$ and $I_2$ are the full input frames and $I_i^w$ the backwarped image based on the predicted velocity map. Additionally $O_b$ and $O_f$ are masks for the occluded pixels. These maps are calculated by checking if the mismatch between forward flow and backward flow is too large.
+The photometric loss \cite{Yu2016} with occlusion-awareness \cite{Janai2018} proposed in the earlier papers is defined in equation \ref{eq:photometric_loss}. Where $I_1$ and $I_2$ are the full input frames and $I_i^w$ the backwarped image based on the predicted velocity map. Additionally $O_b$ and $O_f$ are masks for the occluded pixels. These maps are calculated by checking if the mismatch between forward flow and backward flow is too large.
 
 For the student model the photometric loss is used together with the loss for occlusion (equation \ref{eq:student_pm_loss}). The loss of the student model then just $L_p+L_o$. In equation \ref{eq:student_pm_loss}, $\widetilde{\mathrm{w}}_{f}$ and $\widetilde{\mathrm{w}}_{b}$ are the predicted velocity map forward and backward using the student model. $\mathrm{w}_{b}^{p}$ and $\mathrm{w}_{f}^{p}$ are the cropped patches from the ground-truth velocity map predicted by the teacher model. $M_f$ and $M_b$ are just defined as the difference of occluded pixels between the ground-truth of the parent and the teacher ($M_{f}=\operatorname{clip}\left(\widetilde{O}_{f}-O_{f}^{p}, 0,1\right)$. These pixels are not occluded in the full frame and occluded in the patch. This means that the ground-truth using distillation is available.
 
@@ -61,7 +55,8 @@ L_{o}=&\sum \psi\left(\mathrm{w}_{f}^{p}-\widetilde{\mathrm{w}}_{f}\right) \odot
 \section{Line of Interest}
 
 \subsection{Instant LOI counting}
-Zhao et al. \cite{leibe_crossing-line_2016} introduce a new approach to calculate the amount of pedestrians crossing the Line of Interest. Instead of slicing a range of consecutive frames around the Line of Interest and stitching them together, they present a method that directly predicts the amount crossing pedestrians using two consecutive frames.
+\label{section:crossing_line_2016}
+Zhao et al. \cite{leibe_crossing-line_2016} introduces a new approach to calculate the amount of pedestrians crossing the Line of Interest. Instead of slicing a range of consecutive frames around the Line of Interest and stitching them together, they present a method that directly predicts the amount crossing pedestrians using two consecutive frames.
 
 They use both a density map and velocity map and finally merge them together to obtain the LOI counts. Both the maps are trained fully supervised. Because annotating raw velocity maps is a very hard task, they simplify the velocity map in disk-shaped area's around the pedestrian locations. Annotating each frame is still very demanding, but lowers the amount of labeling significantly in comparing to full velocity maps.
 
