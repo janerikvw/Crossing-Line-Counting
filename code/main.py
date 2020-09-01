@@ -111,7 +111,10 @@ def main(args):
 
             # Run the merger for the crowdcounting and flow estimation model
             timer = utils.sTimer('LOI')
-            loi_output = LOI.regionwise_loi(loi_model, cc_output, fe_output)
+            if args.loi_method =='region':
+                loi_output = LOI.regionwise_loi(loi_model, cc_output, fe_output)
+            else:
+                loi_output = LOI.pixelwise_loi(loi_model, cc_output, fe_output)
             timer.show(args.print_time)
 
             # Sum earlier LOI's
@@ -175,6 +178,7 @@ if __name__ == '__main__':
     ARGS.print_time = False  # Print every timer, usefull for debugging
 
     ARGS.pair_distance = 5  # Distance between frames (normally 1 for next, 25fps for TUB)
+    ARGS.loi_method = 'region'  # pixel or region wise
 
     ARGS.region_select = 'V2'  # V1 or V2 for comparison
     ARGS.cropping = 100  # Cropping for quicker processing (Give number as padding for outers to optimize performance)

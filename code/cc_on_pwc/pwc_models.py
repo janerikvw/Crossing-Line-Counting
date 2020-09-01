@@ -651,3 +651,4 @@ class PWCC_V3_adapt(torch.nn.Module):
         output = torch.cat((output, self.process_layer3(features[2])), 1)
         output = self.process_all(output)
         return self.output_layer(output)
+

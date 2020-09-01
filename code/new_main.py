@@ -21,8 +21,9 @@ import math
 from DDFlow_pytorch.utils import flo_to_color
 
 import predictors
+import dataloaders
 
-def load_dataset(args):
+def load_videos(args):
     # Loading the complete testset
     print("--- LOADING TESTSET ---")
     print("- Load videos")
@@ -40,13 +41,22 @@ def load_dataset(args):
     print("--- DONE ---")
     return video_samples
 
+
+def load_dataloader(video, args):
+    video.generate_frame_pairs(distance=args.pair_distance, skip_inbetween=True)
+
+    return dataloaders.PairDataloader(video.get_frame_pairs(),
+                                      img_width=args.frame_width, img_height=args.frame_height)
+
+
+
 def main(args):
     # Create dir if not exists and create empty results file
     if not os.path.exists(args.full_dir):
         os.mkdir(args.full_dir)
     open("{}/results.txt".format(args.full_dir), "w+").close()
 
-    video_samples = load_dataset(args)
+    video_samples = load_videos(args)
 
     if ARGS.merged_model:
         model = predictors.FullPredictor()
@@ -56,15 +66,29 @@ def main(args):
         model = predictors.CombinedPredictor(cc, fe)
 
     for s_i, (video, line, crosses, naming) in enumerate(video_samples):
+        # Start with 0 counting
+        total_left = 0
+        total_right = 0
+
         print('Sample {}/{}:'.format(s_i + 1, len(video_samples)))
         point1 = line[0]
         point2 = line[1]
         ped_size = line[2]
         base = os.path.basename(video.get_path())
 
-        loi_model = RegionLOI(point1, point2, ped_size=ped_size, width_peds=args.width_times,
-                              height_peds=args.height_times, select_type=ARGS.region_select,
-                              crop_processing=ARGS.cropping)
+        timer = utils.sTimer('Initialize LOI')
+        loi_model = predictors.RegionLOI(point1, point2, img_width=args.frame_width, img_height=args.frame_height,
+                                         ped_size=ped_size, width_peds=args.width_times,
+                                         height_peds=args.height_times, crop_processing=ARGS.cropping)
+        timer.show(args.print_time)
+
+        dataloader = load_dataloader(video, args)
+
+        pbar = tqdm(total=len(dataloader))
+
+        for i, (frame1, frame2) in enumerate(dataloader):
+            print(i, frame1.shape, frame2.shape)
+            exit()
 
 if __name__ == '__main__':
     # Configurable params
@@ -103,6 +127,6 @@ if __name__ == '__main__':
     ARGS.cropping = 100  # Cropping for quicker processing (Give number as padding for outers to optimize performance)
 
     ARGS.merged_model = False
-    ARGS.full_dir = 'results/{}'.format(ARGS.result_dir)
+    ARGS.full_dir = 'results_new/{}'.format(ARGS.result_dir)
 
     main(ARGS)
