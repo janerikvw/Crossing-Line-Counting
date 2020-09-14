@@ -3,6 +3,22 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 
+
+def generate_frame_pairs(frames, distance, skip_inbetween=False):
+    pairs = []
+
+    for i, frame1 in enumerate(frames):
+        if skip_inbetween and i % distance != 0:
+            continue
+
+        if i + distance >= len(frames):
+            break
+
+        frame2 = frames[i + distance]
+        pairs.append(BasicFramePair(frame1, frame2, distance=distance))
+    return pairs
+
+
 """
 BasicVideo is an object used to store individual video's with frames.
 It is the basic block for training and validating the model.
@@ -13,6 +29,13 @@ class BasicVideo:
         self.path = base_path
         self.pairs = None
         self.labeled = labeled
+        self.lines = []
+
+    def get_lines(self):
+        return self.lines
+
+    def add_line(self, line):
+        self.lines.append(line)
 
     # Get all the BasicFrame objects of the video
     def get_frames(self):
@@ -37,19 +60,7 @@ class BasicVideo:
         return self.pairs
 
     def generate_frame_pairs(self, distance=1, skip_inbetween=False):
-        self.pairs = []
-
-        frames = self.get_frames()
-
-        for i, frame1 in enumerate(frames):
-            if skip_inbetween and i%distance != 0:
-                continue
-
-            if i+distance >= len(frames):
-                break
-
-            frame2 = frames[i+distance]
-            self.pairs.append(BasicFramePair(frame1, frame2, distance=distance))
+        self.pairs = generate_frame_pairs(self.get_frames(), distance, skip_inbetween)
 
     def is_labeled(self):
         return self.labeled
@@ -152,6 +163,7 @@ class BasicFramePair:
     def get_distance(self):
         return self.distance
 
+
 class BasicLineSample:
     def __init__(self, video, point1, point2, labeled=False):
         self.video = video
@@ -160,9 +172,9 @@ class BasicLineSample:
         self.labeled = labeled
         self.crossed = (0, 0)
 
-    def set_crossed(self, to_left, to_right):
-        self.crossed = (to_left, to_right)
-        self.labeled = true
+    def set_crossed(self, l1, l2):
+        self.crossed = (l1, l2)
+        self.labeled = True
 
     def get_crossed(self):
         return self.crossed

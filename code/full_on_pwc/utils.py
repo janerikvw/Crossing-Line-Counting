@@ -50,3 +50,16 @@ def flo_to_color(flo):
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     RGB_im = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     return RGB_im
+
+
+class AverageContainer:
+    def __init__(self):
+        self.meters = {}
+
+    def __getitem__(self, item):
+        if item not in self.meters:
+            self.meters[item] = AverageMeter()
+        return self.meters[item]
+
+    def reset(self):
+        self.meters = {}

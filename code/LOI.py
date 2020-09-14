@@ -324,6 +324,8 @@ def run_full_model(full_model, frame1_pil, frame2_pil):
 
     factor = (frame1.shape[2] * frame1.shape[3]) / (density.shape[2] * density.shape[3])
 
+    print(frame1)
+
     density = FU.interpolate(input=density,
                               size=(frame1.shape[2], frame1.shape[3]),
                               mode='bicubic', align_corners=False) / factor
