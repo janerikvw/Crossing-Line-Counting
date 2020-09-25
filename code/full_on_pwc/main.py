@@ -17,12 +17,15 @@ from torchvision.utils import save_image
 
 # from model import DRNetModel
 from dataset import SimpleDataset
-from models import V3Adapt, V3Correlation, V3EndFlow
+from models import V3Adapt, V3Correlation, V3EndFlow, \
+    V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
+    V3CorrelationDilation
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
 from pathlib import Path
 import utils
+import loi
 
 # Add base path to import dir for importing datasets
 import os, sys, inspect
@@ -72,8 +75,11 @@ parser.add_argument('--student_model', metavar='STUDENT', default='off', type=st
 parser.add_argument('--model', metavar='MODEL', default='v3correlation', type=str,
                     help='Which model gonna train')
 
-parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='on', type=str,
+parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='off', type=str,
                     help='Resizing patch so zoom/not zoom')
+
+parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_2', type=str,
+                    help='Give a specific learning rate setting')
 
 
 def save_sample(args, dir, info, density, true, img, flow):
@@ -129,15 +135,32 @@ def setup_train_cross_dataset(splits, epoch, args):
 
 def load_test_dataset(args):
     test_vids = []
+    cross_vids = []
     for video_path in glob('../data/Fudan/test_data/*/'):
-        test_vids.append(fudan.load_video(video_path))
-    return test_vids
+        if int(video_path.split('/')[-2]) % 2 == 0:
+            test_vids.append(fudan.load_video(video_path))
+        else:
+            cross_vids.append(fudan.load_video(video_path))
+
+    return cross_vids, test_vids
 
 
 def load_model(args):
     model = None
     if args.model == 'v3adaptive':
         model = V3Adapt(load_pretrained=True).cuda()
+    elif args.model == 'old_v31':
+        model = ModelV31(load_pretrained=True).cuda()
+    elif args.model == 'v3dilation':
+        model = V3Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v32dilation':
+        model = V32Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v3endflowdilation':
+        model = V3EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'v32endflowdilation':
+        model = V32EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'v3correlationdilation':
+        model = V3CorrelationDilation(load_pretrained=True).cuda()
     elif args.model == 'csrnet':
         model = CSRNet().cuda()
         args.loss_focus = 'cc'
@@ -178,12 +201,18 @@ def train(args):
         exit()
 
     if args.optimizer == 'adam':
-        # CSR: optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
-        optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
-        #optimizer = optim.Adam(model.parameters(), lr=5e-5, weight_decay=0)
+        if args.lr_setting == 'adam_1':
+            optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
+        elif args.lr_setting == 'adam_2':
+            optimizer = optim.Adam(model.parameters(), lr=2e-5, weight_decay=1e-4)
+        elif args.lr_setting == 'adam_5_no':
+            optimizer = optim.Adam(model.parameters(), lr=5e-5, weight_decay=0)
+        elif args.lr_setting == 'adam_6_yes':
+            optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=1e-4)
     else:
         optimizer = optim.SGD(model.parameters(), 1e-6, momentum=0.95, weight_decay=5*1e-4)
 
+    optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
 
     best_mae = None
     best_mse = None
@@ -195,7 +224,6 @@ def train(args):
                                                    num_workers=args.dataloader_workers)
 
     for epoch in range(args.epochs):
-
         if not args.single_dataset:
             train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, epoch, args)
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
@@ -288,6 +316,9 @@ def train(args):
                 torch.save(model.state_dict(), 'weights/{}/best_model.pt'.format(args.save_dir))
                 print("----- NEW BEST!! -----")
 
+        # Learning decay update
+        optim_lr_decay.step()
+
     results = {
         'cross_mae': best_mae,
         'cross_mse': best_mse
@@ -348,30 +379,50 @@ def test_run(args, epoch, test_dataset, model, save=True):
 
     return avg, avg_sq
 
-import loi
+
 def loi_test(args):
     metrics = utils.AverageContainer()
 
     # args.save_dir = '20200907_065813_dataset-fudan_epochs-250_resize_patch-on'
     # args.model = 'v3correlation
 
-    args.save_dir = '20200909_184358_dataset-fudan_model-csrnet_epochs-250_loss_focus-cc'
-    args.model = 'csrnet'
-    args.loss_focus = 'cc'
+    #args.save_dir = '20200909_184358_dataset-fudan_model-csrnet_epochs-250_loss_focus-cc'
+    #args.save_dir = '20200916_232108_dataset-fudan_model-csrnet_density_model-fixed-3_epochs-400_loss_focus-cc_resize_patch-on'
+    #args.save_dir = '20200916_192926_dataset-fudan_model-csrnet_density_model-fixed-5_epochs-400_loss_focus-cc_resize_patch-on'
+    #args.model = 'csrnet'
+    #args.loss_focus = 'cc'
+
+    #args.save_dir = '20200922_021245_dataset-fudan_model-v32endflowdilation_epochs-500_resize_patch-off'
+    args.save_dir = '20200923_182330_dataset-fudan_model-v32endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_2'
+    args.model = 'v32endflowdilation'
+
+    #args.save_dir = '20200921_160306_dataset-fudan_model-v3endflowdilation_epochs-500_resize_patch-off'
+    #args.model = 'v3endflowdilation'
+
+    # args.save_dir = '20200917_221630_dataset-fudan_model-v3dilation_epochs-400_resize_patch-off'
+    #args.save_dir = '20200918_070414_dataset-fudan_model-v3dilation_epochs-500_resize_patch-off'
+    #args.model = 'v3dilation'
+
+    # args.save_dir = '20200921_060230_dataset-fudan_model-v32dilation_epochs-500_resize_patch-off'
+    # args.model = 'v32dilation'
 
     if args.pre == '':
-        args.pre = 'weights/{}/best_model.pt'.format(args.save_dir)
+        args.pre = 'weights/{}/last_model.pt'.format(args.save_dir)
     model = load_model(args)
     model.eval()
     if args.loss_focus == 'cc':
         fe_model = V3Correlation(load_pretrained=True).cuda()
+        #pre_fe = '20200915_162744_dataset-fudan_frames_between-1_loss_focus-fe_resize_patch-on'
+        #pre_fe = '20200915_063042_dataset-fudan_frames_between-1_loss_focus-fe_resize_patch-off'
+        pre_fe = '20200916_093740_dataset-fudan_frames_between-5_loss_focus-fe_resize_patch-off'
         fe_model.load_state_dict(
-            torch.load('weights/20200907_065813_dataset-fudan_epochs-250_resize_patch-on/last_model.pt')
+            torch.load('weights/{}/last_model.pt'.format(pre_fe))
         )
         fe_model.eval()
 
     with torch.no_grad():
-        test_vids = load_test_dataset(args)
+        # Right now on cross validation
+        test_vids, _ = load_test_dataset(args)
         for v_i, video in enumerate(test_vids):
 
             print("Video:", video.get_path())
@@ -393,9 +444,15 @@ def loi_test(args):
 
                 total_d1 = 0
                 total_d2 = 0
+                totals = [total_d1, total_d2]
+                crosses = line.get_crossed()
 
                 pbar = tqdm(total=len(video.get_frame_pairs()))
+
                 for s_i, batch in enumerate(dataloader):
+                    # if s_i < 18:
+                    #     pbar.update(1)
+                    #     continue
                     torch.cuda.empty_cache()
 
                     frame_pair = video.get_frame_pairs()[s_i]
@@ -428,16 +485,16 @@ def loi_test(args):
                     fe_output = fe_output.detach().cpu().data.numpy()
 
                     # Extract LOI results
-                    loi_results = loi_model.regionwise_forward(cc_output, fe_output)
+                    loi_results = loi_model.pixelwise_forward(cc_output, fe_output)
 
                     # Get 2 frame results and sum
-                    total_d1 += sum(loi_results[0])
-                    total_d2 += sum(loi_results[1])
+                    # @TODO: Here is switch between sides. Correct this!!!!!!
+                    total_d1 += sum(loi_results[1])
+                    total_d2 += sum(loi_results[0])
                     totals = [total_d1, total_d2]
 
                     # Update GUI
-                    crosses = line.get_crossed()
-                    pbar.set_description('{} ({}), {} ({})'.format(totals[0], crosses[1], totals[1], crosses[0]))
+                    pbar.set_description('{} ({}), {} ({})'.format(totals[0], crosses[0], totals[1], crosses[1]))
                     pbar.update(1)
 
                     # Save for debugging
@@ -449,10 +506,33 @@ def loi_test(args):
                     # total_image = frame1_img.copy().convert('RGB')
                     # total_image.save('orig.png')
 
+                    img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
+                    if v_i == 0 and l_i == 0:
+                        utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
+
                 pbar.close()
                 print("ROI performance (MAE:", metrics['mae'].avg, "MSE:", metrics['mse'].avg,")")
-            if v_i == 2:
-                break
+
+                t_left, t_right = crosses
+                p_left, p_right = totals
+                mae = abs(t_left - p_left) + abs(t_right - p_right)
+                metrics['loi_mae'].update(mae)
+                mse = math.pow(t_left - p_left, 2) + math.pow(t_right + p_right, 2)
+                metrics['loi_mse'].update(mse)
+                total_mae = abs(t_left + t_right - (p_left + p_right))
+                total_mse = math.pow(t_left + t_right - (p_left + p_right), 2)
+                percentual_total_mae = (p_left + p_right) / (t_left + t_right)
+                metrics['loi_ptmae'].update(percentual_total_mae)
+                print("LOI performance (MAE: {}, MSE: {}, TMAE: {}, TMSE: {}, PTMAE: {})".format(mae, mse, total_mae,
+                                                                                                 total_mse,
+                                                                                                 percentual_total_mae))
+
+        print("MAE: {}, MSE: {}, PTMAE: {}".format(metrics['loi_mae'].avg,
+                                                   metrics['loi_mse'].avg,
+                                                   metrics['loi_ptmae'].avg))
+
+        return {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_ptmae': metrics['loi_ptmae'].avg,\
+               'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg}  # ROI (First Line is LOI)
 
 
 if __name__ == '__main__':
@@ -483,8 +563,8 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     if args.mode == 'loi':
-        loi_test(args)
+        print(loi_test(args))
     else:
         train(args)
-        args.pre = ''
-        loi_test(args)
+        # args.pre = ''
+        # loi_test(args)

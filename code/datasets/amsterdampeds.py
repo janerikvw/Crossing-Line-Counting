@@ -15,6 +15,7 @@ def compile_to_frame_obj(dictio, load_labels=True):
                 frame.add_point((int(coords[0]), int(coords[1])))
     return frame
 
+
 # Load Amsterdam Pedestrians into videos and frames
 def load_videos(base_path, load_labels=True):
     png_regex = re.compile(r'(.*)\/([0-9]+)-([0-9]{10}).([0-9]+).png\Z')

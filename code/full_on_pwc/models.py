@@ -62,6 +62,22 @@ class DeconvBlock(torch.nn.Module):
         return out
 
 
+def create_process_layer(in_channels, inter_channels, out_channels, kernel=3, stride=1, dilation=1):
+    return nn.Sequential(
+        ConvBlock(in_channels, inter_channels, kernel=kernel, stride=stride, dilation=dilation),
+        ConvBlock(inter_channels, inter_channels, kernel=kernel, stride=stride, dilation=dilation),
+        ConvBlock(inter_channels, inter_channels, kernel=kernel, stride=stride, dilation=dilation),
+        ConvBlock(inter_channels, out_channels, kernel=kernel, stride=stride, dilation=dilation)
+    )
+
+
+def create_upsample_layer(channels, up_kernel=4, up_stride=2, kernel=3, stride=1, dilation=1):
+    return nn.Sequential(
+        DeconvBlock(channels, channels, kernel=up_kernel, stride=up_stride),
+        ConvBlock(channels, channels, kernel=kernel, stride=stride, dilation=dilation),
+        ConvBlock(channels, channels, kernel=kernel, stride=stride, dilation=dilation)
+    )
+
 ############################
 # ------- BASE MODEL ----- #
 ############################
@@ -160,6 +176,207 @@ class V3Adapt(torch.nn.Module):
         density = self.cc_forward(features1, features2)
         return flow_fw, flow_bw, density
 
+
+#############################
+# -- ADAPT WITH DILATION -- #
+#############################
+class V3Dilation(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet()
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        dilation = 2
+
+        # Layer 6
+        channels6 = 196
+        self.process_layer6 = nn.Sequential(
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer6 = nn.Sequential(
+            DeconvBlock(channels6, channels6, kernel=4, stride=2),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 5
+        channels5 = 128
+        self.process_layer5 = nn.Sequential(
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer5 = nn.Sequential(
+            DeconvBlock(channels6+channels5, channels5, kernel=4, stride=2),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 4
+        channels4 = 96
+        self.process_layer4 = nn.Sequential(
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer4 = nn.Sequential(
+            DeconvBlock(channels5+channels4, channels4, kernel=4, stride=2),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 3
+        channels3 = 64
+        self.process_layer3 = nn.Sequential(
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1)
+        )
+
+        self.process_all = nn.Sequential(
+            ConvBlock(channels4+channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1)
+        )
+
+        self.output_layer = nn.Conv2d(channels3, 1, kernel_size=1)
+
+    def cc_forward(self, features1, features2):
+        features = features1
+
+        output = self.process_layer6(features[5])
+        output = self.upscale_layer6(output)
+
+        output = torch.cat((output, self.process_layer5(features[4])), 1)
+        output = self.upscale_layer5(output)
+
+        output = torch.cat((output, self.process_layer4(features[3])), 1)
+        output = self.upscale_layer4(output)
+
+        output = torch.cat((output, self.process_layer3(features[2])), 1)
+        output = self.process_all(output)
+        return self.output_layer(output)
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2 = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2)
+        return flow_fw, flow_bw, density
+
+#############################
+# -- ADAPT WITH DILATION FULLL!! -- #
+#############################
+class V32Dilation(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet()
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        dilation = 2
+
+        # Layer 6
+        channels6 = 196
+        self.process_layer6 = nn.Sequential(
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer6 = nn.Sequential(
+            DeconvBlock(channels6, channels6, kernel=4, stride=2),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 5
+        channels5 = 128
+        self.process_layer5 = nn.Sequential(
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer5 = nn.Sequential(
+            DeconvBlock(channels6+channels5, channels5, kernel=4, stride=2),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 4
+        channels4 = 96
+        self.process_layer4 = nn.Sequential(
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer4 = nn.Sequential(
+            DeconvBlock(channels5+channels4, channels4, kernel=4, stride=2),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 3
+        channels3 = 64
+        self.process_layer3 = nn.Sequential(
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.process_all = nn.Sequential(
+            ConvBlock(channels4+channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+        )
+
+        self.output_layer = nn.Conv2d(channels3, 1, kernel_size=1)
+
+    def cc_forward(self, features1, features2):
+        features = features1
+
+        output = self.process_layer6(features[5])
+        output = self.upscale_layer6(output)
+
+        output = torch.cat((output, self.process_layer5(features[4])), 1)
+        output = self.upscale_layer5(output)
+
+        output = torch.cat((output, self.process_layer4(features[3])), 1)
+        output = self.upscale_layer4(output)
+
+        output = torch.cat((output, self.process_layer3(features[2])), 1)
+        output = self.process_all(output)
+        return self.output_layer(output)
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2 = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2)
+        return flow_fw, flow_bw, density
+
 ############################
 # -- CORRELATION MODEL --- #
 ############################
@@ -228,6 +445,109 @@ class V3Correlation(torch.nn.Module):
             ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
             ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
             ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1)
+        )
+
+        self.process_all = nn.Sequential(
+            ConvBlock(channels4+channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1)
+        )
+
+        self.output_layer = nn.Conv2d(channels3, 1, kernel_size=1)
+
+    def cc_forward(self, features1, features2):
+        features = features1
+
+        corr = correlation.FunctionCorrelation(tenFirst=features1[5], tenSecond=features2[5])
+        output = self.process_layer6(torch.cat([features[5], corr], 1))
+        output = self.upscale_layer6(output)
+
+        corr = correlation.FunctionCorrelation(tenFirst=features1[4], tenSecond=features2[4])
+        output = torch.cat((output, self.process_layer5(torch.cat([features[4], corr], 1))), 1)
+        output = self.upscale_layer5(output)
+
+        corr = correlation.FunctionCorrelation(tenFirst=features1[3], tenSecond=features2[3])
+        output = torch.cat((output, self.process_layer4(torch.cat([features[3], corr], 1))), 1)
+        output = self.upscale_layer4(output)
+
+        corr = correlation.FunctionCorrelation(tenFirst=features1[2], tenSecond=features2[2])
+        output = torch.cat((output, self.process_layer3(torch.cat([features[2], corr], 1))), 1)
+        output = self.process_all(output)
+        return self.output_layer(output)
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2 = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2)
+        return flow_fw, flow_bw, density
+
+class V3CorrelationDilation(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet()
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        corr_channels = 81
+
+        dilation = 2
+
+        # Layer 6
+        channels6 = 196
+        self.process_layer6 = nn.Sequential(
+            ConvBlock(corr_channels + channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer6 = nn.Sequential(
+            DeconvBlock(channels6, channels6, kernel=4, stride=2),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 5
+        channels5 = 128
+        self.process_layer5 = nn.Sequential(
+            ConvBlock(corr_channels + channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer5 = nn.Sequential(
+            DeconvBlock(channels6+channels5, channels5, kernel=4, stride=2),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 4
+        channels4 = 96
+        self.process_layer4 = nn.Sequential(
+            ConvBlock(corr_channels + channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer4 = nn.Sequential(
+            DeconvBlock(channels5+channels4, channels4, kernel=4, stride=2),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 3
+        channels3 = 64
+        self.process_layer3 = nn.Sequential(
+            ConvBlock(corr_channels + channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation)
         )
 
         self.process_all = nn.Sequential(
@@ -375,7 +695,8 @@ class V3EndFlow(torch.nn.Module):
         density = self.cc_forward(features1, features2, flow_fw)
         return flow_fw, flow_bw, density
 
-class V3InterFlow(torch.nn.Module):
+
+class V3EndFlowDilation(torch.nn.Module):
     def __init__(self, load_pretrained=True):
         super().__init__()
 
@@ -387,14 +708,15 @@ class V3InterFlow(torch.nn.Module):
                                          torch.load(path).items()})
 
         corr_channels = 81
+        dilation = 2
 
         # Layer 6
         channels6 = 196
         self.process_layer6 = nn.Sequential(
-            ConvBlock(corr_channels + channels6, channels6, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1)
+            ConvBlock(channels6*2, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation)
         )
 
         self.upscale_layer6 = nn.Sequential(
@@ -406,10 +728,10 @@ class V3InterFlow(torch.nn.Module):
         # Layer 5
         channels5 = 128
         self.process_layer5 = nn.Sequential(
-            ConvBlock(corr_channels + channels5, channels5, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1)
+            ConvBlock(2*channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation)
         )
 
         self.upscale_layer5 = nn.Sequential(
@@ -421,10 +743,10 @@ class V3InterFlow(torch.nn.Module):
         # Layer 4
         channels4 = 96
         self.process_layer4 = nn.Sequential(
-            ConvBlock(corr_channels + channels4, channels4, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1),
-            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1)
+            ConvBlock(2*channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation)
         )
 
         self.upscale_layer4 = nn.Sequential(
@@ -436,7 +758,7 @@ class V3InterFlow(torch.nn.Module):
         # Layer 3
         channels3 = 64
         self.process_layer3 = nn.Sequential(
-            ConvBlock(corr_channels + channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(2*channels3, channels3, kernel=3, stride=1, dilation=1),
             ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
             ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
             ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1)
@@ -451,27 +773,150 @@ class V3InterFlow(torch.nn.Module):
 
         self.output_layer = nn.Conv2d(channels3, 1, kernel_size=1)
 
-    def cc_forward(self, features1, features2):
+    def cc_forward(self, features1, features2, flow):
         features = features1
+        flow = flow.detach()
 
-        corr = correlation.FunctionCorrelation(tenFirst=features1[5], tenSecond=features2[5])
-        output = self.process_layer6(torch.cat([features[5], corr], 1))
+        # @TODO: Different weights to the flow per layer
+        flow5 = F.interpolate(input=flow, size=(features2[5].shape[2], features2[5].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[5], tenFlow=flow5)
+        output = self.process_layer6(torch.cat([features[5], back], 1))
         output = self.upscale_layer6(output)
 
-        corr = correlation.FunctionCorrelation(tenFirst=features1[4], tenSecond=features2[4])
-        output = torch.cat((output, self.process_layer5(torch.cat([features[4], corr], 1))), 1)
+        flow4 = F.interpolate(input=flow, size=(features2[4].shape[2], features2[4].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[4], tenFlow=flow4)
+        output = torch.cat((output, self.process_layer5(torch.cat([features[4], back], 1))), 1)
         output = self.upscale_layer5(output)
 
-        corr = correlation.FunctionCorrelation(tenFirst=features1[3], tenSecond=features2[3])
-        output = torch.cat((output, self.process_layer4(torch.cat([features[3], corr], 1))), 1)
+        flow3 = F.interpolate(input=flow, size=(features2[3].shape[2], features2[3].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[3], tenFlow=flow3)
+        output = torch.cat((output, self.process_layer4(torch.cat([features[3], back], 1))), 1)
         output = self.upscale_layer4(output)
 
-        corr = correlation.FunctionCorrelation(tenFirst=features1[2], tenSecond=features2[2])
-        output = torch.cat((output, self.process_layer3(torch.cat([features[2], corr], 1))), 1)
+        flow2 = F.interpolate(input=flow, size=(features2[2].shape[2], features2[2].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[2], tenFlow=flow2)
+        output = torch.cat((output, self.process_layer3(torch.cat([features[2], back], 1))), 1)
         output = self.process_all(output)
         return self.output_layer(output)
 
     def forward(self, frame1, frame2):
         flow_fw, flow_bw, features1, features2 = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
-        density = self.cc_forward(features1, features2)
+        density = self.cc_forward(features1, features2, flow_fw)
+        return flow_fw, flow_bw, density
+
+
+class V32EndFlowDilation(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet()
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        corr_channels = 81
+        dilation = 2
+
+        # Layer 6
+        channels6 = 196
+        self.process_layer6 = nn.Sequential(
+            ConvBlock(channels6*2, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer6 = nn.Sequential(
+            DeconvBlock(channels6, channels6, kernel=4, stride=2),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels6, channels6, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 5
+        channels5 = 128
+        self.process_layer5 = nn.Sequential(
+            ConvBlock(2*channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer5 = nn.Sequential(
+            DeconvBlock(channels6+channels5, channels5, kernel=4, stride=2),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels5, channels5, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 4
+        channels4 = 96
+        self.process_layer4 = nn.Sequential(
+            ConvBlock(2*channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.upscale_layer4 = nn.Sequential(
+            DeconvBlock(channels5+channels4, channels4, kernel=4, stride=2),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels4, channels4, kernel=3, stride=1, dilation=1)
+        )
+
+        # Layer 3
+        channels3 = 64
+        self.process_layer3 = nn.Sequential(
+            ConvBlock(2*channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=dilation)
+        )
+
+        self.process_all = nn.Sequential(
+            ConvBlock(channels4+channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1),
+            ConvBlock(channels3, channels3, kernel=3, stride=1, dilation=1)
+        )
+
+        self.output_layer = nn.Conv2d(channels3, 1, kernel_size=1)
+
+    def cc_forward(self, features1, features2, flow):
+        features = features1
+        flow = flow.detach()
+
+        # @TODO: Different weights to the flow per layer
+        flow5 = F.interpolate(input=flow, size=(features2[5].shape[2], features2[5].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[5], tenFlow=flow5)
+        output = self.process_layer6(torch.cat([features[5], back], 1))
+        output = self.upscale_layer6(output)
+
+        flow4 = F.interpolate(input=flow, size=(features2[4].shape[2], features2[4].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[4], tenFlow=flow4)
+        output = torch.cat((output, self.process_layer5(torch.cat([features[4], back], 1))), 1)
+        output = self.upscale_layer5(output)
+
+        flow3 = F.interpolate(input=flow, size=(features2[3].shape[2], features2[3].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[3], tenFlow=flow3)
+        output = torch.cat((output, self.process_layer4(torch.cat([features[3], back], 1))), 1)
+        output = self.upscale_layer4(output)
+
+        flow2 = F.interpolate(input=flow, size=(features2[2].shape[2], features2[2].shape[3]),
+                              mode='bicubic', align_corners=False)
+        back = backwarp(tenInput=features2[2], tenFlow=flow2)
+        output = torch.cat((output, self.process_layer3(torch.cat([features[2], back], 1))), 1)
+        output = self.process_all(output)
+        return self.output_layer(output)
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2 = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw)
         return flow_fw, flow_bw, density

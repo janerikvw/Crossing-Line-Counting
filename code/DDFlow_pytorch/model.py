@@ -232,73 +232,56 @@ class PWCNet(torch.nn.Module):
 
         return objEstimate['tenFlow'] + self.netRefiner(objEstimate['tenFeat'])
 
+    def full_decode(self, features1, features2, initial_sizes, processed_sizes):
+        (int_width, int_height) = initial_sizes
+        (int_preprocessed_width, int_preprocessed_height) = processed_sizes
+        flow = self.decode(features1, features2)
+
+        # Resize back to original size
+        flow = 20.0 * torch.nn.functional.interpolate(input=flow, size=(int_height, int_width),
+                                                         mode='bicubic', align_corners=False)
+
+        # Resize weights when rescaling to original size
+        flow[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
+        flow[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
+        return flow
+
+    def full_forward(self, frame1, frame2, ret_features=False, ret_bw=False):
+        int_width = frame1.shape[3]
+        int_height = frame1.shape[2]
+        int_preprocessed_width = int(math.ceil(math.ceil(int_width / 64.0) * 64.0))
+        int_preprocessed_height = int(math.ceil(math.ceil(int_height / 64.0) * 64.0))
+
+        # Resize to get a size which fits into the network
+        frame1 = torch.nn.functional.interpolate(input=frame1,
+                                                 size=(int_preprocessed_height, int_preprocessed_width),
+                                                 mode='bicubic', align_corners=False)
+        frame2 = torch.nn.functional.interpolate(input=frame2,
+                                                 size=(int_preprocessed_height, int_preprocessed_width),
+                                                 mode='bicubic', align_corners=False)
+
+        # Feed through encoder and decode forward and backward
+        features1 = self.netExtractor(frame1)
+        features2 = self.netExtractor(frame2)
+        flow_fw = self.full_decode(features1, features2, initial_sizes=(int_width, int_height),
+                                   processed_sizes=(int_preprocessed_width, int_preprocessed_height))
+        ret = [flow_fw]
+
+        if ret_bw:
+            flow_bw = self.full_decode(features2, features1, initial_sizes=(int_width, int_height),
+                                       processed_sizes=(int_preprocessed_width, int_preprocessed_height))
+            ret.append(flow_bw)
+
+        if ret_features:
+            ret.append(features1)
+            ret.append(features2)
+
+        return tuple(ret)
+
     # Calculate the flow for both forward and backward between the two frames
     def bidirection_forward(self, frame1, frame2, ret_features=False):
-        int_width = frame1.shape[3]
-        int_height = frame1.shape[2]
-        int_preprocessed_width = int(math.floor(math.ceil(int_width / 64.0) * 64.0))
-        int_preprocessed_height = int(math.floor(math.ceil(int_height / 64.0) * 64.0))
-
-        # Resize to get a size which fits into the network
-        frame1 = torch.nn.functional.interpolate(input=frame1,
-                                                 size=(int_preprocessed_height, int_preprocessed_width),
-                                                 mode='bicubic', align_corners=False)
-        frame2 = torch.nn.functional.interpolate(input=frame2,
-                                                 size=(int_preprocessed_height, int_preprocessed_width),
-                                                 mode='bicubic', align_corners=False)
-
-        # Feed through encoder and decode forward and backward
-        features1 = self.netExtractor(frame1)
-        features2 = self.netExtractor(frame2)
-        flow_fw = self.decode(features1, features2)
-        flow_bw = self.decode(features2, features1)
-
-        # Resize back to original size
-        flow_fw = 20.0 * torch.nn.functional.interpolate(input=flow_fw, size=(int_height, int_width),
-                                                         mode='bilinear', align_corners=False)
-        flow_bw = 20.0 * torch.nn.functional.interpolate(input=flow_bw, size=(int_height, int_width),
-                                                         mode='bilinear', align_corners=False)
-
-        # Resize weights when rescaling to original size
-        flow_fw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
-        flow_fw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
-
-        flow_bw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
-        flow_bw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
-
-        if ret_features:
-            return flow_fw, flow_bw, features1, features2
-        else:
-            return flow_fw, flow_bw
+        return self.full_forward(frame1, frame2, ret_features=ret_features, ret_bw=True)
 
     def single_forward(self, frame1, frame2, ret_features = False):
-        int_width = frame1.shape[3]
-        int_height = frame1.shape[2]
-        int_preprocessed_width = int(math.floor(math.ceil(int_width / 64.0) * 64.0))
-        int_preprocessed_height = int(math.floor(math.ceil(int_height / 64.0) * 64.0))
-
-        # Resize to get a size which fits into the network
-        frame1 = torch.nn.functional.interpolate(input=frame1,
-                                                 size=(int_preprocessed_height, int_preprocessed_width),
-                                                 mode='bicubic', align_corners=False)
-        frame2 = torch.nn.functional.interpolate(input=frame2,
-                                                 size=(int_preprocessed_height, int_preprocessed_width),
-                                                 mode='bicubic', align_corners=False)
-
-        # Feed through encoder and decode forward and backward
-        features1 = self.netExtractor(frame1)
-        features2 = self.netExtractor(frame2)
-        flow_fw = self.decode(features1, features2)
-
-        # Resize back to original size
-        flow_fw = 20.0 * torch.nn.functional.interpolate(input=flow_fw, size=(int_height, int_width),
-                                                         mode='bilinear', align_corners=False)
-
-        # Resize weights when rescaling to original size
-        flow_fw[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
-        flow_fw[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
-        if ret_features:
-            return flow_fw, features1, features2
-        else:
-            return flow_fw
+        return self.full_forward(frame1, frame2, ret_features=ret_features, ret_bw=False)
 # end

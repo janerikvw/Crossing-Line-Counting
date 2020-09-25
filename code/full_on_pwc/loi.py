@@ -142,11 +142,12 @@ class LOI_Calculator:
         self.regions = []
         self.masks = ([], [])
 
-        self.loi_width = 60
+        self.loi_width = 20
+        self.regions = 6
 
     def create_regions(self):
         # Generate the original regions as well for later usage
-        self.regions = select_regions_v1(self.point1, self.point2, width=self.loi_width, regions=5, shrink=1.0)
+        self.regions = select_regions_v1(self.point1, self.point2, width=self.loi_width, regions=self.regions, shrink=1.0)
 
         self.masks = ([], [])
         for i, small_regions in enumerate(self.regions):
@@ -251,4 +252,71 @@ class LOI_Calculator:
                 percentage_over = towards_avg / region[4]
 
                 sums[i].append(crowd_towards * percentage_over)
+        return sums
+
+    def pixelwise_forward(self, counting_result, flow_result):
+        sums = ([], [])
+
+        for i, side_regions in enumerate(self.regions):
+            for o, region in enumerate(side_regions):
+                mask = self.masks[i][o]
+
+                # Get which part of the mask contains the actual mask
+                # This massively improves the speed of the model
+                points = np.array(region[0:4])
+
+                # Get the crop for the regions
+                min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]), \
+                                             np.min(points[:, 1]), np.max(points[:, 1])
+
+                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                # Adjust the crop if we crop the prediction image as well
+                # if self.crop_processing is False:
+                #     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                # else:
+                #     adjust_x, _, adjust_y, _ = select_line_outer_points(self.regions, crop['crop'], crop['width'],
+                #                                                         crop['height'])
+                #     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x - adjust_x, max_x - adjust_x, min_y - adjust_y, max_y - adjust_y
+
+                cropped_mask = mask[min_y:max_y, min_x:max_x]
+
+                # Use cropped mask on crowd counting result
+                cc_part = cropped_mask * counting_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+                # Project the flow estimation output on a line perpendicular to the LOI,
+                # so we can calculate if the people are approach/leaving the LOI.
+                direction = np.array([region[1][0] - region[2][0], region[1][1] - region[2][1]]).astype(
+                    np.float32)
+                direction = direction / np.linalg.norm(direction)
+
+                # Crop so only cropped area gets projected
+                part_flow_result = flow_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+                # Project on direction of pedestrians
+                perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
+                fe_part = cropped_mask * perp
+
+                # Get all the movement towards the line
+                threshold = 0.5
+                towards_pixels = fe_part > threshold
+
+                speed = cropped_mask * np.sqrt(np.power(part_flow_result, 2).sum(2))
+
+
+                # print("Count", towards_pixels.sum())
+                # print("Towards:", fe_part[towards_pixels].mean())
+                # print("Speed:", speed[towards_pixels].mean())
+                # print("All speed", speed[speed > threshold].mean())
+                # print("Crowd:", cc_part[towards_pixels].sum())
+                # print("Crowd speed:", cc_part[speed > threshold].sum())
+                # print("LOI:", np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum())
+                # print("Norm:", np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum() / region[4])
+
+                # Too remove some noise
+                if towards_pixels.sum() == 0 or cc_part.sum() < 0:
+                    sums[i].append(0.0)
+                    continue
+
+                sums[i].append(np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum() / region[4])
+
         return sums

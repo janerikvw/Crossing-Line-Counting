@@ -186,6 +186,7 @@ def pixelwise_loi(loi_info, counting_result, flow_result):
 
             # Crop so only cropped area gets projected
             part_flow_result = flow_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
             perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
             fe_part = cropped_mask * perp
 
