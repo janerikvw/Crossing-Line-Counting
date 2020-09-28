@@ -71,6 +71,7 @@ def load_dataset(args, between=1):
     return (SimpleDataset(train_pairs, args.density_model, True),
             SimpleDataset(val_pairs, args.density_model, False))
 
+
 def load_model(args):
     model = ModelV31(load_pretrained=True).cuda()
 
@@ -78,6 +79,7 @@ def load_model(args):
         model.load_state_dict(torch.load(args.pre))
 
     return model
+
 
 def train(args):
     print('Initializing result storage...')

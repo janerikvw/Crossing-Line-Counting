@@ -42,6 +42,8 @@ L_{p}=& \sum \psi\left(I_{1}-I_{2}^{w}\right) \odot\left(1-O_{f}\right) / \sum\l
 
 The photometric loss \cite{Yu2016} with occlusion-awareness \cite{Janai2018} proposed in the earlier papers is defined in equation \ref{eq:photometric_loss}. Where $I_1$ and $I_2$ are the full input frames and $I_i^w$ the backwarped image based on the predicted velocity map. Additionally $O_b$ and $O_f$ are masks for the occluded pixels. These maps are calculated by checking if the mismatch between forward flow and backward flow is too large.
 
+\todo{Maybe to background? Additionally add unflow to the related work, Meister2018 for the optimized census loss}
+
 For the student model the photometric loss is used together with the loss for occlusion (equation \ref{eq:student_pm_loss}). The loss of the student model then just $L_p+L_o$. In equation \ref{eq:student_pm_loss}, $\widetilde{\mathrm{w}}_{f}$ and $\widetilde{\mathrm{w}}_{b}$ are the predicted velocity map forward and backward using the student model. $\mathrm{w}_{b}^{p}$ and $\mathrm{w}_{f}^{p}$ are the cropped patches from the ground-truth velocity map predicted by the teacher model. $M_f$ and $M_b$ are just defined as the difference of occluded pixels between the ground-truth of the parent and the teacher ($M_{f}=\operatorname{clip}\left(\widetilde{O}_{f}-O_{f}^{p}, 0,1\right)$. These pixels are not occluded in the full frame and occluded in the patch. This means that the ground-truth using distillation is available.
 
 \begin{equation}
