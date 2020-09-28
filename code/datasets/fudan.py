@@ -9,6 +9,17 @@ def load_video(video_path, load_labeling=True):
     frames.sort()
 
     video = entities.BasicVideo(video_path)
+    if load_labeling:
+        try:
+            with open('{}info.json'.format(video_path)) as json_file:
+                data = json.load(json_file)
+                for line in data['labels']:
+                    ent_line = entities.BasicLineSample(video, (line['x1'][0], line['x1'][1]),
+                                                        (line['x2'][0], line['x2'][1]))
+                    ent_line.set_crossed(line['l1'], line['l2'])
+                    video.add_line(ent_line)
+        except IOError:
+            pass
 
     for frame_path in frames:
         frame_obj = entities.BasicFrame(frame_path)
@@ -34,10 +45,12 @@ def load_all_frames(base_path, load_labeling=True):
     return frames
 
 
-def load_all_frame_pairs(base_path, load_labeling=True):
+def load_all_frame_pairs(base_path, load_labeling=True, frames_between=1):
     frame_pairs = []
     for video_path in glob(os.path.join(base_path, '*')):
-        frame_pairs = frame_pairs + load_video(video_path, load_labeling).get_frame_pairs()
+        video = load_video(video_path, load_labeling)
+        video.generate_frame_pairs(distance=frames_between)
+        frame_pairs = frame_pairs + video.get_frame_pairs()
 
     return frame_pairs
 

@@ -146,6 +146,64 @@ def regionwise_loi(loi_info, counting_result, flow_result):
 
     return sums
 
+# Combine both the crowd counting and the flow estimation with a regionwise method
+# Returns per region how many people are crossing the line from that side.
+def pixelwise_loi(loi_info, counting_result, flow_result):
+    regions, rotate_angle, center, masks, crop = loi_info
+
+    sums = ([], [])
+
+    # @TODO: small_regions to something more correct
+    for i, side_regions in enumerate(regions):
+        for o, region in enumerate(side_regions):
+            mask = masks[i][o]
+
+            # Get which part of the mask contains the actual mask
+            # This massively improves the speed of the model
+            points = np.array(region[0:4])
+
+            # Get the crop for the regions
+            min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]),\
+                                         np.min(points[:, 1]), np.max(points[:, 1])
+
+            # Adjust the crop if we crop the prediction image as well
+            if crop['crop'] is False:
+                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+            else:
+                adjust_x, _, adjust_y, _ = select_line_outer_points(regions, crop['crop'], crop['width'], crop['height'])
+                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x-adjust_x, max_x-adjust_x, min_y-adjust_y, max_y-adjust_y
+
+            cropped_mask = mask[min_y:max_y, min_x:max_x]
+
+            # Use cropped mask on crowd counting result
+            cc_part = cropped_mask * counting_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+            # Project the flow estimation output on a line perpendicular to the LOI,
+            # so we can calculate if the people are approach/leaving the LOI.
+            direction = np.array([region[1][0] - region[2][0], region[1][1] - region[2][1]]).astype(
+                np.float32)
+            direction = direction / np.linalg.norm(direction)
+
+            # Crop so only cropped area gets projected
+            part_flow_result = flow_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+            perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
+            fe_part = cropped_mask * perp
+
+            # Get all the movement towards the line
+            # total_pixels = masks[i][o].sum()
+            threshold = 0.5
+            towards_pixels = fe_part > threshold
+
+            # Too remove some noise
+            if towards_pixels.sum() == 0 or cc_part.sum() < 0:
+                sums[i].append(0.0)
+                continue
+
+            sums[i].append(np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum() / region[4])
+
+    return sums
+
 
 # Initialize the crowd counting model
 def init_cc_model(weights_path, img_width=1920, img_height=1080):
@@ -266,6 +324,8 @@ def run_full_model(full_model, frame1_pil, frame2_pil):
     flow, _, density = full_model(frame1, frame2)
 
     factor = (frame1.shape[2] * frame1.shape[3]) / (density.shape[2] * density.shape[3])
+
+    print(frame1)
 
     density = FU.interpolate(input=density,
                               size=(frame1.shape[2], frame1.shape[3]),

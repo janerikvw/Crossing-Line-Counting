@@ -11,6 +11,8 @@ from PIL import ImageDraw, Image
 
 import matplotlib
 
+from tqdm import tqdm
+
 #partly borrowed from https://github.com/davideverona/deep-crowd-counting_crowdnet
 def gaussian_filter_density(frame):
     '''

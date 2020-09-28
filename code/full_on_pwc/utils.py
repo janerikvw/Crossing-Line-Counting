@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 import datetime
 import torch
 
+from PIL import Image, ImageDraw
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):
@@ -50,3 +52,42 @@ def flo_to_color(flo):
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     RGB_im = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     return RGB_im
+
+
+class AverageContainer:
+    def __init__(self):
+        self.meters = {}
+
+    def __getitem__(self, item):
+        if item not in self.meters:
+            self.meters[item] = AverageMeter()
+        return self.meters[item]
+
+    def reset(self):
+        self.meters = {}
+
+
+def save_loi_sample(name, img, cc, fe, results=[]):
+    img.save('imgs/{}_orig.jpg'.format(name))
+    #total_img = img.convert("L").convert("RGBA")
+
+    cc_img = Image.fromarray(cc * 255.0 / cc.max())
+    cc_img = cc_img.convert("L")
+    cc_img.save('imgs/{}_crowd.jpg'.format(name))
+
+    # Transform CC model and merge with original image for demo
+    # cc_img = np.zeros((cc.shape[0], cc.shape[1], 4))
+    # cc_img = cc_img.astype(np.uint8)
+    # cc_img[:, :, 3] = 255 - (cc * 255.0 / cc.max())
+    # cc_img[cc_img > 2] = cc_img[cc_img > 2] * 0.4
+    # cc_img = Image.fromarray(cc_img, 'RGBA')
+    # total_img = Image.alpha_composite(total_img, cc_img)
+
+    fe_img = Image.fromarray(np.uint8(flo_to_color(fe)), mode='RGB')
+    fe_img.save('imgs/{}_fe.jpg'.format(name))
+
+    cc_img = cc_img.convert('RGB')
+
+    blended = Image.blend(cc_img, fe_img, alpha=0.5)
+    blended.save('imgs/{}_full.jpg'.format(name))
+
