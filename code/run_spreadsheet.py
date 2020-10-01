@@ -42,7 +42,7 @@ out = []
 naming = []
 for i in params:
     valid_params = ['dataset', 'density_model', 'cc_weight', 'frames_between',
-                    'epochs', 'loss_focus', 'pre', 'student_model', 'model', 'resize_patch', 'lr_setting']
+                    'epochs', 'loss_focus', 'pre', 'student_model', 'model', 'resize_patch', 'lr_setting', 'resize_mode']
 
     if i not in valid_params:
         continue

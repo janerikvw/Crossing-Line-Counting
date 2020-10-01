@@ -19,7 +19,8 @@ from torchvision.utils import save_image
 from dataset import SimpleDataset
 from models import V3Adapt, V3Correlation, V3EndFlow, \
     V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
-    V3CorrelationDilation
+    V3CorrelationDilation, V33Dilation, V34Dilation, V35Dilation,\
+    V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -76,6 +77,9 @@ parser.add_argument('--model', metavar='MODEL', default='v3correlation', type=st
                     help='Which model gonna train')
 
 parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='off', type=str,
+                    help='Resizing patch so zoom/not zoom')
+
+parser.add_argument('--resize_mode', metavar='RESIZE_MODE', default='bilinear', type=str,
                     help='Resizing patch so zoom/not zoom')
 
 parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_2', type=str,
@@ -155,10 +159,24 @@ def load_model(args):
         model = V3Dilation(load_pretrained=True).cuda()
     elif args.model == 'v32dilation':
         model = V32Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v33dilation':
+        model = V33Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v34dilation':
+        model = V34Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v35dilation':
+        model = V35Dilation(load_pretrained=True).cuda()
     elif args.model == 'v3endflowdilation':
         model = V3EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v32endflowdilation':
         model = V32EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'v33endflowdilation':
+        model = V33EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'v332endflowdilation':
+        model = V332EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'v34endflowdilation':
+        model = V34EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'v35endflowdilation':
+        model = V35EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v3correlationdilation':
         model = V3CorrelationDilation(load_pretrained=True).cuda()
     elif args.model == 'csrnet':
@@ -218,16 +236,21 @@ def train(args):
     best_mse = None
     print('Start training...')
 
-    if args.single_dataset:
-        train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                                   num_workers=args.dataloader_workers)
+    _, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
+    # if args.single_dataset:
+    #     train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
+    #     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+    #                                                num_workers=args.dataloader_workers)
 
     for epoch in range(args.epochs):
-        if not args.single_dataset:
-            train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, epoch, args)
-            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                                       num_workers=args.dataloader_workers)
+        # if not args.single_dataset:
+        #     train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
+        #     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+        #                                                num_workers=args.dataloader_workers)
+
+        train_dataset, _ = setup_train_cross_dataset(train_pair_splits, 0, args)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                                                   num_workers=args.dataloader_workers)
 
         loss_container = utils.AverageContainer()
         for i, batch in enumerate(train_loader):
@@ -255,14 +278,9 @@ def train(args):
             if epoch == 0 and i == 0:
                 print("Resize factor: {}".format(factor))
 
-            if args.resize_to_orig:
-                pred_densities = F.interpolate(input=pred_densities,
-                                               size=(densities.shape[2], densities.shape[3]),
-                                               mode='bicubic', align_corners=False) / factor
-            else:
-                densities = F.interpolate(input=densities,
-                                               size=(pred_densities.shape[2], pred_densities.shape[3]),
-                                               mode='bicubic', align_corners=False) * factor
+            pred_densities = F.interpolate(input=pred_densities,
+                                           size=(densities.shape[2], densities.shape[3]),
+                                           mode=args.resize_mode, align_corners=False) / factor
 
             if args.loss_focus != 'cc':
                 photo_losses = losses.create_photometric_losses(frames1, frames2, flow_fw, flow_bw)
@@ -305,10 +323,11 @@ def train(args):
 
         if epoch % args.test_epochs == args.test_epochs - 1:
             timer = utils.sTimer('Test run')
-            avg, avg_sq = test_run(args, epoch, test_dataset, model)
+            avg, avg_sq, avg_loss = test_run(args, epoch, test_dataset, model)
             writer.add_scalar('Val/eval_time', timer.show(False), epoch)
             writer.add_scalar('Val/MAE', avg.avg, epoch)
             writer.add_scalar('Val/MSE', avg_sq.avg, epoch)
+            writer.add_scalar('Val/Loss', avg_loss.avg, epoch)
             torch.save(model.state_dict(), 'weights/{}/last_model.pt'.format(args.save_dir))
             if best_mae is None or best_mae > avg.avg:
                 best_mae = avg.avg
@@ -334,9 +353,18 @@ def test_run(args, epoch, test_dataset, model, save=True):
 
     avg = utils.AverageMeter()
     avg_sq = utils.AverageMeter()
+    avg_loss = utils.AverageMeter()
 
     truth = utils.AverageMeter()
     pred = utils.AverageMeter()
+
+    if args.loss_function == 'L1':
+        criterion = nn.L1Loss(reduction='sum').cuda()
+    elif args.loss_function == 'L2':
+        criterion = nn.MSELoss(reduction='sum').cuda()
+    else:
+        print("Error, no correct loss function")
+        exit()
 
     model.eval()
     with torch.no_grad():
@@ -356,16 +384,20 @@ def test_run(args, epoch, test_dataset, model, save=True):
 
             pred_densities = pred_densities.detach()
 
+            factor = (densities.shape[2] * densities.shape[3]) / (
+                    pred_densities.shape[2] * pred_densities.shape[3])
+            pred_densities = F.interpolate(input=pred_densities,
+                                           size=(densities.shape[2], densities.shape[3]),
+                                           mode=args.resize_mode, align_corners=False) / factor
+
             truth.update(densities.sum().item())
             pred.update(pred_densities.sum().item())
 
             avg.update(abs((pred_densities.sum() - densities.sum()).item()))
             avg_sq.update(torch.pow(pred_densities.sum() - densities.sum(), 2).item())
+            avg_loss.update(criterion(pred_densities, densities))
 
             if i == 1 and save:
-                pred_densities = F.interpolate(input=pred_densities,
-                                            size=(frames1.shape[2], frames1.shape[3]),
-                                            mode='bicubic', align_corners=False)
                 if args.loss_focus != 'cc':
                     flow_fw = flow_fw.detach().cpu().numpy().transpose(0, 2, 3, 1)
                     rgb = utils.flo_to_color(flow_fw[0])
@@ -377,7 +409,7 @@ def test_run(args, epoch, test_dataset, model, save=True):
     print("--- TEST [MAE: {}, RMSE: {}]".format(avg.avg, math.pow(avg_sq.avg, 0.5)))
     model.train()
 
-    return avg, avg_sq
+    return avg, avg_sq, avg_loss
 
 
 def loi_test(args):
@@ -386,25 +418,19 @@ def loi_test(args):
     # args.save_dir = '20200907_065813_dataset-fudan_epochs-250_resize_patch-on'
     # args.model = 'v3correlation
 
-    #args.save_dir = '20200909_184358_dataset-fudan_model-csrnet_epochs-250_loss_focus-cc'
+    args.save_dir = '20200909_184358_dataset-fudan_model-csrnet_epochs-250_loss_focus-cc'
     #args.save_dir = '20200916_232108_dataset-fudan_model-csrnet_density_model-fixed-3_epochs-400_loss_focus-cc_resize_patch-on'
     #args.save_dir = '20200916_192926_dataset-fudan_model-csrnet_density_model-fixed-5_epochs-400_loss_focus-cc_resize_patch-on'
-    #args.model = 'csrnet'
-    #args.loss_focus = 'cc'
+    args.model = 'csrnet'
+    args.loss_focus = 'cc'
 
-    #args.save_dir = '20200922_021245_dataset-fudan_model-v32endflowdilation_epochs-500_resize_patch-off'
-    args.save_dir = '20200923_182330_dataset-fudan_model-v32endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_2'
-    args.model = 'v32endflowdilation'
+    # args.save_dir = '20200925_035200_dataset-fudan_model-v3endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_5_no'
+    # args.model = 'v3endflowdilation'
 
-    #args.save_dir = '20200921_160306_dataset-fudan_model-v3endflowdilation_epochs-500_resize_patch-off'
-    #args.model = 'v3endflowdilation'
+    # args.save_dir = '20200924_110733_dataset-fudan_model-v3dilation_cc_weight-50_epochs-500_lr_setting-adam_5_no'
+    # args.model = 'v3dilation'
 
-    # args.save_dir = '20200917_221630_dataset-fudan_model-v3dilation_epochs-400_resize_patch-off'
-    #args.save_dir = '20200918_070414_dataset-fudan_model-v3dilation_epochs-500_resize_patch-off'
-    #args.model = 'v3dilation'
 
-    # args.save_dir = '20200921_060230_dataset-fudan_model-v32dilation_epochs-500_resize_patch-off'
-    # args.model = 'v32dilation'
 
     if args.pre == '':
         args.pre = 'weights/{}/last_model.pt'.format(args.save_dir)
@@ -420,11 +446,13 @@ def loi_test(args):
         )
         fe_model.eval()
 
+    results = []
+
     with torch.no_grad():
         # Right now on cross validation
         test_vids, _ = load_test_dataset(args)
         for v_i, video in enumerate(test_vids):
-
+            vid_result = []
             print("Video:", video.get_path())
 
             video.generate_frame_pairs(distance=args.frames_between, skip_inbetween=True)
@@ -522,10 +550,23 @@ def loi_test(args):
                 total_mae = abs(t_left + t_right - (p_left + p_right))
                 total_mse = math.pow(t_left + t_right - (p_left + p_right), 2)
                 percentual_total_mae = (p_left + p_right) / (t_left + t_right)
+                relative_mae = mae / (t_left + t_right)
                 metrics['loi_ptmae'].update(percentual_total_mae)
                 print("LOI performance (MAE: {}, MSE: {}, TMAE: {}, TMSE: {}, PTMAE: {})".format(mae, mse, total_mae,
                                                                                                  total_mse,
                                                                                                  percentual_total_mae))
+
+                results.append({
+                    'vid': v_i,
+                    'loi': l_i,
+                    'mae': mae,
+                    'mse': mse,
+                    'ptmae': percentual_total_mae,
+                    'rmae': relative_mae
+                })
+
+        with open('loi_results/{}.json'.format(args.save_dir), 'w') as outfile:
+            json.dump(results, outfile)
 
         print("MAE: {}, MSE: {}, PTMAE: {}".format(metrics['loi_mae'].avg,
                                                    metrics['loi_mse'].avg,
@@ -549,7 +590,7 @@ if __name__ == '__main__':
     args.print_every = 40  # Print every x amount of minibatches
     args.test_epochs = 1  # Run every tenth epoch a test
 
-    args.train_split = 3
+    args.train_split = 4
     args.cross_val_amount = 50
     args.train_amount = 200
 
