@@ -1,33 +1,58 @@
 \chapter{Implementation}
 
-\section{Trainings environment}
-
 \section{Models}
-\subsection{Separate models}
+\subsection{Baseline}
+As baseline we use 
 \subsection{Shared encoder}
 \subsection{Flow enhancing}
 
-\section{Experimental Setup}
-Measure per sequence the amount of people who have crossed the Line of Interest.
+\section{Environment}
 
-\subsection{Sample generation}
+\subsection{Loss function}
+\begin{equation}
+\label{eq:loss_total}
+	L_{t} = L_{v} + \lambda \cdot L_{c}
+\end{equation}
+
+The loss function for the final training is given in equation \ref{eq:loss_total}. Where $L_{v}$ is the loss function for the velocity map. We finally applied the occlussion photometric loss on all results (Equation \ref{eq:photometric_loss}).
+
+$L_{c}$ is used for the density map. Where the L2 loss (Mean squared error) is applied for comparing the ground truth density map with the predicted map.
+
+For $\lambda$ a default of 5 is applied when not mentioned else.
+
+
+\subsection{Optimizer}
+For all the experiments the Adam optimizer is used with a learning-rate of $5e^{-5}$. No regularization is applied.
+
+\subsection{Augmentation}
+To augment the dataset several augmentations will be applied on the trainingssamples. First a crop of the image is made. Ranging from $\nicefrac{1}{3}$ and $\nicefrac{1}{6}$ of the total image size. Then the cropped image is resized to a size of $\nicefrac{1}{4}$ of the original image (So $\nicefrac{1}{2}$ the width and $\nicefrac{1}{2}$ the height). Lastly the cropped image is half of the time flipped horizontally.
 
 \subsection{Metrics}
-The accuracy of the models is measured using two measurements, the Mean Average Error (\ref{eq:mae}) and the Mean Squared Error (\ref{eq:mse}).
+For both the LOI and the ROI the same metrics are used. Both are measured with the Mean Average Error and the Mean Squared Error.
 
 \begin{equation}
-\label{eq:mae}
+\label{eq:mae_roi}
+	MAE = \frac{1}{n}\sum^n_{i=1}|C_i-P_c^{(i)}|
+\end{equation}
+
+\begin{equation}
+\label{eq:mse_roi}
+	MSE = \frac{1}{n}\sum^n_{i=1}(C_i-P_c^{(i)})^2
+\end{equation}
+
+For the ROI the MAE and the MSE are defined as equation 1 and 2. Where $P_c^{(i)}$ is the predicted density map for the given frame.
+
+\begin{equation}
+\label{eq:mae_loi}
 	MAE = \frac{1}{n}\sum^n_{i=1}|G_l^{(i)}-P_l^{(i)}|+|G_r^{(i)}-P_r^{(i)}|
 \end{equation}
 
 \begin{equation}
-\label{eq:mse}
+\label{eq:mse_loi}
 	MSE = \frac{1}{n}\sum^n_{i=1}(G_l^{(i)}-P_l^{(i)})^2+(G_r^{(i)}-P_r^{(i)})^2
 \end{equation}
 
-Where $G_l^{(i)}$ is the ground truth for sample $i$ for side left-to-right. And $P_r^{(i)}$ is the predicted value for right-to-left.
-
-In this thesis we make use of four different datasets. Three of them are already public datasets and one dataset is created using City of Amsterdam footage.
+For the LOI the MAE and MSE are defined as quation 1 and 2. Where $G_l^{(i)}$ is the ground truth for sample $i$ for side left-to-right. And $P_r^{(i)}$ is the predicted value for right-to-left.
 
 \section{Datasets}
 In this thesis we make use of four different datasets. Three of them are already public datasets and one dataset is created using City of Amsterdam footage.
@@ -42,7 +67,7 @@ The UCSD dataset is in previous papers used as default benchmark. Although other
 The CrowdFlow dataset \cite{Schroder2019} is a public dataset generated at the TU Berlin in 2018. The dataset contains 10 sequences generated from 5 different scenes. Each scene is captured once with a drone view camera and once with a fixed view camera. Each scene is a virtual urban environment and it is generated in the Unreal Engine, a 3D-engine. Each sequence is roughly 10 seconds long with 25 fps with a resolution of 1280x720. The generated sequences are dense in pedestrians and have up to 1451 pedestrians in a single frame. All the camera views are captured from a high surveillance style view.
 
 \subsection{Fudan-ShanghaiTech}
-The Fudan ShanghaiTech dataset \cite{Fang2019} is a public dataset with 100 videos of 13 different scenes. Each video contains 6 seconds of footage at 25 fps and have a resolution of 1920x1080. The scenes have between 20-100 pedestrians per frame. In each frame the pedestrians in the frame are labeled with a bounding-box and a center-point of the bounding-box.
+The Fudan ShanghaiTech dataset \cite{Fang2019} is a public dataset with 100 videos of 13 different scenes. Each video contains 6 seconds of footage at 25 fps and have a resolution of 1920x1080 or 1280x720. The scenes have between 20-100 pedestrians per frame. In each frame the pedestrians in the frame are labeled with a bounding-box and a center-point of the bounding-box.
 
 \subsection{ArenaPeds}
 For this thesis we have access to a dataset of the City of Amsterdam. It has xxx amount of footage of environments with crowds ranging from 10 pedestrians in the frame to 1000 pedestrians a few hours later. Only a tiny proportion is labeled with where each pedestrian is. So there is no labeled data on the Crowd Direction, only for the Crowd Counting. This is the reason why we want to try to give unsupervised learning a shot.
