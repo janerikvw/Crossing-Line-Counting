@@ -11,7 +11,7 @@ __all__ = [
 class FlowNetS(nn.Module):
     expansion = 1
 
-    def __init__(self,batchNorm=True):
+    def __init__(self,batchNorm=True, retCat2=False):
         super(FlowNetS,self).__init__()
 
         self.batchNorm = batchNorm
@@ -41,6 +41,8 @@ class FlowNetS(nn.Module):
         self.upsampled_flow5_to_4 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
         self.upsampled_flow4_to_3 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
         self.upsampled_flow3_to_2 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
+
+        self.retCat2 = retCat2
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -79,6 +81,9 @@ class FlowNetS(nn.Module):
 
         concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
         flow2 = self.predict_flow2(concat2)
+
+        if self.retCat2:
+            return flow2, concat2
 
         if self.training:
             return flow2,flow3,flow4,flow5,flow6

@@ -17,10 +17,11 @@ from torchvision.utils import save_image
 
 # from model import DRNetModel
 from dataset import SimpleDataset
-from models import V3Adapt, V3Correlation, V3EndFlow, \
+from models import V3EndFlow, \
     V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
-    V3CorrelationDilation, V33Dilation, V34Dilation, V35Dilation,\
-    V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation
+    V33Dilation, V332SingleFlow,\
+    V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation,\
+    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -84,6 +85,19 @@ parser.add_argument('--resize_mode', metavar='RESIZE_MODE', default='bilinear', 
 
 parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_2', type=str,
                     help='Give a specific learning rate setting')
+
+
+parser.add_argument('--loi_version', metavar='LOI_VERSION', default='v2', type=str,
+                    help='Versio which is used to select lines')
+
+parser.add_argument('--loi_width', metavar='LOI_WIDTH', default=70, type=int,
+                    help='Width of the LOI')
+
+parser.add_argument('--loi_level', metavar='LOI_LEVEL', default='region', type=str,
+                    help='Method to merge the density and flow, region level or pixel level')
+
+parser.add_argument('--loi_height', metavar='LOI_HEIGHT', default=2.0, type=float,
+                    help='How many times the width to get good results')
 
 
 def save_sample(args, dir, info, density, true, img, flow):
@@ -151,9 +165,7 @@ def load_test_dataset(args):
 
 def load_model(args):
     model = None
-    if args.model == 'v3adaptive':
-        model = V3Adapt(load_pretrained=True).cuda()
-    elif args.model == 'old_v31':
+    if args.model == 'old_v31':
         model = ModelV31(load_pretrained=True).cuda()
     elif args.model == 'v3dilation':
         model = V3Dilation(load_pretrained=True).cuda()
@@ -161,10 +173,20 @@ def load_model(args):
         model = V32Dilation(load_pretrained=True).cuda()
     elif args.model == 'v33dilation':
         model = V33Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v332dilation':
+        model = V332Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v332singleflow':
+        model = V332SingleFlow(load_pretrained=True).cuda()
+    elif args.model == 'v333dilation':
+        model = V333Dilation(load_pretrained=True).cuda()
     elif args.model == 'v34dilation':
         model = V34Dilation(load_pretrained=True).cuda()
     elif args.model == 'v35dilation':
         model = V35Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v351dilation':
+        model = V351Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v341dilation':
+        model = V341Dilation(load_pretrained=True).cuda()
     elif args.model == 'v3endflowdilation':
         model = V3EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v32endflowdilation':
@@ -177,13 +199,9 @@ def load_model(args):
         model = V34EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v35endflowdilation':
         model = V35EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v3correlationdilation':
-        model = V3CorrelationDilation(load_pretrained=True).cuda()
     elif args.model == 'csrnet':
         model = CSRNet().cuda()
         args.loss_focus = 'cc'
-    elif args.model == 'v3correlation':
-        model = V3Correlation(load_pretrained=True).cuda()
     elif args.model == 'v3endflow':
         model = V3EndFlow(load_pretrained=True).cuda()
     else:
@@ -234,6 +252,7 @@ def train(args):
 
     best_mae = None
     best_mse = None
+    best_loss = None
     print('Start training...')
 
     _, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
@@ -329,9 +348,10 @@ def train(args):
             writer.add_scalar('Val/MSE', avg_sq.avg, epoch)
             writer.add_scalar('Val/Loss', avg_loss.avg, epoch)
             torch.save(model.state_dict(), 'weights/{}/last_model.pt'.format(args.save_dir))
-            if best_mae is None or best_mae > avg.avg:
+            if best_loss is None or best_loss > avg_loss.avg:
                 best_mae = avg.avg
                 best_mse = avg_sq.avg
+                best_loss = avg_loss.avg
                 torch.save(model.state_dict(), 'weights/{}/best_model.pt'.format(args.save_dir))
                 print("----- NEW BEST!! -----")
 
@@ -406,34 +426,61 @@ def test_run(args, epoch, test_dataset, model, save=True):
 
                 save_sample(args, 'results', epoch, pred_densities[0], densities[0], frames1[0], rgb)
 
-    print("--- TEST [MAE: {}, RMSE: {}]".format(avg.avg, math.pow(avg_sq.avg, 0.5)))
+    print("--- TEST [MAE: {}, RMSE: {}, LOSS: {}]".format(avg.avg, math.pow(avg_sq.avg, 0.5), avg_loss.avg))
     model.train()
 
     return avg, avg_sq, avg_loss
 
 
+def get_max_surrounding(data, surrounding=1, only_under=True, smaller_sides=True):
+    kernel_size = surrounding * 2 + 1
+
+    lines_skip = math.floor(kernel_size / 2)
+
+    if only_under == True:
+        out_channels = np.eye(kernel_size * kernel_size)[lines_skip * kernel_size:]
+        if smaller_sides:
+            for i in range(math.floor((kernel_size - 1) / 4)):
+                out_channels[list(range(i, len(out_channels), kernel_size))] = False
+                out_channels[list(range(kernel_size - i - 1, len(out_channels), kernel_size))] = False
+    else:
+        out_channels = np.eye(kernel_size * kernel_size)
+
+    w = out_channels.reshape((out_channels.shape[0], 1, kernel_size, kernel_size))
+    w = torch.tensor(w, dtype=torch.float).cuda()
+
+    data = data.transpose(0, 1).cuda()
+
+    patches = torch.nn.functional.conv2d(data, w, padding=(lines_skip, lines_skip))[:, :, :data.shape[2], :data.shape[3]]
+
+    speed = torch.sqrt(torch.sum(torch.pow(patches, 2), axis=0))
+    max_speeds = torch.argmax(speed, axis=0)
+    flat_max_speeds = max_speeds.reshape(data.shape[2] * data.shape[3])
+
+    y_axis = torch.arange(data.shape[2]).repeat_interleave(data.shape[3])
+    x_axis = torch.arange(data.shape[3]).repeat(data.shape[2])
+
+    output = patches[:, flat_max_speeds, y_axis, x_axis]
+    output = output.reshape(1, 2, data.shape[2], data.shape[3])
+    return output
+
 def loi_test(args):
     metrics = utils.AverageContainer()
 
-    # args.save_dir = '20200907_065813_dataset-fudan_epochs-250_resize_patch-on'
-    # args.model = 'v3correlation
+    # args.save_dir = '20201006_190409_dataset-fudan_model-csrnet_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.model = 'csrnet'
+    # args.loss_focus = 'cc'
 
-    args.save_dir = '20200909_184358_dataset-fudan_model-csrnet_epochs-250_loss_focus-cc'
-    #args.save_dir = '20200916_232108_dataset-fudan_model-csrnet_density_model-fixed-3_epochs-400_loss_focus-cc_resize_patch-on'
-    #args.save_dir = '20200916_192926_dataset-fudan_model-csrnet_density_model-fixed-5_epochs-400_loss_focus-cc_resize_patch-on'
-    args.model = 'csrnet'
-    args.loss_focus = 'cc'
+    args.save_dir = '20201005_120202_dataset-fudan_model-v332dilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    args.model = 'v332dilation'
 
-    # args.save_dir = '20200925_035200_dataset-fudan_model-v3endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_5_no'
-    # args.model = 'v3endflowdilation'
-
-    # args.save_dir = '20200924_110733_dataset-fudan_model-v3dilation_cc_weight-50_epochs-500_lr_setting-adam_5_no'
-    # args.model = 'v3dilation'
+    # args.save_dir = '20201005_215952_dataset-fudan_model-v332endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.model = 'v332endflowdilation'
 
 
 
     if args.pre == '':
-        args.pre = 'weights/{}/last_model.pt'.format(args.save_dir)
+        args.pre = 'weights/{}/best_model.pt'.format(args.save_dir)
     model = load_model(args)
     model.eval()
     if args.loss_focus == 'cc':
@@ -452,12 +499,34 @@ def loi_test(args):
         # Right now on cross validation
         test_vids, _ = load_test_dataset(args)
         for v_i, video in enumerate(test_vids):
+
             vid_result = []
             print("Video:", video.get_path())
 
             video.generate_frame_pairs(distance=args.frames_between, skip_inbetween=True)
             dataset = SimpleDataset(video.get_frame_pairs(), args, False)
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, num_workers=args.dataloader_workers)
+
+            # ---- REMOVE WHEN DONE ---- #
+            if args.loi_flow_width:
+                print("Loading flow")
+                frames1, frames2, _ = next(iter(dataloader))
+                frames1 = frames1.cuda()
+                frames2 = frames2.cuda()
+                fe_output, _, _ = fe_model.forward(frames1, frames2)
+                fe_speed = torch.norm(fe_output, dim=1)
+
+                threshold = 1.0
+                fe_speed_high2 = fe_speed > threshold
+                avg_speed = fe_speed[fe_speed_high2].sum()/fe_speed_high2.sum()
+
+                if args.loi_flow_smoothing:
+                    loi_width = int((0.75 + avg_speed / 10 * 0.25) * args.loi_width)
+                else:
+                    loi_width = int((avg_speed / 9) * args.loi_width)
+            else:
+                loi_width = args.loi_width
+
 
             for l_i, line in enumerate(video.get_lines()):
                 image = video.get_frame(0).get_image()
@@ -467,7 +536,9 @@ def loi_test(args):
 
                 loi_model = loi.LOI_Calculator(point1, point2,
                                                img_width=width, img_height=height,
-                                               crop_processing=False)
+                                               crop_processing=False,
+                                               loi_version=args.loi_version, loi_width=loi_width,
+                                               loi_height=loi_width*args.loi_height)
                 loi_model.create_regions()
 
                 total_d1 = 0
@@ -504,6 +575,10 @@ def loi_test(args):
                     metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
                     metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
+                    fe_output = get_max_surrounding(fe_output, 6)
+                    fe_output = get_max_surrounding(fe_output, 6)
+                    fe_output = get_max_surrounding(fe_output, 6)
+
                     # Resize and save as numpy
                     cc_output = loi_model.to_orig_size(cc_output)
                     cc_output = cc_output.squeeze().squeeze()
@@ -513,7 +588,13 @@ def loi_test(args):
                     fe_output = fe_output.detach().cpu().data.numpy()
 
                     # Extract LOI results
-                    loi_results = loi_model.pixelwise_forward(cc_output, fe_output)
+                    if args.loi_level == 'pixel':
+                        loi_results = loi_model.pixelwise_forward(cc_output, fe_output)
+                    elif args.loi_level == 'region':
+                        loi_results = loi_model.regionwise_forward(cc_output, fe_output)
+                    else:
+                        print('Incorrect LOI level')
+                        exit()
 
                     # Get 2 frame results and sum
                     # @TODO: Here is switch between sides. Correct this!!!!!!
@@ -552,6 +633,7 @@ def loi_test(args):
                 percentual_total_mae = (p_left + p_right) / (t_left + t_right)
                 relative_mae = mae / (t_left + t_right)
                 metrics['loi_ptmae'].update(percentual_total_mae)
+                metrics['loi_rmae'].update(relative_mae)
                 print("LOI performance (MAE: {}, MSE: {}, TMAE: {}, TMSE: {}, PTMAE: {})".format(mae, mse, total_mae,
                                                                                                  total_mse,
                                                                                                  percentual_total_mae))
@@ -565,15 +647,16 @@ def loi_test(args):
                     'rmae': relative_mae
                 })
 
-        with open('loi_results/{}.json'.format(args.save_dir), 'w') as outfile:
-            json.dump(results, outfile)
+        # outname = '{}_{}_{}_{}'.format(args.loi_level, args.real_loi_version, args.loi_width, args.loi_height)
+        # with open('loi_results/{}.json'.format(outname), 'w') as outfile:
+        #     json.dump(results, outfile)
 
         print("MAE: {}, MSE: {}, PTMAE: {}".format(metrics['loi_mae'].avg,
                                                    metrics['loi_mse'].avg,
                                                    metrics['loi_ptmae'].avg))
 
         return {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_ptmae': metrics['loi_ptmae'].avg,\
-               'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg}  # ROI (First Line is LOI)
+               'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg}  # ROI (First Line is LOI)
 
 
 if __name__ == '__main__':
@@ -598,6 +681,19 @@ if __name__ == '__main__':
 
     # Add date and time so we can just run everything very often :)
     args.save_dir = args.name # '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
+
+    args.loi_flow_smoothing = False
+    args.loi_flow_width = False
+
+    args.real_loi_version = args.loi_version
+
+    if args.loi_version == 'v3':
+        args.loi_version = 'v2'
+        args.loi_flow_width = True
+    elif args.loi_version == 'v4.6':
+        args.loi_version = 'v2'
+        args.loi_flow_width = True
+        args.loi_flow_smoothing = True
 
 
     torch.cuda.manual_seed(args.seed)

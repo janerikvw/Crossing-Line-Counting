@@ -1,3 +1,5 @@
 */_pycache__
 *.pyc
 images/
+
+flownets_bn_EPE2.459.pth.tar

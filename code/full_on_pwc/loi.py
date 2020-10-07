@@ -79,6 +79,7 @@ def select_regions_v1(dot1, dot2, width, regions):
     height_region = width
     region_lines = []
     line_points = np.linspace(np.array(dot1), np.array(dot2), num=regions+1).astype(int)
+
     for i, point in enumerate(line_points):
         if i + 1 >= len(line_points):
             break
@@ -139,14 +140,15 @@ def select_regions_v2(dot1, dot2, d_width, d_height):
     inner_points.append(1.0)
     line_points = []
     for point_multi in inner_points:
-        line_points.append((np.array(dot1) + point_multi * (np.array(dot2) - np.array(dot1))))
+        line_points.append((np.array(dot1) + point_multi * (np.array(dot2) - np.array(dot1))).astype(int))
 
+    region_lines = []
     for i, point in enumerate(line_points):
         if i + 1 >= len(line_points):
             break
 
         point2 = line_points[i + 1]
-        region_lines.append((tuple(list(point)),  tuple(list(point2))))
+        region_lines.append((tuple(list(point)), tuple(list(point2))))
     region_lines.reverse()
 
     regions = ([], [])
@@ -230,9 +232,6 @@ class LOI_Calculator:
         # frame.save(os.path.join('orig_crop.png'))
 
         return frame
-
-    def rescale_propotional(self, frame, resize_to=64):
-        pass
 
     def to_orig_size(self, frame, rescale_values=True):
         if frame.shape[2] == self.img_height and frame.shape[3] == self.img_width:
