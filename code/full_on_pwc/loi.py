@@ -70,14 +70,16 @@ def select_line_outer_points(regions, crop_distance, width, height):
 
     return min_x, max_x, min_y, max_y
 
+# Fixed amount of regions
 # Generate all the regions around the LOI (given by dot1 and dot2).
 # A region is an array with all the cornerpoints and the with of the region
-def select_regions_v1(dot1, dot2, width, regions, shrink):
+def select_regions_v1(dot1, dot2, width, regions):
     # Seperate the line into several parts with given start and end point.
     # Provide the corner points of the regions that lie on the LOI itself.
     height_region = width
     region_lines = []
     line_points = np.linspace(np.array(dot1), np.array(dot2), num=regions+1).astype(int)
+
     for i, point in enumerate(line_points):
         if i + 1 >= len(line_points):
             break
@@ -115,8 +117,67 @@ def select_regions_v1(dot1, dot2, width, regions, shrink):
             height_region
         ])
 
-        # Shrink the width for perspective
-        width *= shrink
+    regions[0].reverse()
+    regions[1].reverse()
+
+    return regions
+
+# To a fixed size of the region
+def select_regions_v2(dot1, dot2, d_width, d_height):
+    # Seperate the line into several parts with given start and end point.
+    # Provide the corner points of the regions that lie on the LOI itself.
+
+    # Swapped, because function variables fit better the thesis terminology
+    height_region = d_width
+    width_region = d_height
+
+    line_length = math.sqrt(math.pow(dot1[0] - dot2[0], 2) + math.pow(dot1[1] - dot2[1], 2))
+    a_regions = math.floor(line_length / width_region)
+    side_perc = (1.0 - a_regions * width_region / line_length) / 2
+
+    inner_points = list(np.linspace(side_perc, 1. - side_perc, num=a_regions + 1).astype(float))
+    inner_points.insert(0, 0.0)
+    inner_points.append(1.0)
+    line_points = []
+    for point_multi in inner_points:
+        line_points.append((np.array(dot1) + point_multi * (np.array(dot2) - np.array(dot1))).astype(int))
+
+    region_lines = []
+    for i, point in enumerate(line_points):
+        if i + 1 >= len(line_points):
+            break
+
+        point2 = line_points[i + 1]
+        region_lines.append((tuple(list(point)), tuple(list(point2))))
+    region_lines.reverse()
+
+    regions = ([], [])
+    for point1, point2 in region_lines:
+
+        # The difference which we can add to the region lines corners
+        # to come to the corners on the other end of the region
+        part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
+        point_diff = (
+            - (point1[1] - point2[1]) / float(part_line_length) * float(height_region),
+            (point1[0] - point2[0]) / float(part_line_length) * float(height_region)
+        )
+
+        # Both add and substract the difference so we get the regions on both sides of the LOI.
+        regions[0].append([
+            point1,
+            point2,
+            (int(point2[0] + point_diff[0]), int(point2[1] + point_diff[1])),
+            (int(point1[0] + point_diff[0]), int(point1[1] + point_diff[1])),
+            height_region
+        ])
+
+        regions[1].append([
+            point1,
+            point2,
+            (int(point2[0] - point_diff[0]), int(point2[1] - point_diff[1])),
+            (int(point1[0] - point_diff[0]), int(point1[1] - point_diff[1])),
+            height_region
+        ])
 
     regions[0].reverse()
     regions[1].reverse()
@@ -125,7 +186,8 @@ def select_regions_v1(dot1, dot2, width, regions, shrink):
 
 
 class LOI_Calculator:
-    def __init__(self, point1, point2, img_width, img_height, crop_processing=False):
+    def __init__(self, point1, point2, img_width, img_height, crop_processing=False,
+                 loi_version='v1', loi_width=20, loi_height=20, loi_regions=6):
         self.point1 = point1
         self.point2 = point2
         self.img_width = img_width
@@ -142,23 +204,23 @@ class LOI_Calculator:
         self.regions = []
         self.masks = ([], [])
 
-        self.loi_width = 20
-        self.regions = 6
+        self.loi_version = loi_version
+        self.loi_height = loi_height
+        self.loi_width = loi_width
+        self.regions = loi_regions
 
     def create_regions(self):
         # Generate the original regions as well for later usage
-        self.regions = select_regions_v1(self.point1, self.point2, width=self.loi_width, regions=self.regions, shrink=1.0)
+        if self.loi_version == 'v1':
+            self.regions = select_regions_v1(self.point1, self.point2, width=self.loi_width, regions=self.regions)
+        else:
+            self.regions = select_regions_v2(self.point1, self.point2, d_width=self.loi_width, d_height=self.loi_height)
 
         self.masks = ([], [])
         for i, small_regions in enumerate(self.regions):
             for o, region in enumerate(small_regions):
                 mask = region_to_mask(region, self.rotate_angle, img_width=self.img_width, img_height=self.img_height)
                 self.masks[i].append(mask)
-
-        #  #### IMPLEMENT V2 as well?? HOW??? ######
-        # if select_type == 'V1':
-        # regions = select_regions_v1(point1, point2, width=35 * height_peds, regions=5, shrink=1.0)
-        # regions = select_regions(point1, point2, ped_size=ped_size, width_peds=width_peds, height_peds=height_peds)
 
     def reshape_image(self, frame):
         if self.crop_processing is False:
@@ -170,9 +232,6 @@ class LOI_Calculator:
         # frame.save(os.path.join('orig_crop.png'))
 
         return frame
-
-    def rescale_propotional(self, frame, resize_to=64):
-        pass
 
     def to_orig_size(self, frame, rescale_values=True):
         if frame.shape[2] == self.img_height and frame.shape[3] == self.img_width:

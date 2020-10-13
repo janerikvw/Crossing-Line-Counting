@@ -6,7 +6,7 @@ const port = 3000
 var glob = require("glob")
 var fs = require('fs');
 
-const base_path = '../data/Fudan/'
+const base_path = '../../videos/'
 
 let videos = null
 
@@ -25,9 +25,11 @@ let write_labeled_data = (video_data, label_data) => {
 }
 
 let load_all_videos = () => {
-    glob(`${base_path}*/*/`, (er, files) => {
+    glob(`${base_path}*/`, (er, files) => {
+        console.log(`${base_path}*/`)
         videos = []
         files.forEach(file => {
+            console.log(`Check ${file}`)
             if(!fs.existsSync(`${file}info.json`)) {
                 videos.push(file.slice(base_path.length))
             } else {
