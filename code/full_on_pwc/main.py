@@ -21,7 +21,7 @@ from models import V3EndFlow, \
     V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
     V33Dilation, V332SingleFlow,\
     V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation,\
-    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation
+    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation, Baseline1
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -35,7 +35,7 @@ import os, sys, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-from datasets import basic_entities, fudan
+from datasets import basic_entities, fudan, ucsdpeds
 from DDFlow_pytorch import losses
 from CSRNet.model import CSRNet
 
@@ -74,7 +74,7 @@ parser.add_argument('--epochs', metavar='EPOCHS', default=500, type=int,
 parser.add_argument('--student_model', metavar='STUDENT', default='off', type=str,
                     help='Run the student model for optimal flow halfway')
 
-parser.add_argument('--model', metavar='MODEL', default='v3correlation', type=str,
+parser.add_argument('--model', metavar='MODEL', default='v332singleflow', type=str,
                     help='Which model gonna train')
 
 parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='off', type=str,
@@ -121,15 +121,34 @@ def n_split_pairs(frames, splits=3, distance=20, skip_inbetween=False):
 def load_train_dataset(args):
     splits = [[] for _ in range(args.train_split)]
     total_num = 0
-    for video_path in glob('../data/Fudan/train_data/*/'):
-        video = fudan.load_video(video_path)
-        total_num += len(video.get_frames())
-        splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between, skip_inbetween=False)
 
-        # Possibly overfit slightly, because middle parts could almost overlap with outer parts, so shuffle to balance
-        random.shuffle(splitted_frames)
-        for i, split in enumerate(splitted_frames):
-            splits[i] += split
+    if args.dataset == 'fudan':
+        for video_path in glob('../data/Fudan/train_data/*/'):
+            video = fudan.load_video(video_path)
+            total_num += len(video.get_frames())
+            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between, skip_inbetween=False)
+
+            # Possibly overfit slightly, because middle parts could almost overlap with outer parts, so shuffle to balance
+            random.shuffle(splitted_frames)
+            for i, split in enumerate(splitted_frames):
+                splits[i] += split
+
+    elif args.dataset == 'ucsd':
+        videos = ucsdpeds.load_videos('../data/ucsdpeds')
+        videos = videos[3:7] + videos[10:]
+        for video in videos:
+            total_num += len(video.get_frames())
+            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
+                                            skip_inbetween=False)
+
+            # Possibly overfit slightly, because middle parts could almost overlap with outer parts, so shuffle to balance
+            random.shuffle(splitted_frames)
+            for i, split in enumerate(splitted_frames):
+                splits[i] += split
+
+    else:
+        print("No valid dataset selected!!!!")
+        exit()
 
     print("Total frames loaded:", total_num)
     return splits
@@ -154,11 +173,21 @@ def setup_train_cross_dataset(splits, epoch, args):
 def load_test_dataset(args):
     test_vids = []
     cross_vids = []
-    for video_path in glob('../data/Fudan/test_data/*/'):
-        if int(video_path.split('/')[-2]) % 2 == 0:
-            test_vids.append(fudan.load_video(video_path))
-        else:
-            cross_vids.append(fudan.load_video(video_path))
+
+    if args.dataset == 'fudan':
+        for video_path in glob('../data/Fudan/test_data/*/'):
+            if int(video_path.split('/')[-2]) % 2 == 0:
+                test_vids.append(fudan.load_video(video_path))
+            else:
+                cross_vids.append(fudan.load_video(video_path))
+    elif args.dataset == 'ucsd':
+        videos = ucsdpeds.load_videos('../data/ucsdpeds')
+        # Cross Improve!!
+        cross_vids = videos[:3] + videos[7:10]
+        test_vids = videos[:3] + videos[7:10]
+    else:
+        print("No valid dataset selected!!!!")
+        exit()
 
     return cross_vids, test_vids
 
@@ -200,6 +229,8 @@ def load_model(args):
         model = V34EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v35endflowdilation':
         model = V35EndFlowDilation(load_pretrained=True).cuda()
+    elif args.model == 'baseline1':
+        model = Baseline1(load_pretrained=True).cuda()
     elif args.model == 'csrnet':
         model = CSRNet().cuda()
         args.loss_focus = 'cc'
@@ -433,26 +464,30 @@ def test_run(args, epoch, test_dataset, model, save=True):
     return avg, avg_sq, avg_loss
 
 
+#### Smooth the surroundings for Flow Estimation ####
+# Due to the use of 2D conv to do one sample at the time which is easy
+# Update could handle multiple frames at the time
+#
+# Surrounding: Pixels around each pixel to look for the max
+# only_under removes the search in top side of the pixel
+# Smaller_sides: When only_under the width search will be as wide as the height (surrounding+1)
 def get_max_surrounding(data, surrounding=1, only_under=True, smaller_sides=True):
     kernel_size = surrounding * 2 + 1
 
-    lines_skip = math.floor(kernel_size / 2)
+    out_channels = np.eye(kernel_size * kernel_size)
 
-    if only_under == True:
-        out_channels = np.eye(kernel_size * kernel_size)[lines_skip * kernel_size:]
+    if only_under:
+        out_channels = out_channels[surrounding * kernel_size:]
         if smaller_sides:
-            for i in range(math.floor((kernel_size - 1) / 4)):
+            for i in range(math.floor(surrounding/2)):
                 out_channels[list(range(i, len(out_channels), kernel_size))] = False
                 out_channels[list(range(kernel_size - i - 1, len(out_channels), kernel_size))] = False
-    else:
-        out_channels = np.eye(kernel_size * kernel_size)
 
     w = out_channels.reshape((out_channels.shape[0], 1, kernel_size, kernel_size))
     w = torch.tensor(w, dtype=torch.float).cuda()
 
     data = data.transpose(0, 1).cuda()
-
-    patches = torch.nn.functional.conv2d(data, w, padding=(lines_skip, lines_skip))[:, :, :data.shape[2], :data.shape[3]]
+    patches = torch.nn.functional.conv2d(data, w, padding=(surrounding, surrounding))[:, :, :data.shape[2], :data.shape[3]]
 
     speed = torch.sqrt(torch.sum(torch.pow(patches, 2), axis=0))
     max_speeds = torch.argmax(speed, axis=0)
@@ -472,11 +507,17 @@ def loi_test(args):
     # args.model = 'csrnet'
     # args.loss_focus = 'cc'
 
-    args.save_dir = '20201005_120202_dataset-fudan_model-v332dilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    args.model = 'v332dilation'
+    # args.save_dir = '20201005_120202_dataset-fudan_model-v332dilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.model = 'v332dilation'
 
     # args.save_dir = '20201005_215952_dataset-fudan_model-v332endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
     # args.model = 'v332endflowdilation'
+
+    args.save_dir = '20201007_160645_dataset-fudan_model-v332singleflow_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    args.model = 'v332singleflow'
+
+    # args.save_dir = '20201008_081012_dataset-fudan_model-baseline1_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.model = 'baseline1'
 
 
 
@@ -549,11 +590,14 @@ def loi_test(args):
 
                 pbar = tqdm(total=len(video.get_frame_pairs()))
 
+                metrics['timing'].reset()
+
                 for s_i, batch in enumerate(dataloader):
                     # if s_i < 18:
                     #     pbar.update(1)
                     #     continue
                     torch.cuda.empty_cache()
+                    timer = utils.sTimer("Full process time")
 
                     frame_pair = video.get_frame_pairs()[s_i]
                     print_i = '{:05d}'.format(s_i + 1)
@@ -576,9 +620,8 @@ def loi_test(args):
                     metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
                     metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
-                    fe_output = get_max_surrounding(fe_output, 6)
-                    fe_output = get_max_surrounding(fe_output, 6)
-                    fe_output = get_max_surrounding(fe_output, 6)
+                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
+                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
 
                     # Resize and save as numpy
                     cc_output = loi_model.to_orig_size(cc_output)
@@ -620,8 +663,11 @@ def loi_test(args):
                     if v_i == 0 and l_i == 0:
                         utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
 
+                    metrics['timing'].update(timer.show(False))
+
+
                 pbar.close()
-                print("ROI performance (MAE:", metrics['mae'].avg, "MSE:", metrics['mse'].avg,")")
+                print("Timing {}".format(metrics['timing'].avg))
 
                 t_left, t_right = crosses
                 p_left, p_right = totals
