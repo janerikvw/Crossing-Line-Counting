@@ -30,6 +30,21 @@
 	file = {IEEE Xplore Full Text PDF:/home/janerik/Zotero/storage/HS6ABMDT/Ma and Chan - 2016 - Counting People Crossing a Line Using Integer Prog.pdf:application/pdf;IEEE Xplore Abstract Record:/home/janerik/Zotero/storage/HS9AZF7L/7295569.html:text/html}
 }
 
+@article{Ma2013,
+abstract = {We propose an integer programming method for estimating the instantaneous count of pedestrians crossing a line of interest in a video sequence. Through a line sampling process, the video is first converted into a temporal slice image. Next, the number of people is estimated in a set of overlapping sliding windows on the temporal slice image, using a regression function that maps from local features to a count. Given that count in a sliding window is the sum of the instantaneous counts in the corresponding time interval, an integer programming method is proposed to recover the number of pedestrians crossing the line of interest in each frame. Integrating over a specific time interval yields the cumulative count of pedestrian crossing the line. Compared with current methods for line counting, our proposed approach achieves state-of-the-art performance on several challenging crowd video datasets. {\textcopyright} 2013 IEEE.},
+author = {Ma, Zheng and Chan, Antoni B.},
+doi = {10.1109/CVPR.2013.328},
+file = {:Users/janerik/Downloads/cvpr13-linecount-2.pdf:pdf},
+issn = {10636919},
+journal = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition},
+keywords = {crowd counting,integer programming,local feature,regression},
+mendeley-groups = {LOI},
+pages = {2539--2546},
+title = {{Crossing the line: Crowd counting by integer programming with local features}},
+year = {2013}
+}
+
+
 @article{Dosovitskiy2015,
 abstract = {Convolutional neural networks (CNNs) have recently been very successful in a variety of computer vision tasks, especially on those linked to recognition. Optical flow estimation has not been among the tasks CNNs succeeded at. In this paper we construct CNNs which are capable of solving the optical flow estimation problem as a supervised learning task. We propose and compare two architectures: a generic architecture and another one including a layer that correlates feature vectors at different image locations. Since existing ground truth data sets are not sufficiently large to train a CNN, we generate a large synthetic Flying Chairs dataset. We show that networks trained on this unrealistic data still generalize very well to existing datasets such as Sintel and KITTI, achieving competitive accuracy at frame rates of 5 to 10 fps.},
 archivePrefix = {arXiv},
@@ -602,5 +617,42 @@ mendeley-groups = {Flow Estimation},
 pages = {7251--7259},
 title = {{UnFlow: Unsupervised learning of optical flow with a bidirectional census loss}},
 year = {2018}
+}
+
+
+@article{Sreenu2019,
+abstract = {Big data applications are consuming most of the space in industry and research area. Among the widespread examples of big data, the role of video streams from CCTV cameras is equally important as other sources like social media data, sensor data, agriculture data, medical data and data evolved from space research. Surveillance videos have a major contribution in unstructured big data. CCTV cameras are implemented in all places where security having much importance. Manual surveillance seems tedious and time consuming. Security can be defined in different terms in different contexts like theft identification, violence detection, chances of explosion etc. In crowded public places the term security covers almost all type of abnormal events. Among them violence detection is difficult to handle since it involves group activity. The anomalous or abnormal activity analysis in a crowd video scene is very difficult due to several real world constraints. The paper includes a deep rooted survey which starts from object recognition, action recognition, crowd analysis and finally violence detection in a crowd environment. Majority of the papers reviewed in this survey are based on deep learning technique. Various deep learning methods are compared in terms of their algorithms and models. The main focus of this survey is application of deep learning techniques in detecting the exact count, involved persons and the happened activity in a large crowd at all climate conditions. Paper discusses the underlying deep learning implementation technology involved in various crowd video analysis methods. Real time processing, an important issue which is yet to be explored more in this field is also considered. Not many methods are there in handling all these issues simultaneously. The issues recognized in existing methods are identified and summarized. Also future direction is given to reduce the obstacles identified. The survey provides a bibliographic summary of papers from ScienceDirect, IEEE Xplore and ACM digital library.},
+author = {Sreenu, G. and {Saleem Durai}, M. A.},
+doi = {10.1186/s40537-019-0212-5},
+file = {:Users/janerik/Downloads/out.pdf:pdf},
+isbn = {4053701902},
+issn = {21961115},
+journal = {Journal of Big Data},
+keywords = {Big data,Crowd analysis,Deep learning,Video surveillance},
+number = {1},
+pages = {1--28},
+publisher = {Springer International Publishing},
+title = {{Intelligent video surveillance: a review through deep learning techniques for crowd analysis}},
+url = {https://doi.org/10.1186/s40537-019-0212-5},
+volume = {6},
+year = {2019}
+}
+
+
+@article{Chan2012,
+abstract = {An approach to the problem of estimating the size of inhomogeneous crowds, which are composed of pedestrians that travel in different directions, without using explicit object segmentation or tracking is proposed. Instead, the crowd is segmented into components of homogeneous motion, using the mixture of dynamic-texture motion model. A set of holistic low-level features is extracted from each segmented region, and a function that maps features into estimates of the number of people per segment is learned with Bayesian regression. Two Bayesian regression models are examined. The first is a combination of Gaussian process regression with a compound kernel, which accounts for both the global and local trends of the count mapping but is limited by the real-valued outputs that do not match the discrete counts. We address this limitation with a second model, which is based on a Bayesian treatment of Poisson regression that introduces a prior distribution on the linear weights of the model. Since exact inference is analytically intractable, a closed-form approximation is derived that is computationally efficient and kernelizable, enabling the representation of nonlinear functions. An approximate marginal likelihood is also derived for kernel hyperparameter learning. The two regression-based crowd counting methods are evaluated on a large pedestrian data set, containing very distinct camera views, pedestrian traffic, and outliers, such as bikes or skateboarders. Experimental results show that regression-based counts are accurate regardless of the crowd size, outperforming the count estimates produced by state-of-the-art pedestrian detectors. Results on 2 h of video demonstrate the efficiency and robustness of the regression-based crowd size estimation over long periods of time. {\textcopyright} 2011 IEEE.},
+author = {Chan, Antoni B. and Vasconcelos, Nuno},
+doi = {10.1109/TIP.2011.2172800},
+file = {:Users/janerik/Downloads/tip12-pedcount.pdf:pdf},
+issn = {10577149},
+journal = {IEEE Transactions on Image Processing},
+keywords = {Bayesian regression,Gaussian processes,Poisson regression,crowd analysis,surveillance},
+mendeley-groups = {Datasets},
+number = {4},
+pages = {2160--2177},
+pmid = {22020684},
+title = {{Counting people with low-level features and bayesian regression}},
+volume = {21},
+year = {2012}
 }
 

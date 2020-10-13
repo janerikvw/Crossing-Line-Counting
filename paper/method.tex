@@ -1,9 +1,9 @@
 \chapter{Method}
 
 \section{Instant LOI counting}
-In our thesis two method are use to come up with instant LOI counts. Both methods use the same approach, but the region-wise uses the pixel-wise approach on a region-level to improve smoothing of the velocity and density map. This will help when the density map and velocity map don't align correctly.
+%In our thesis two method are use to come up with instant LOI counts. Both methods use the same approach, but the region-wise uses the pixel-wise approach on a region-level to improve smoothing of the velocity and density map. This will help when the density map and velocity map don't align correctly.
 
-\subsection{Pixel-level counting}
+%\subsection{Pixel-level counting}
 The proposed method by \cite{leibe_crossing-line_2016} in related work section \ref{section:crossing_line_2016} uses some simplifications. By reframing the pixel-level counting in the following way. The approach is much more theoretical correct.
 
 \label{sec:pixel_level}
@@ -28,42 +28,62 @@ The velocity towards the LOI is then defined as the dot-product of $V_t$ and $v_
 
 Then then the LOI count on timestep $t$ is then defined in equation \ref{eq:pixel_cross}. Where $\frac{Q_t(p)}{d}$ defines the percentage that the density on the specific pixel, has crossed the LOI area. Lastly we can sum the count over a timespan into a single count for each side as in equation \ref{eq:zhao_timeframe_sum}.
 
-\subsection{Region-level counting}
-To smooth the velocity around the LOI a new method is proposed. Instead of using the individual pixel velocities for the density map, binning is applied. Several regions have been defined to smooth out the velocity and density. Each region is defined $M_{1,r}$, which is a subset of $M$.
-
-\begin{equation}
-	\begin{aligned}
-		c_{1,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} Q_t(p)}
-		{d \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} C_t(p)\\
-		c_{2,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} -Q_t(p)}
-		{d \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} C_t(p)
-	\end{aligned}
-	\label{eq:region_cross}
-\end{equation}
-
-The same setup is applied as in section \ref{sec:pixel_level}, but equation \ref{eq:pixel_cross} is replaced for equation \ref{eq:region_cross}. Where for each region the average velocity is taken (towards the LOI), which is then multiplied with the sum of the density (towards the LOI) inside the region.
-
-\todo{Display a with regions defined LOI}
-
-\subsection{Adaptive LOI area}
-How to adaptively estimate the LOI area.
-\todo{More thorough seeking in this}
+%\subsection{Region-level counting}
+%To smooth the velocity around the LOI a new method is proposed. Instead of using the individual pixel velocities for the density map, binning is applied. Several regions have been defined to smooth out the velocity and density. Each region is defined $M_{1,r}$, which is a subset of $M$.
+%
+%\begin{equation}
+%	\begin{aligned}
+%		c_{1,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} Q_t(p)}
+%		{d \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{1,r} | Q_t(p) > 0\}} C_t(p)\\
+%		c_{2,t} =& \sum^R_{r} \frac{\sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} -Q_t(p)}
+%		{d \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} 1} \cdot \sum_{\{p \in M_{2,r} | Q_t(p) > 0\}} C_t(p)
+%	\end{aligned}
+%	\label{eq:region_cross}
+%\end{equation}
+%
+%The same setup is applied as in section \ref{sec:pixel_level}, but equation \ref{eq:pixel_cross} is replaced for equation \ref{eq:region_cross}. Where for each region the average velocity is taken (towards the LOI), which is then multiplied with the sum of the density (towards the LOI) inside the region.
+%
+%\todo{Display a with regions defined LOI}
 
 
-\section{Network}
+\section{Realigning}
+Both density map and flow map are trained on separate targets. Whereas the flow map is done in an unsupervised way, it is hard to make sure the flow map and density map are perfectly aligned. Using objects with the density map gaussian in the middle of the object this would not be an issue. However with pedestrians the density tagging is on the top of the head, which could lead to a gaussian which spreads outside the flow map contours of the pedestrian.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\textwidth]{images/compare_maxing}
+\caption{On the right a non-maxed flow estimation and on the right the flow estimation with maxing filter applied}
+\label{fig:maxing}
+\end{figure}
+
+To fix this problem we propose an expanding method by applying a maxing filter on the flow estimation. This maxing filter takes the local maximum value in a surrounding of each pixel. Looking at figure \ref{fig:maxing} this helps to cover a lot of misaligned density maps and flow maps. To optimize for heads on the top side of the pedestrian, the maxing filter is focused on the bottom side of the selected pixel. Maximum values above the pixel are ignored.
 
 
-For our system we split up the program into 3 parts. The Crowd Counting models, the Flow Estimation models and the Line of Interest. The methods which combine the Crowd Counting and the Flow Estimation in a single model are called Crowd Flow models (Useful as directory in the final code)
+\section{Models}
 
-train.py \# Train the models (All models should be trainable in this file, because they all share the same kind of dataloader)
+\subsection{Unified model}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{images/method_unified1}
+\caption{Unified model}
+\label{fig:unified_model}
+\end{figure}
+The first proposed model is a unified model (Fig \ref{fig:unified_model}). By unifying both flow map and density map predictions the increase in speed is substantial. Additionally both predictions can learn from eachother to further increase their performance.
 
-test.py \# Test the LOI methods using a trained network from train.py (Based on the datasets provided)
+The model uses the original PWCNet network \cite{sun_pwc-net_2018}. The proposed model shares the complete encoder and decoder of the PWCNet, but adds a second decoder to predict a density map as well.
 
-run.py \# Run from a video stream live. (Would be super cool and very useful to actual demo this thing)
+This decoder uses a decoder structure with feeding features in several stages of the decoding stage. Additionally the proposed dilation kernels in CSRNet\cite{li2018csrnet} are used for a larger reception field which boosts the performance of the density map prediction.
 
-loi\_models/ (Line of Interest models) - Pixelswise/Regionwise
+\subsection{Flow informed density map}
+The unified model both predicts both the density map and the flow map. In the unified model the multi-headed model only shares the encoder, but doesn't use the final outcomes of either of de decoders to enhance the other decoder. It would be especially beneficial when the model can be optimized for moving pedestrians, because these are the ones counted during Line Crossing.
 
-fe\_models/ (Flow Estimation models) - PWCNet
-cc\_models/ (Crowd Counting models) - CSRNet
-cf\_models/ (Crowd Flow models) - New Network
+Therefore we propose a novel method to enhance the density map predictor which makes use of both of these available information streams. This model starts with the unified model (Figure \ref{fig:unified_model}) as base. By adding the output flow map as input for the density map decoder the decoder could use this information to better detect moving pedestrians.
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{images/method_flow}
+\caption{Flow enhanced model}
+\label{fig:unified_model}
+\end{figure}
 

@@ -1,6 +1,46 @@
 \chapter{Results}
+
+\section{Fudan-ShanghaiTech}
+
+\begin{table}[!htb]
+	\begin{minipage}{.5\linewidth}
+      \centering
+		\begin{tabular}{lll}
+		\hline
+		Method (LOI)                               & MAE & RMAE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.940 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & 1.490 & 0.291 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.539 & 0.281 \\
+		\multicolumn{1}{l|}{Proposed+f+m} & 1.368 & 0.266 \\ \hline
+		\end{tabular}
+		\caption{\label{tab:loi_fudan}The LOI results for Fudan}
+	\end{minipage}
+	\begin{minipage}{.5\linewidth}
+      \centering
+		\begin{tabular}{lll}
+		\hline
+		Method (ROI)                               & MAE & MSE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 16.402 & 340.435 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 7.569 & 80.51 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 5.066 & 50.37 \\
+		\multicolumn{1}{l|}{Proposed+f} 		 & 9.516 & 132.920 \\ \hline
+		\end{tabular}
+		\caption{\label{tab:roi_fudan}The ROI results for Fudan}
+	\end{minipage}
+\end{table}
+
+For te Fudan-ShanghaiTech dataset both the LOI performance and the ROI performance is displayed in table \ref{tab:loi_fudan} and table \ref{tab:roi_fudan}.
+
+Looking at table \ref{tab:loi_fudan}. The original baseline 1 doesn't perform very well on the new task, especially looking at the RMAE. Which is as expected, because the buildup of the model assumes that the Flow Map is trained supervised. Baseline 2 is performing much better and therefore a much stronger baseline.
+
+By aligning the flow map and density map with the maxing filter a huge increase in performance is measured as well. With decreasing both the MAE and RMAE by a factor of 2. Which suggests that the aligning using the maxing filter has some serious benefits for Crowd Crossing Counting.
+
+The proposed model performs slightly worse than our baseline, which is probably due to the multi modal performance of the encoder. However when the Flow map is fed to the density map decoder, the model significantly outperforms the baseline.
+
+Looking at table \ref{tab:roi_fudan}, the results show that the proposed model outperforms CSRNet \cite{li2018csrnet} on this dataset. Adding Flow significantly decreases the ROI performance, which could mean that the model is focussed on the flow features and therefore ignores some of the non-moving pedestrians.
+
 \section{UCSD}
-- Table with Line of Interest
 
 \begin{table}[!htb]
     \begin{minipage}{.5\linewidth}
@@ -8,9 +48,13 @@
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
+		\multicolumn{1}{l|}{Paper 1} & 0.0 & 0.0 \\
+		\multicolumn{1}{l|}{Paper 2} & 0.0 & 0.0 \\
+		\multicolumn{1}{l|}{Paper 3} & 0.0 & 0.0 \\
+		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.940 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 1.539 & 0.281 \\
+		\multicolumn{1}{l|}{Proposed+f} & 1.368 & 0.266 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:roi_ucsd}The ROI results for UCSD}
 	\end{minipage}
@@ -19,15 +63,23 @@
 		\begin{tabular}{lll}
 		\hline
 		Method (LOI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet + PWCNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
+		\multicolumn{1}{l|}{Paper 1} & 0.0 & 0.0 \\
+		\multicolumn{1}{l|}{Paper 2} & 0.0 & 0.0 \\
+		\multicolumn{1}{l|}{Paper 3} & 0.0 & 0.0 \\
+		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.0 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & 1.490 & 0.291 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.539 & 0.281 \\
+		\multicolumn{1}{l|}{Proposed+f+m} & 1.368 & 0.266 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_ucsd}The LOI results for UCSD}
 	\end{minipage}
 \end{table}
 
-\section{CrowdFlow}
+Stated in table \ref{tab:loi_ucsd} that the proposed method doesn't produce a state-of-the-art results on the existing UCSD. But more info about UCSD soon in table \ref{tab:loi_ucsd} and table \ref{tab:roi_ucsd}
+
+
+\section{AI City Challenge}
 
 \begin{table}[!htb]
     \begin{minipage}{.5\linewidth}
@@ -35,122 +87,47 @@
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.0 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 1.539 & 0.281 \\
+		\multicolumn{1}{l|}{Proposed+f} & 1.368 & 0.266 \\ \hline
 		\end{tabular}
-		\caption{\label{tab:roi_crowdflow}The ROI results for CrowdFlow}
+		\caption{\label{tab:roi_aicity}The ROI results for AI City Challenge dataset}
 	\end{minipage}
 	\begin{minipage}{.5\linewidth}
       \centering
 		\begin{tabular}{lll}
 		\hline
 		Method (LOI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet + PWCNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.0 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & 1.490 & 0.291 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.539 & 0.281 \\
+		\multicolumn{1}{l|}{Proposed+f+m} & 1.368 & 0.266 \\ \hline
 		\end{tabular}
-		\caption{\label{tab:loi_crowdflow}The LOI results for CrowdFlow}
+		\caption{\label{tab:loi_aicity}The LOI results for AI City Challenge dataset}
 	\end{minipage}
 \end{table}
 
-\section{Fudan-ShanghaiTech}
+To be done about table \ref{tab:roi_aicity} and table \ref{tab:loi_aicity}
+
+
+\section{Real world performance}
+To compare real world performance the models are compared on processing speed. Additionally the optical FPS is calculated. This is both done on the Fudan-ShanghaiTech dataset.
 
 \begin{table}[!htb]
-    \begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:roi_fudan}The ROI results for Fudan}
-	\end{minipage}
-	\begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (LOI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet + PWCNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:loi_fudan}The LOI results for Fudan}
-	\end{minipage}
-\end{table}
-
-
-\begin{table}[]
-\begin{minipage}{.5\linewidth}
-\centering
-\begin{tabular}{ll}
-\hline
-Method                             & FPS \\ \hline
-\multicolumn{1}{l|}{CSRNet+PWC}    & 0.0 \\
-\multicolumn{1}{l|}{CSRNet+PWC+optimized}& 0.0 \\
-\multicolumn{1}{l|}{Baseline}      & 0.0 \\
-\multicolumn{1}{l|}{Baseline+flow} & 0.0 \\
-\multicolumn{1}{l|}{Baseline+flow+optimized} & 0.0 \\ \hline
-\end{tabular}
-\caption{\label{tab:fps_fudan}Processing speed}
-\end{minipage} %
 \begin{minipage}{.5\linewidth}
 \centering
 \begin{tabular}{lll}
-		\hline
-		FPS                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{25}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{12.5}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{8.3}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{5}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{2.5} & 0.0 & 0.0 \\ \hline
-		\end{tabular}
-\caption{\label{tab:fps_fudan} Optimal FPS}
-\end{minipage}
-\end{table}
-
-\section{ArenaPeds}
-\begin{table}[!htb]
-    \begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:roi_fudan}The ROI results for ArenaPeds}
-	\end{minipage}
-	\begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (LOI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{CSRNet + PWCNet}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline + flow} & 0.0 & 0.0 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:loi_fudan}The LOI results for ArenaPeds}
-	\end{minipage}
-\end{table}
-
-
-\begin{table}[]
-\begin{minipage}{.5\linewidth}
-\centering
-\begin{tabular}{ll}
 \hline
-Method                             & FPS \\ \hline
-\multicolumn{1}{l|}{CSRNet+PWC}    & 0.0 \\
-\multicolumn{1}{l|}{CSRNet+PWC+optimized}& 0.0 \\
-\multicolumn{1}{l|}{Baseline}      & 0.0 \\
-\multicolumn{1}{l|}{Baseline+flow} & 0.0 \\
-\multicolumn{1}{l|}{Baseline+flow+optimized} & 0.0 \\ \hline
+Method                             & FPS & ms \\ \hline
+\multicolumn{1}{l|}{Baseline 2}    & 2.7f & 376ms \\
+\multicolumn{1}{l|}{Baseline 2+m} & 2.3 & 440ms \\
+\multicolumn{1}{l|}{Proposed+m}      & 4.0 & 248ms \\
+\multicolumn{1}{l|}{Proposed+f+m} & 0.0 \\
+\multicolumn{1}{l|}{Proposed+f+m+o} & 0.0 \\ \hline
 \end{tabular}
-\caption{\label{tab:fps_fudan}Processing speed}
+\caption{\label{tab:fps_fudan}Processing time}
 \end{minipage} %
 \begin{minipage}{.5\linewidth}
 \centering

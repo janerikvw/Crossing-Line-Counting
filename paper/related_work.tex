@@ -1,6 +1,19 @@
 \chapter{Related Work}
 In this chapter we try to explain a couple of key papers on which the proposed methods are build.
 
+\section{Crowd Counting}
+\subsection{CSRNet}
+Since Zhang et al. \cite{Zhang2016} lot's of research was done on better predicting the density maps for Crowd Counting. Zhang et al. and following proposed several multi-column models to predict pedestrians of different sizes. However Li et al. \cite{li2018csrnet} changed this with the proposal of CSRNet. Instead of using multi-column models it uses dilated kernels. This method beat the multi-column models on several benchmarks.
+
+The advantage of dilated kernels is the increase of the reception field without increasing the amount of parameters and layers in the network. As show in figure \ref{fig:csrnet_dilation} the dilation rate is the distance between each filter input of the kernel. By increasing the dilation rate the size of area the kernel covers without increasing the amount of parameters of a small-sized kernel.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{images/csrnet_dilations}
+\caption{Dilation rates on a 3x3 kernel}
+\label{fig:csrnet_dilation}
+\end{figure}
+
+
 \section{Flow Estimation}
 
 \subsection{PWCNet}
@@ -68,6 +81,8 @@ They use both a density map and velocity map and finally merge them together to 
 \caption{Pipeline of Zhao et al. with FlownetSimple as architecture, where in the last layer both the density map as the velocity map are predicted}
 \label{fig:zhao_model}
 \end{figure}
+
+\todo{Tell about realigning!}
 
 
 They are as well the first who predict both the density map and the velocity map in a single Convolutional Neural Network. A network they use a  simplified model of FlowNet. Because the velocity map and density map are so similar in their location, they predict both the velocity map and the density map in the final layer (See figure \ref{fig:zhao_model}).
