@@ -21,7 +21,8 @@ from models import V3EndFlow, \
     V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
     V33Dilation, V332SingleFlow,\
     V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation,\
-    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation, Baseline1
+    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation, Baseline1,\
+    V5Dilation, V51Dilation, V52Dilation, V5Flow
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -217,6 +218,14 @@ def load_model(args):
         model = V351Dilation(load_pretrained=True).cuda()
     elif args.model == 'v341dilation':
         model = V341Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v5dilation':
+        model = V5Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v51dilation':
+        model = V51Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v52dilation':
+        model = V52Dilation(load_pretrained=True).cuda()
+    elif args.model == 'v5flow':
+        model = V5Flow(load_pretrained=True).cuda()
     elif args.model == 'v3endflowdilation':
         model = V3EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v32endflowdilation':
@@ -243,6 +252,8 @@ def load_model(args):
     if args.pre:
         print("Load pretrained model:", args.pre)
         model.load_state_dict(torch.load(args.pre))
+
+    model.train()
 
     return model
 
@@ -275,6 +286,8 @@ def train(args):
             optimizer = optim.Adam(model.parameters(), lr=2e-5, weight_decay=1e-4)
         elif args.lr_setting == 'adam_5_no':
             optimizer = optim.Adam(model.parameters(), lr=5e-5, weight_decay=0)
+        elif args.lr_setting == 'adam_8':
+            optimizer = optim.Adam(model.parameters(), lr=8e-5, weight_decay=1e-4)
         elif args.lr_setting == 'adam_6_yes':
             optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=1e-4)
     else:
@@ -343,7 +356,7 @@ def train(args):
                 loss_container['census_occlusion'].update(photo_losses['census']['occlusion'].item())
 
             if args.loss_focus != 'fe':
-                cc_loss = criterion(pred_densities, densities)
+                cc_loss = criterion(pred_densities, densities.repeat(1, pred_densities.shape[1], 1, 1))
 
             if args.loss_focus == 'cc':
                 loss = cc_loss * args.cc_weight
@@ -504,6 +517,7 @@ def loi_test(args):
     metrics = utils.AverageContainer()
 
     # args.save_dir = '20201006_190409_dataset-fudan_model-csrnet_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.save_dir = '20201013_163654_dataset-ucsd_model-csrnet_cc_weight-50_frames_between-2_epochs-750_loss_focus-cc_lr_setting-adam_2_resize_mode-bilinear'
     # args.model = 'csrnet'
     # args.loss_focus = 'cc'
 
@@ -513,10 +527,21 @@ def loi_test(args):
     # args.save_dir = '20201005_215952_dataset-fudan_model-v332endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
     # args.model = 'v332endflowdilation'
 
-    args.save_dir = '20201007_160645_dataset-fudan_model-v332singleflow_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    args.model = 'v332singleflow'
+    # args.save_dir = '20201007_160645_dataset-fudan_model-v332singleflow_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.save_dir = '20201013_085930_dataset-ucsd_model-v332singleflow_cc_weight-50_frames_between-2_epochs-750_lr_setting-adam_2_resize_mode-bilinear'
+    # args.model = 'v332singleflow'
+
+    args.save_dir = 'test_pyramidV5_full'
+    args.model = 'v5dilation'
+
+    # args.save_dir = 'test_pyramidV5Flow_full'
+    # args.model = 'v5flow'
+
+    # args.save_dir = 'test_pyramidV5'
+    # args.model = 'v5dilation'
 
     # args.save_dir = '20201008_081012_dataset-fudan_model-baseline1_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.save_dir = '20201014_054730_dataset-ucsd_model-baseline1_cc_weight-50_frames_between-2_epochs-750_lr_setting-adam_2_resize_mode-bilinear'
     # args.model = 'baseline1'
 
 
@@ -526,16 +551,18 @@ def loi_test(args):
     model = load_model(args)
     model.eval()
     if args.loss_focus == 'cc':
-        fe_model = V3Correlation(load_pretrained=True).cuda()
+        fe_model = V332Dilation(load_pretrained=True).cuda()
         #pre_fe = '20200915_162744_dataset-fudan_frames_between-1_loss_focus-fe_resize_patch-on'
-        #pre_fe = '20200915_063042_dataset-fudan_frames_between-1_loss_focus-fe_resize_patch-off'
-        pre_fe = '20200916_093740_dataset-fudan_frames_between-5_loss_focus-fe_resize_patch-off'
+        #pre_fe = '20200916_093740_dataset-fudan_frames_between-5_loss_focus-fe_resize_patch-off'
+        pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
         fe_model.load_state_dict(
             torch.load('weights/{}/last_model.pt'.format(pre_fe))
         )
         fe_model.eval()
 
     results = []
+
+    ucsd_total_count = [[], []]
 
     with torch.no_grad():
         # Right now on cross validation
@@ -621,7 +648,8 @@ def loi_test(args):
                     metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
                     # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
-                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
+
+                    fe_output = get_max_surrounding(fe_output, surrounding=4, only_under=False, smaller_sides=False)
 
                     # Resize and save as numpy
                     cc_output = loi_model.to_orig_size(cc_output)
@@ -644,6 +672,10 @@ def loi_test(args):
                     # @TODO: Here is switch between sides. Correct this!!!!!!
                     total_d1 += sum(loi_results[1])
                     total_d2 += sum(loi_results[0])
+
+                    ucsd_total_count[0].append(sum(loi_results[1]))
+                    ucsd_total_count[1].append(sum(loi_results[0]))
+
                     totals = [total_d1, total_d2]
 
                     # Update GUI
@@ -659,14 +691,19 @@ def loi_test(args):
                     # total_image = frame1_img.copy().convert('RGB')
                     # total_image.save('orig.png')
 
-                    img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
-                    if v_i == 0 and l_i == 0:
-                        utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
+                    # if v_i == 0 and l_i == 0:
+                    #     img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
+                    #     utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
 
                     metrics['timing'].update(timer.show(False))
 
 
                 pbar.close()
+
+                # Fixes error in UCSD mix
+                ucsd_total_count[0].append(0.0)
+                ucsd_total_count[1].append(0.0)
+
                 print("Timing {}".format(metrics['timing'].avg))
 
                 t_left, t_right = crosses
@@ -693,6 +730,48 @@ def loi_test(args):
                     'ptmae': percentual_total_mae,
                     'rmae': relative_mae
                 })
+
+            #break
+
+        if args.dataset == 'ucsd':
+            ucsd_total_gt = ucsdpeds.load_countings('../data/ucsdpeds')
+            ucsd_total_count2 = ucsd_total_count
+            ucsd_total_count = [[], []]
+
+            for i in range(len(ucsd_total_count2[0])):
+                for _ in range(args.frames_between):
+                    ucsd_total_count[0].append(ucsd_total_count2[0][i] / args.frames_between)
+                    ucsd_total_count[1].append(ucsd_total_count2[1][i] / args.frames_between)
+
+            wmae = [[], []]
+            tmae = [[], []]
+            imae = [[], []]
+
+            for i, _ in enumerate(ucsd_total_count[0]):
+                imae[0].append(abs(ucsd_total_count[0][i] - ucsd_total_gt[0][i]))
+                imae[1].append(abs(ucsd_total_count[1][i] - ucsd_total_gt[1][i]))
+
+                if i >= 600:
+                    tmae[0].append(abs(sum(ucsd_total_count[0][600:i + 1]) - sum(ucsd_total_gt[0][600:i + 1])))
+                    tmae[1].append(abs(sum(ucsd_total_count[1][600:i + 1]) - sum(ucsd_total_gt[1][600:i + 1])))
+
+                    if i + 100 < 1200:
+                        wmae[0].append(abs(sum(ucsd_total_count[0][i:i + 100]) - sum(ucsd_total_gt[0][i:i + 100])))
+                        wmae[1].append(abs(sum(ucsd_total_count[1][i:i + 100]) - sum(ucsd_total_gt[1][i:i + 100])))
+                else:
+                    tmae[0].append(abs(sum(ucsd_total_count[0][:i + 1]) - sum(ucsd_total_gt[0][:i + 1])))
+                    tmae[1].append(abs(sum(ucsd_total_count[1][:i + 1]) - sum(ucsd_total_gt[1][:i + 1])))
+
+                    if i+100 < 600:
+                        wmae[0].append(abs(sum(ucsd_total_count[0][i:i + 100]) - sum(ucsd_total_gt[0][i:i + 100])))
+                        wmae[1].append(abs(sum(ucsd_total_count[1][i:i + 100]) - sum(ucsd_total_gt[1][i:i + 100])))
+
+
+
+            print("UCSD results, total error left: {}, right: {}".format(abs(sum(ucsd_total_count[0]) - sum(ucsd_total_gt[0])), abs(sum(ucsd_total_count[1]) - sum(ucsd_total_gt[1]))))
+            print("IMAE: {} | {}".format(sum(imae[0]) / len(imae[0]), sum(imae[1]) / len(imae[1])))
+            print("TMAE: {} | {}".format(sum(tmae[0]) / len(tmae[0]), sum(tmae[1]) / len(tmae[1])))
+            print("WMAE: {} | {}".format(sum(wmae[0]) / len(wmae[0]), sum(wmae[1]) / len(wmae[1])))
 
         # outname = '{}_{}_{}_{}'.format(args.loi_level, args.real_loi_version, args.loi_width, args.loi_height)
         # with open('loi_results/{}.json'.format(outname), 'w') as outfile:
