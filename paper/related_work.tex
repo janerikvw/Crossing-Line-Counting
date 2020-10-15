@@ -3,7 +3,7 @@ In this chapter we try to explain a couple of key papers on which the proposed m
 
 \section{Crowd Counting}
 \subsection{CSRNet}
-Since Zhang et al. \cite{Zhang2016} lot's of research was done on better predicting the density maps for Crowd Counting. Zhang et al. and following proposed several multi-column models to predict pedestrians of different sizes. However Li et al. \cite{li2018csrnet} changed this with the proposal of CSRNet. Instead of using multi-column models it uses dilated kernels. This method beat the multi-column models on several benchmarks.
+Since Zhang et al. \cite{Zhang2016} lots of research was done on better predicting the density maps for Crowd Counting. Zhang et al. and following proposed several multi-column models to predict pedestrians of different sizes. However Li et al. \cite{li2018csrnet} changed this with the proposal of CSRNet. Instead of using multi-column models it uses dilated kernels. This method beat the multi-column models on several benchmarks.
 
 The advantage of dilated kernels is the increase of the reception field without increasing the amount of parameters and layers in the network. As show in figure \ref{fig:csrnet_dilation} the dilation rate is the distance between each filter input of the kernel. By increasing the dilation rate the size of area the kernel covers without increasing the amount of parameters of a small-sized kernel.
 \begin{figure}[h]
@@ -18,14 +18,14 @@ The advantage of dilated kernels is the increase of the reception field without 
 
 \subsection{PWCNet}
 
+A popular Flow Estimation network is PWCNet \cite{sun_pwc-net_2018}. It uses the original ideas of FlowNet, but it improves FlowNet in a lot of ways. FlowNet traditionally is used to fully predict the flow with a neural network. PWCNet massively reduces the number of weights (See figure \ref{fig:pwc_compare}), which results in faster training and much quicker prediction. Additionally the network shows a higher accuracy on several benchmarks.
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.7\textwidth]{images/pwcnet_improvements}
 \caption{PWCNet compared to other existing flow estimation architectures}
 \label{fig:pwc_compare}
 \end{figure}
-
-A popular Flow Estimation network is PWCNet \cite{sun_pwc-net_2018}. It uses the original ideas of FlowNet, but it improves FlowNet in a lot of ways. FlowNet traditionally is used to fully predict the flow with a neural network. PWCNet massively reduces the number of weights (See figure \ref{fig:pwc_compare}), which results in faster training and much quicker prediction. Additionally the network shows a higher accuracy on several benchmarks.
 
 \begin{figure}[h]
 \centering
@@ -55,9 +55,7 @@ L_{p}=& \sum \psi\left(I_{1}-I_{2}^{w}\right) \odot\left(1-O_{f}\right) / \sum\l
 
 The photometric loss \cite{Yu2016} with occlusion-awareness \cite{Janai2018} proposed in the earlier papers is defined in equation \ref{eq:photometric_loss}. Where $I_1$ and $I_2$ are the full input frames and $I_i^w$ the backwarped image based on the predicted velocity map. Additionally $O_b$ and $O_f$ are masks for the occluded pixels. These maps are calculated by checking if the mismatch between forward flow and backward flow is too large.
 
-\todo{Maybe to background? Additionally add unflow to the related work, Meister2018 for the optimized census loss}
-
-For the student model the photometric loss is used together with the loss for occlusion (equation \ref{eq:student_pm_loss}). The loss of the student model then just $L_p+L_o$. In equation \ref{eq:student_pm_loss}, $\widetilde{\mathrm{w}}_{f}$ and $\widetilde{\mathrm{w}}_{b}$ are the predicted velocity map forward and backward using the student model. $\mathrm{w}_{b}^{p}$ and $\mathrm{w}_{f}^{p}$ are the cropped patches from the ground-truth velocity map predicted by the teacher model. $M_f$ and $M_b$ are just defined as the difference of occluded pixels between the ground-truth of the parent and the teacher ($M_{f}=\operatorname{clip}\left(\widetilde{O}_{f}-O_{f}^{p}, 0,1\right)$. These pixels are not occluded in the full frame and occluded in the patch. This means that the ground-truth using distillation is available.
+For the student model the photometric loss is used together with the loss for occlusion (equation \ref{eq:student_pm_loss}). The loss of the student model then just $L_p+L_o$. In equation \ref{eq:student_pm_loss}, $\widetilde{\mathrm{w}}_{f}$ and $\widetilde{\mathrm{w}}_{b}$ are the predicted velocity map forward and backward using the student model. $\mathrm{w}_{b}^{p}$ and $\mathrm{w}_{f}^{p}$ are the cropped patches from the ground-truth velocity map predicted by the teacher model. $M_f$ and $M_b$ are just defined as the difference of occluded pixels between the ground-truth of the parent and the teacher ($M_{f}=\operatorname{clip}\left(\widetilde{O}_{f}-O_{f}^{p}, 0,1\right)$. These pixels are not occluded in the full frame and occluded in the patch. Which means that the groundtruth using distillation is available.
 
 \begin{equation}
 \begin{aligned}
@@ -73,7 +71,7 @@ L_{o}=&\sum \psi\left(\mathrm{w}_{f}^{p}-\widetilde{\mathrm{w}}_{f}\right) \odot
 \label{section:crossing_line_2016}
 Zhao et al. \cite{leibe_crossing-line_2016} introduces a new approach to calculate the amount of pedestrians crossing the Line of Interest. Instead of slicing a range of consecutive frames around the Line of Interest and stitching them together, they present a method that directly predicts the amount crossing pedestrians using two consecutive frames.
 
-They use both a density map and velocity map and finally merge them together to obtain the LOI counts. Both the maps are trained fully supervised. Because annotating raw velocity maps is a very hard task, they simplify the velocity map in disk-shaped area's around the pedestrian locations. Annotating each frame is still very demanding, but lowers the amount of labeling significantly in comparing to full velocity maps.
+They use both a density map and velocity map and finally merge them together to obtain the LOI counts. Both the maps are trained fully supervised. Because annotating raw velocity maps is a very hard task, they simplify the velocity map in disk-shaped area's around the pedestrian locations. Annotating each frame is still very demanding, but lowers the amount of labelling significantly in comparing to full velocity maps.
 
 \begin{figure}[h]
 \centering
@@ -82,12 +80,12 @@ They use both a density map and velocity map and finally merge them together to 
 \label{fig:zhao_model}
 \end{figure}
 
-\todo{Tell about realigning!}
-
 
 They are as well the first who predict both the density map and the velocity map in a single Convolutional Neural Network. A network they use a  simplified model of FlowNet. Because the velocity map and density map are so similar in their location, they predict both the velocity map and the density map in the final layer (See figure \ref{fig:zhao_model}).
 
-To finally merge both the density map and velocity map together they use a pixel-wise approach. Where they turn te density map and velocity map in a directional counting map $C_t=D_t \otimes V_t$. According to the paper the directional counting map gives the amount of pedestrians crossing that pixel between the time of the two frames.
+Training contains of two stages. In the first stage, the model is optimized for both the density map and velocity map. During the second stage the density map and velocity map are multiplied to train a directional counting map as $C_t=D_t \otimes V_t$. Which it is trained on to further align the velocity map and the density map. 
+
+To finally merge both the density map and velocity map together they use the created directional counting map. According to the paper the directional counting map gives the amount of pedestrians crossing that pixel between the time of the two frames.
 \begin{equation}
 \begin{aligned}
 c_{1, t} =& \sum_{\left\{p \mid \cos \left(\theta_{p}\right) \geq 0\right\}} \sqrt{C_{t, x}(p)^{2}+C_{t, y}(p)^{2}} \cdot \cos \left(\theta_{p}\right) \\
@@ -123,3 +121,5 @@ It uses the idea of \cite{leibe_crossing-line_2016} to discard the slicing metho
 \end{figure}
 
 Additional to the region-level LOI counting, they introduce the method to skew the region to take into account the perspective of the camera view (See figure \ref{fig:zheng_skew}). This helps the SVM and linear regressor to more accurately predict the amount of pedestrians inside the region.
+
+Preliminary results show that the binning on a region-level is not improving the Neural Network models to increase accuracy.
