@@ -1,10 +1,23 @@
 \chapter{Conclusion}
-In this thesis we have shown several points. Crowd Crossing Counting is possible without the supervised knowledge of the Flow Estimation. Two new models are proposed with which the flow enhanced model outperforms the strong baseline which suggests that knowledge about the flow improves the density map prediction for moving objects.
+In this thesis a new method for Crowd Crossing Counting is presented which can be used multi-domain as well.
 
-Additionally we have shown both quantitive and qualitative that the maxing filter is an effective method to realign the flow map and the density map, which drastically increases the performance.
+All results on the datasets show a clear benefit for a newly created unified model which is focussed on unsupervised flow estimation in comparison to \cite{leibe_crossing-line_2016}.
 
-Lastly we did a thorough analysis on real world performance. According to the results it would be possible to run the model real time on a fast GPU without optimization. Further optimization could lead to an even quicker model.
+The first proposed model is performing equally well as the strong baseline. Which was predicted, due to use of the same principles the model design was based on.
 
+The model with flow context clearly performs better on all models, which suggests that flow context indeed pushes the model indirectly to focus more on the moving pedestrians.
+
+The Fudan-Shanghai and UCSD datasets show that the usage of realigning the density map and velocity map is crucial to perform well. The maxing filter is a good solution to artificially align the density map and the velocity map.
+
+The AI City Challenge dataset show that the proposed method is multi-domain as well and performing seemingly well. Additionally the dataset shows that the use of realigning is of less usage for line crossing with objects where the labelling is done in the middle of the object and of sufficient size.
+
+The results are promising for Crowd Counting for used in real world applications. Multiple streams can be processed in real time running on a single GPU. However the method is currently run on a large GPU, which is often still difficult to store. However with the increase in efficiency and performance of current GPU's, the model could soon be running on much smaller equipment.
+
+All in all, even though the proposed model doesn't show state-of-the-art performance on the UCSD benchmark, the proposed model is an interesting new approach to Crowd Crossing Counting.
 
 \section{Further research}
-Due to the lack of high density videos, the full potential of this network can't be shown to its full extend. For further research it would be ideal to propose such a high density map.
+--- Due to the lack of high density videos, the full potential of this network can't be shown to its full extend. For further research it would be ideal to propose such a high density map.
+
+--- Focussing on even more efficient usage of the method (Aligning is expensive now)
+
+--- No real comparison or research is done on other realigning methods. Currently some parameters need to be set, a trainable method would be interesting for further research.

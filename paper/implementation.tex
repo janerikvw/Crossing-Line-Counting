@@ -2,8 +2,9 @@
 In this chapter details about the actual implementation are explained in more depth.
 
 \section{Models}
+In the results four different models are compared: Two baselines and two proposed models.
 \subsection{Baseline 1}
-As baseline the model of \cite{Zhang2016} is used. Because of the difference in task, parts of the proposed method can't used. Only the proposed model therefore is used as baseline, where the exact network is shown in figure \ref{fig:zhao_model}.
+The first model is proposed in \cite{Zhang2016}. Because this model assumes a supervised Flow Estimation, parts of the proposed method can't be used. Only the proposed model therefore is used as baseline, where the exact network is shown in figure \ref{fig:zhao_model}.
 
 Due to full shared nature of the network the assumption is that the network will perform very poor when predicting both the density map and the unsupervised flow map. Therefore we propose a second baseline as well.
 
@@ -13,12 +14,14 @@ Due to full shared nature of the network the assumption is that the network will
 \centering
 \includegraphics[width=0.7\textwidth]{images/implementation_baseline2}
 \caption{CSRNet+PWCNet baseline}
-\label{fig:unified_model}
+\label{fig:baseline2_model}
 \end{figure}
 
-This stronger baseline is a combination of two independent models. CSRNet \cite{li2018csrnet} for predicting the density map and PWCNet \cite{sun_pwc-net_2018} for flow estimation. Both models perform very well in comparing to papers in their respective field. Therefore will this baseline be a very powerful baseline to compare to. The models are trained independently of each other with no shared loss function to further optimize their performance.
+This stronger baseline is a combination of two independent models (Figure \ref{fig:baseline2_model}). CSRNet \cite{li2018csrnet} for predicting the density map and PWCNet \cite{sun_pwc-net_2018} for flow estimation. Both models perform very well in comparing to papers in their respective field. Therefore will this baseline be a very powerful baseline to compare to. The models are trained independently of each other with no shared loss function to further optimize their performance.
 
-\subsection{Shared encoder}
+\todo{In V2, a pyramid decoder is used, which intermediately sends lower resolution density maps to optimize weight optimization and reduce overfitting}
+
+\subsection{Unified model}
 The first proposed model shares the decoder of the PWCNet model (Full network in appendix, figure \ref{fig:unified_proposed_model}). The PWCNet makes use of a pyramide shaped architecture and the encoder provides the decoder with 6 feature maps ranging from 1/2 the size to 1/64 the size of the original image.
 
 The decoder contains two essential processing blocks. The dilation block, which is a block with 4 conv-layers with a dilation of 2. Additionally an upscaling block is used, which first upscales the input by two and then refines by 2 conv-layers. All conv-layers use a kernel of 3x3 and a stride of 1.
@@ -27,43 +30,33 @@ Each of the four tiniest feature map are processed by a dilation block. The smal
 
 After processing the fourth feature map and concatenation the upscaled feature maps, the features are processed by two dilation blocks which then predicts the density map using a single output layer.
 
+\todo{In V2 the structure is summarised in a visual graph as well, now only in appendix}
 
 
-
-\subsection{Flow enhancing}
-The second model proposed enhances the feature maps with the output of the flow map. The flow enhanced model uses the first proposed model as base decoder. Instead of only decoding the feature maps on each level, the output flow map is reshaped and concatenated to each feature map. Which results the information of the flow on each level available.
+\subsection{Flow context density map}
+The second model proposed enhances the feature maps with the output of the flow map. The flow enhanced model uses the first proposed model (Figure \ref{fig:unified_proposed_model}) as base decoder. Instead of only decoding the feature maps on each level, the output flow map is reshaped and concatenated to each feature map. Which results the information of the flow on each level available.
 
 
 \section{Environment}
 
 \subsection{Maxing filter}
-During experiments the maxing filter is optimized per dataset. For the Fudan-ShanghaiTech dataset two times a maxing filter is applied width a distance of 6px. For the UCSD dataset two times a maxing filter of 4px is applied.
-
-The maxing filter is applied multiple times to avoid a huge maxing filter which increases the processing time exponentially after a certain distance.
+During experiments the maxing filter is optimized per dataset. For the Fudan-ShanghaiTech dataset a maxing filter is applied with a distance of 12px, optimized in implementation. For the UCSD dataset a maxing filter of 4px is applied.
 
 \subsection{Line Crossing}
 In the equation \ref{eq:pixel_cross} all the parameters for the Line Crossed are shown. The width of the line (parameter $d$) is the last parameter which is not defined. In preliminary results the difference is width is minimal, during all the experiments a width of 20px is used therefore.
 
-\subsection{Loss function}
-\begin{equation}
-\label{eq:loss_total}
-	L_{t} = L_{v} + \lambda \cdot L_{c}
-\end{equation}
-
-The loss function for the final training is given in equation \ref{eq:loss_total}. Where $L_{v}$ is the loss function for the velocity map. We finally applied the occlussion photometric loss on all results (Equation \ref{eq:photometric_loss}).
-
-$L_{c}$ is used for the density map. Where the L2 loss (Mean squared error) is applied for comparing the ground truth density map with the predicted map.
-
-For $\lambda$ a default of 5 is applied when not mentioned else.
-
 
 \subsection{Optimizer}
-For all the experiments the Adam optimizer is used with a learning-rate of $5e^{-5}$. No regularization is applied.
+For all the experiments the Adam optimizer \cite{Kingma2015} is used with a learning-rate of $2\cdot 10^{-5}$. A regularization of $10^{-4}$ is applied.
+
+During training, the unified loss (Equation \ref{eq:method_loss_total}) is used for training using a $\lambda$ of 5. Which at the start focusses mainly on the density map loss and after some initial training produces an equal loss distribution between the velocity map loss and density map loss.
 
 \subsection{Augmentation}
-To augment the dataset several augmentations will be applied on the trainingssamples. First a crop of the image is made. Ranging from $\nicefrac{1}{3}$ and $\nicefrac{1}{6}$ of the total image size. Then the cropped image is resized to a size of $\nicefrac{1}{4}$ of the original image (So $\nicefrac{1}{2}$ the width and $\nicefrac{1}{2}$ the height). Lastly the cropped image is half of the time flipped horizontally.
+To augment the dataset several augmentations will be applied on the trainingssamples which are used in \cite{li2018csrnet} as well. First a crop of the image is made. Ranging from $\nicefrac{1}{3}$ and $\nicefrac{1}{6}$ of the total image size. Then the cropped image is resized to a size of $\nicefrac{1}{4}$ of the original image (So $\nicefrac{1}{2}$ the width and $\nicefrac{1}{2}$ the height). Lastly the cropped image is half of the time flipped horizontally.
+\todo{TODO, when applying no cropping, less overfitting occurs at the corners, but much slower}
 
 \subsection{Metrics}
+\todo{Rewrite, because UCSD uses a different method, which is kind of similar, but slightly different}
 For both the ROI and the LOI the Mean Average Error and the Mean Squared Error are used. Additionally the LOI uses the Relative Mean Average Error.
 
 \begin{equation}

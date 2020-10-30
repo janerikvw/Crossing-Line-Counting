@@ -1,25 +1,27 @@
 \chapter{Introduction}
-%A novel general purpose Line of Interest method, using a multi-headed network and a pixel-wise accumulator.
+\section{Introduction}
+In recent years the amount of surveillance camera's has increased immensely to a point that it is hard to supervise them all manually by humans. Since the increased use of surveillance cameras a lot of research is done to automate information extraction from those cameras \cite{Sreenu2019}.
 
-In recent years the amount of surveillance camera's has increased immensely to a point that it is hard to supervise them all manually by humans. Since the upcoming of surveillance camera's a lot of research is done to automate the information extraction from those camera's \cite{Sreenu2019}.
-
-A widely researched area for extracting information from camera's is Crowd Counting \cite{Chan2008, wang2020nwpu, li2018csrnet, Fang2019, Liu2019}. Where the amount of pedestrians present in the frame is counted. Where low density pedestrians can be easily counted by general object recognition, higher density area's need specialized methods to accurately count the amount of pedestrians \cite{Zhang2016}.
+A widely researched area for extracting information from camera's is Crowd Counting \cite{Chan2008, wang2020nwpu, li2018csrnet, Fang2019, Liu2019}. In Crowd Counting the amount of pedestrians present in the frame is counted. Where pedestrians in low density areas can be easily counted by general object recognition, higher density area's need specialized methods to accurately count the amount of pedestrians \cite{Zhang2016}.
 
 While Crowd Counting only focusses on counting the exact amount of pedestrians in a frame, it doesn't take into account the amount of pedestrians walked by over time. This is no issue when camera's are present in the whole area of interest, however with large areas this becomes a much bigger issue. In for example a shop it would be much more convenient to count the amount of customers inside the shop by only tracking the customers walking inside and outside the shop, instead of having cameras in the whole shop.
 
-This research area of Crowd Crossing Counting is much less researched \cite{leibe_crossing-line_2016, zheng_cross-line_2019}. By adding Flow Estimation to the Crowd Density (Crowd Counting) the flow of pedestrians can be obtained and the amount of people going inside and outside can be measured.
+This research area of Crowd Crossing Counting is much less researched \cite{Ma2013, leibe_crossing-line_2016, zheng_cross-line_2019}. By adding Flow Estimation to the Crowd Density (Crowd Counting) the flow of pedestrians can be obtained and the amount of people entering and exiting an area can be measured.
 
-In early papers on Crowd Crossing Counting prediction was done using keypoint extraction and feeding the keypoints in a regression model \cite{ma_counting_2016, Ma2013}. More recently the introduction of Convolutional Neural Networks was made into the field of both Crowd Counting \cite{Zhang2016, Liu2019, li2018csrnet, wang2020nwpu} and Flow Estimation \cite{sun_pwc-net_2018, Dosovitskiy2015}. Which sparked the research in those fields.
+In early papers on Crowd Crossing Counting prediction was done using keypoint extraction and feeding the keypoints to a regression model \cite{ma_counting_2016, Ma2013}. More recently the introduction of Convolutional Neural Networks was made into the field of both Crowd Counting \cite{Zhang2016, Liu2019, li2018csrnet, wang2020nwpu} and Flow Estimation \cite{sun_pwc-net_2018, Dosovitskiy2015}. Which sparked the research in those fields.
 
-In Crowd Crossing Counting the amount of research done using Neural Networks is limited \cite{leibe_crossing-line_2016, cao_large_2015}. New research in both Crowd Counting and Flow estimation provides lot's of new opportunities to improve the State-of-the-Art of Line Crossing. New research also adds some new challenges, which we try to solve as well in this thesis.
+In Crowd Crossing Counting the amount of research done using Neural Networks is limited \cite{leibe_crossing-line_2016, cao_large_2015}. New research in both Crowd Counting and Flow estimation provides lots of new opportunities to improve the State-of-the-Art of Line Crossing. New research also adds some new challenges, which we try to solve as well in this thesis.
 
-Current benchmarks for Crowd Crossing Counting still make use of low resolution datasets \cite{Ma2013, ma_counting_2016} (256x156). In Crowd Counting higher resolution datasets are already available. In this thesis Crowd Crossing Counting labeling is provided and published for the Fudan-Shanghai dataset (Full HD, 25FPS) \cite{Fang2019}. Additionally to show the generality and ability to use the proposed method cross-domain the AI City challenge dataset is used, on which crossings of cars is counted.
+\section{Contributions}
+The latest Neural Networks for Crowd Crossing Counting \cite{leibe_crossing-line_2016} learns both Crowd Counting and Flow Estimation in a supervised way. However the labelling process of both these methods are a time consuming method, especially labelling the images for Flow Estimation. To reduce the labour intensive task of labelling, a new method is introduced to use and train unsupervised Flow Estimation during Line Crossing Counting.
 
-Secondly this thesis presents two novel models. The first model is a multi-headed network which which improves on Crowd Crossing Counting papers and the research done in the field of Crowd Counting and Flow Estimation. The second model is an extension on the first model which introduces a novel method to enhance the crowd density prediction by using the flow estimation as extra information.
+Additionally a multi-headed model is proposed which trains the Crowd Counting in a supervised matter and the Flow Estimation in an unsupervised matter. The model utilizes a shared encoder, while two distinct decoders are used to predict each a individual task.
 
-Thirdly this thesis presents a method to further enhance the combining of both the Density Map and Flow Estimation to a more reliable method to predict the Crowd Crossing Counting.
+To further utilize the availability of both the predictions a flow enhanced model is proposed. This model uses the Flow Estimation to further enhance the Crowd Counting prediction.
 
-Lastly thorough research is done on the usability of the presented system in real world scenario's.
+The main dataset used in Crowd Crossing Counting is UCSD. This dataset is low resolution \cite{Ma2013, ma_counting_2016} (720x480) and doesn't provide much diversity in scenery. In Crowd Counting higher resolution datasets are already available. In this thesis Line Crossing labelling is provided and published for the Fudan-Shanghai dataset (1920x1080, 25FPS) \cite{Fang2019} using self-developed labelling software.
+
+Lastly thorough research is done on the usability of the presented system in real world scenario's. Impact on video frame rate are tested and the processing time is compared. Additionally to show the generality of the method a cross-domain dataset from the AI City challenge is used, which counts passing cars on a crossroad.
 
 
 \section{Thesis outline}

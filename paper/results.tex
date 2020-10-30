@@ -32,7 +32,7 @@
 
 For te Fudan-ShanghaiTech dataset both the LOI performance and the ROI performance is displayed in table \ref{tab:loi_fudan} and table \ref{tab:roi_fudan}.
 
-Looking at table \ref{tab:loi_fudan}. The original baseline 1 doesn't perform very well on the new task, especially looking at the RMAE. Which is as expected, because the buildup of the model assumes that the Flow Map is trained supervised. Baseline 2 is performing much better and therefore a much stronger baseline.
+Looking at table \ref{tab:loi_fudan}. The original baseline 1 doesn't perform very well on the new task, especially looking at the RMAE. Which is as expected, because the buildup of the model assumes that the velocity map is trained in a supervised manner. Baseline 2 is performing much better and therefore a much stronger baseline.
 
 By aligning the flow map and density map with the maxing filter a huge increase in performance is measured as well. With decreasing both the MAE and RMAE by a factor of 2. Which suggests that the aligning using the maxing filter has some serious benefits for Crowd Crossing Counting.
 
@@ -42,41 +42,27 @@ Looking at table \ref{tab:roi_fudan}, the results show that the proposed model o
 
 \section{UCSD}
 
-\begin{table}[!htb]
-    \begin{minipage}{.5\linewidth}
+\begin{table}
       \centering
-		\begin{tabular}{lll}
+		\begin{tabular}{lllll}
 		\hline
-		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Paper 1} & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Paper 2} & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Paper 3} & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.940 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 1.539 & 0.281 \\
-		\multicolumn{1}{l|}{Proposed+f} & 1.368 & 0.266 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:roi_ucsd}The ROI results for UCSD}
-	\end{minipage}
-	\begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (LOI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Paper 1} & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Paper 2} & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Paper 3} & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & 1.490 & 0.291 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 1.539 & 0.281 \\
-		\multicolumn{1}{l|}{Proposed+f+m} & 1.368 & 0.266 \\ \hline
+		Method (LOI)                               & TMAE Left & MWAE@100 Left & TMAE Right & MWAE@100 Right \\ \hline
+		\multicolumn{1}{l|}{\cite{ma_counting_2016}} & 0.60 & 0.72 & 0.69 & 0.51 \\
+		\multicolumn{1}{l|}{\cite{leibe_crossing-line_2016}}& 1.18 & 0.60 & 0.63 & 0.47 \\
+		\multicolumn{1}{l|}{\cite{zheng_cross-line_2019}} & 0.46 & 0.41 & 0.50 & 0.41 \\
+		\multicolumn{1}{l|}{Baseline 1}          & 8.43 & 1.40 & 7.03 & 1.37 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 2.56 & 0.56 & 4.85 & 0.90 \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & 1.89 & 0.46 &  0.96 & 0.51 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.82 & 0.51 & 0.88 & 0.47 \\
+		\multicolumn{1}{l|}{Proposed+f+m} & 4.33 & 0.78 & 0.73 & 0.47 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_ucsd}The LOI results for UCSD}
-	\end{minipage}
 \end{table}
+\todo{Recheck if the results are correct. Multiple ways to interpreted the papers how to calculate the TMAE and MWAE}
+\todo{More in depth the results}
+The results of UCSD dataset (Table \ref{tab:loi_ucsd}) show that all proposed models are performing worse than other papers. The base proposed model only slightly worse than \cite{leibe_crossing-line_2016} with a full supervised approach. However in this dataset the flow enhanced model performs significantly worse than without the flow context.\todo{Explain, slightly different model than Fudan, so retrain all to make it worth}
 
-Stated in table \ref{tab:loi_ucsd} that the proposed method doesn't produce a state-of-the-art results on the existing UCSD. But more info about UCSD soon in table \ref{tab:loi_ucsd} and table \ref{tab:roi_ucsd}
+
 
 
 \section{AI City Challenge}
@@ -87,10 +73,10 @@ Stated in table \ref{tab:loi_ucsd} that the proposed method doesn't produce a st
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 1.539 & 0.281 \\
-		\multicolumn{1}{l|}{Proposed+f} & 1.368 & 0.266 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & - & - \\
+		\multicolumn{1}{l|}{Baseline 2}          & - & - \\
+		\multicolumn{1}{l|}{Proposed}        	 & - & - \\
+		\multicolumn{1}{l|}{Proposed+f} & - & - \\ \hline
 		\end{tabular}
 		\caption{\label{tab:roi_aicity}The ROI results for AI City Challenge dataset}
 	\end{minipage}
@@ -98,18 +84,19 @@ Stated in table \ref{tab:loi_ucsd} that the proposed method doesn't produce a st
       \centering
 		\begin{tabular}{lll}
 		\hline
-		Method (LOI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.0 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & 1.490 & 0.291 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 1.539 & 0.281 \\
-		\multicolumn{1}{l|}{Proposed+f+m} & 1.368 & 0.266 \\ \hline
+		Method (LOI)                               & MAE & RMAE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & - & - \\
+		\multicolumn{1}{l|}{Baseline 2}          & - & - \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & - & - \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & - & - \\
+		\multicolumn{1}{l|}{Proposed+f+m} & - & - \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_aicity}The LOI results for AI City Challenge dataset}
 	\end{minipage}
 \end{table}
 
 To be done about table \ref{tab:roi_aicity} and table \ref{tab:loi_aicity}
+\todo{To be done!!!}
 
 
 \section{Real world performance}
@@ -119,30 +106,38 @@ To compare real world performance the models are compared on processing speed. A
 \begin{minipage}{.5\linewidth}
 \centering
 \begin{tabular}{lll}
-\hline
-Method                             & FPS & ms \\ \hline
-\multicolumn{1}{l|}{Baseline 2}    & 2.7f & 376ms \\
-\multicolumn{1}{l|}{Baseline 2+m} & 2.3 & 440ms \\
-\multicolumn{1}{l|}{Proposed+m}      & 4.0 & 248ms \\
-\multicolumn{1}{l|}{Proposed+f+m} & 0.0 \\
-\multicolumn{1}{l|}{Proposed+f+m+o} & 0.0 \\ \hline
-\end{tabular}
-\caption{\label{tab:fps_fudan}Processing time}
-\end{minipage} %
-\begin{minipage}{.5\linewidth}
-\centering
-\begin{tabular}{lll}
 		\hline
-		FPS                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{25}          & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{12.5}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{8.3}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{5}        & 0.0 & 0.0 \\
-		\multicolumn{1}{l|}{2.5} & 0.0 & 0.0 \\ \hline
+		FPS                               & MAE & RMAE \\ \hline
+		\multicolumn{1}{l|}{25}          & - & - \\
+		\multicolumn{1}{l|}{12.5}        & - & - \\
+		\multicolumn{1}{l|}{8.3}        & - & - \\
+		\multicolumn{1}{l|}{5}        & - & - \\
+		\multicolumn{1}{l|}{2.5} & - & - \\ \hline
 		\end{tabular}
 \caption{\label{tab:fps_fudan} Optimal FPS}
 \end{minipage}
+\begin{minipage}{.5\linewidth}
+\centering
+\begin{tabular}{lll}
+\hline
+Method                             & FPS & ms \\ \hline
+\multicolumn{1}{l|}{Baseline 2}    & 2.7 & 376ms \\
+\multicolumn{1}{l|}{Baseline 2+m} & 2.3 & 440ms \\
+\multicolumn{1}{l|}{Proposed+m}      & 4.0 & 248ms \\
+\multicolumn{1}{l|}{Proposed+f+m} &- & -\\
+\multicolumn{1}{l|}{Proposed+f+m+o} & - & - \\ \hline
+\end{tabular}
+\caption{\label{tab:processing_fudan}Processing time}
+\end{minipage} %
 \end{table}
 
+Looking at table \ref{tab:fps_fudan} it shows that a higher FPS does not always improve performance. The table shows that the optimal results are made at a frame rate of 5 FPS. Which could be caused by the instability of the Flow Estimation on a very high frame rate. At a low frame rate people could walk in a non-linear way or it could enhance errors in the density map.
+
+Table \ref{tab:processing_fudan} shows that the proposed model with maxing is almost double the speed in performance. Additionally when an optimized version is used where further optimizations for unified models are applied the model performs even better without degradation of performance. Also the flow enhancing shows only a slight increase in processing time.
+
+
+
 \section{Flow estimation impact}
-Qualitative comparison
+Qualitative comparison (Better show the realigning problem and how that this is solved by the maxing filter)
+
+Show some overfitting problems on the corners, but that this isnt very important, because most of the LOI's are in the centre of the image and not at the corners. (Could be fixed with better cropping in augmentation)
