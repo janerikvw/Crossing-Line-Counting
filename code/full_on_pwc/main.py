@@ -22,7 +22,7 @@ from models import V3EndFlow, \
     V33Dilation, V332SingleFlow,\
     V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation,\
     V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation, Baseline1,\
-    V5Dilation, V51Dilation, V52Dilation, V5Flow
+    V5Dilation, V51Dilation, V52Dilation, V5Flow, V5FlowFeatures, V51FlowFeatures, V5FlowWraping
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -36,7 +36,7 @@ import os, sys, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-from datasets import basic_entities, fudan, ucsdpeds
+from datasets import basic_entities, fudan, ucsdpeds, dam, aicity
 from DDFlow_pytorch import losses
 from CSRNet.model import CSRNet
 
@@ -91,10 +91,10 @@ parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_2', type
 parser.add_argument('--loi_version', metavar='LOI_VERSION', default='v2', type=str,
                     help='Versio which is used to select lines')
 
-parser.add_argument('--loi_width', metavar='LOI_WIDTH', default=70, type=int,
+parser.add_argument('--loi_width', metavar='LOI_WIDTH', default=40, type=int,
                     help='Width of the LOI')
 
-parser.add_argument('--loi_level', metavar='LOI_LEVEL', default='region', type=str,
+parser.add_argument('--loi_level', metavar='LOI_LEVEL', default='pixel', type=str,
                     help='Method to merge the density and flow, region level or pixel level')
 
 parser.add_argument('--loi_height', metavar='LOI_HEIGHT', default=2.0, type=float,
@@ -147,6 +147,22 @@ def load_train_dataset(args):
             for i, split in enumerate(splitted_frames):
                 splits[i] += split
 
+    elif args.dataset == 'dam':
+        pairs = dam.load_all_pairs('../data/Dam', distance=args.frames_between)
+        total_num += len(pairs)
+        random.shuffle(pairs)
+        for i, v in enumerate(pairs):
+            splits[i % args.train_split].append(v)
+    elif args.dataset == 'aicity':
+        train_videos, _ = aicity.split_train_test(aicity.load_all_videos('../data/AICity'))
+        for video in train_videos:
+            total_num += len(video.get_frames())
+            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
+                                            skip_inbetween=False)
+
+            random.shuffle(splitted_frames)
+            for i, split in enumerate(splitted_frames):
+                splits[i] += split
     else:
         print("No valid dataset selected!!!!")
         exit()
@@ -164,8 +180,11 @@ def setup_train_cross_dataset(splits, epoch, args):
             continue
         train_pairs += split
 
-    train_pairs = random.sample(train_pairs, args.train_amount)
-    cross_pairs = random.sample(cross_pairs, args.cross_val_amount)
+    if len(train_pairs) > args.train_amount:
+        train_pairs = random.sample(train_pairs, args.train_amount)
+
+    if len(cross_pairs) > args.cross_val_amount:
+        cross_pairs = random.sample(cross_pairs, args.cross_val_amount)
 
     return (SimpleDataset(train_pairs, args, True),
             SimpleDataset(cross_pairs, args, False))
@@ -186,6 +205,15 @@ def load_test_dataset(args):
         # Cross Improve!!
         cross_vids = videos[:3] + videos[7:10]
         test_vids = videos[:3] + videos[7:10]
+    elif args.dataset == 'dam':
+        # Single test video
+        video = dam.load_test_video('../data/Dam/test_arena2')
+        cross_vids = [video]
+        test_vids = [video]
+    elif args.dataset == 'aicity':
+        _, test_videos = aicity.split_train_test(aicity.load_all_videos('../data/AICity'))
+        cross_vids = test_videos
+        test_vids = test_videos
     else:
         print("No valid dataset selected!!!!")
         exit()
@@ -226,6 +254,14 @@ def load_model(args):
         model = V52Dilation(load_pretrained=True).cuda()
     elif args.model == 'v5flow':
         model = V5Flow(load_pretrained=True).cuda()
+    elif args.model == 'v5flowfeatures':
+        model = V5FlowFeatures(load_pretrained=True).cuda()
+    elif args.model == 'v51flowfeatures':
+        model = V51FlowFeatures(load_pretrained=True).cuda()
+    elif args.model == 'v5flowwarping':
+        model = V5FlowWraping(load_pretrained=True).cuda()
+    elif args.model == 'v51flowwarping':
+        model = V51FlowWraping(load_pretrained=True).cuda()
     elif args.model == 'v3endflowdilation':
         model = V3EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'v32endflowdilation':
@@ -531,7 +567,17 @@ def loi_test(args):
     # args.save_dir = '20201013_085930_dataset-ucsd_model-v332singleflow_cc_weight-50_frames_between-2_epochs-750_lr_setting-adam_2_resize_mode-bilinear'
     # args.model = 'v332singleflow'
 
-    args.save_dir = 'test_pyramidV5_full'
+    # args.save_dir = '20201022_085033_dataset-dam_model-v5dilation_cc_weight-50_frames_between-4_epochs-400_lr_setting-adam_2_pre_resize_mode-bilinear'
+    # args.model = 'v5dilation'
+
+
+    # args.save_dir = '20201025_035340_dataset-fudan_model-v51flowfeatures_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+    # args.model = 'v51flowfeatures'
+
+    ## ---- NOG DOEN!!! --- ##
+    #args.save_dir = '20201027_073844_dataset-fudan_model-v5dilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
+
+    args.save_dir = '20201029_233103_dataset-aicity_model-v5dilation_density_model-fixed-16_cc_weight-50_frames_between-2_epochs-200_lr_setting-adam_2_resize_mode-bilinear'
     args.model = 'v5dilation'
 
     # args.save_dir = 'test_pyramidV5Flow_full'
@@ -615,6 +661,8 @@ def loi_test(args):
                 totals = [total_d1, total_d2]
                 crosses = line.get_crossed()
 
+                per_frame = [[], []]
+
                 pbar = tqdm(total=len(video.get_frame_pairs()))
 
                 metrics['timing'].reset()
@@ -647,9 +695,13 @@ def loi_test(args):
                     metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
                     metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
-                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
+                    fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
+                    fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
 
-                    fe_output = get_max_surrounding(fe_output, surrounding=4, only_under=False, smaller_sides=False)
+                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=False, smaller_sides=False)
+                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=False, smaller_sides=False)
+
+                    #fe_output = get_max_surrounding(fe_output, surrounding=4, only_under=False, smaller_sides=False)
 
                     # Resize and save as numpy
                     cc_output = loi_model.to_orig_size(cc_output)
@@ -673,27 +725,37 @@ def loi_test(args):
                     total_d1 += sum(loi_results[1])
                     total_d2 += sum(loi_results[0])
 
+
                     ucsd_total_count[0].append(sum(loi_results[1]))
                     ucsd_total_count[1].append(sum(loi_results[0]))
 
                     totals = [total_d1, total_d2]
 
+                    # Save every frame
+                    per_frame[0].append(sum(loi_results[1]))
+                    per_frame[1].append(sum(loi_results[0]))
+
                     # Update GUI
                     pbar.set_description('{} ({}), {} ({})'.format(totals[0], crosses[0], totals[1], crosses[1]))
                     pbar.update(1)
 
-                    # Save for debugging
-                    # cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
-                    # cc_img = cc_img.convert("L")
-                    # cc_img.save('counting.png')
-                    #
-                    # frame1_img = frame_pair.get_frames(0).get_image()
-                    # total_image = frame1_img.copy().convert('RGB')
-                    # total_image.save('orig.png')
 
-                    # if v_i == 0 and l_i == 0:
-                    #     img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
-                    #     utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
+                    if v_i == 0 and l_i == 0:
+
+                        # Save for debugging
+                        if s_i == 0:
+                            cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+                            cc_img = cc_img.convert("L")
+                            cc_img.save('counting.png')
+
+                            frame1_img = frame_pair.get_frames(0).get_image()
+                            total_image = frame1_img.copy().convert('RGB')
+                            total_image.save('orig.png')
+
+
+                        if s_i < 10:
+                            img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
+                            utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
 
                     metrics['timing'].update(timer.show(False))
 
@@ -730,6 +792,13 @@ def loi_test(args):
                     'ptmae': percentual_total_mae,
                     'rmae': relative_mae
                 })
+
+                if args.dataset == 'dam':
+
+                    results = {'per_frame': per_frame}
+
+                    with open('dam_results_{}_{}.json'.format(v_i, l_i), 'w') as outfile:
+                        json.dump(results, outfile)
 
             #break
 
@@ -824,6 +893,9 @@ if __name__ == '__main__':
 
     torch.cuda.manual_seed(args.seed)
     random.seed(args.seed)
+
+    if args.pre != '':
+        args.pre = 'weights/{}/best_model.pt'.format(args.pre)
 
     if args.mode == 'loi':
         print(loi_test(args))
