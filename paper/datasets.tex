@@ -54,4 +54,13 @@ The lack of trajectories and custom line crossing labelling requires the use of 
 \subsection{AI City Challenge}
 The AI City Challenge dataset is a huge dataset of cars crossing on a road. The dataset contains 20 different scenes, whereas 11 of the scenes are crossroads. A total of around 2.5 hour footage is captured at 10FPS (1 hour for training, 1.5 hours for testing). Each vehicle which is labeled as a bounding box, which can be used for the centre-point. Additionally a set of Line of Interest labelling is provided. So no extra labelling for this dataset is required.
 
-\todo{Reducing the amount of footage to create a doable benchmark, then define this here as well}
+\todo{Reducing the amount of footage to create a doable benchmark, then define this here as well. Fixed-16 is used instead of fixed-8. 4 sequences are used.}
+
+\subsection{CrowdFlow}
+CrowdFlow is a synthetic dataset generated using the game engine Unreal. The dataset contains 5 scenes with each a sequence with a panning camera and a fixed camera. For the experiments only 5 sequences with the fixed camera are used. Each sequences has a duration of 12.5 seconds at a FPS of 25. The CrowdFlow dataset sequences contain a large amount of pedestrians ranging between 200-1000. For each pedestrian the position and trajectory is labeled. 
+
+For each sequence 3 lines are drawn. By utilizing the present trajectory, for each line the crossed pedestrians can be counted, these crosses range between 20 and 150 per line.
+
+Due to the sparsity of the data only 20\% of the data (10\% at the start and 10\% at the end of the sequence) is used for training and the rest is used as testing. \todo{This is very sparse for training, which appears especially in IM01, what should I do? Increase the amount of training data from 20\% to 30\%??}
+
+During testing it appeared that the last sequence (IM05) contains errors in the labeling. Therefore the last sequences is discarded, so in total 4 sequences are used for this dataset.
