@@ -46,12 +46,18 @@ def generate_density(frame, density_type):
 class SimpleDataset(torch.utils.data.Dataset):
     def __init__(self, pairs, args, augmentation=False):
         self.pairs = pairs
+        self.args = args
         self.density_type = args.density_model
         self.augmentation = augmentation
         if args.resize_patch == 'on':
             self.resize_patch = True
         else:
             self.resize_patch = False
+
+        if args.dataset == 'ucsd':
+            self.cropping_size = 1
+        else:
+            self.cropping_size = 2
 
     def __getitem__(self, i):
         pair = self.pairs[i]
@@ -70,18 +76,28 @@ class SimpleDataset(torch.utils.data.Dataset):
 
         # Crop to 1/2 of the image. (With some resizing for augmentation) and flip sometimes
         if self.augmentation:
-            cropping_size = 2
             if self.resize_patch:
-                crop_mag = random.uniform(0.875 * cropping_size, 1.25 * cropping_size)
+                crop_mag = random.uniform(0.875 * self.cropping_size, 1.25 * self.cropping_size)
             else:
-                crop_mag = cropping_size
+                crop_mag = self.cropping_size
 
-            crop_loc_rand = (random.random(), random.random())
+            r = 9 # random.randrange(9)
+            if r == 5:
+                crop_loc_rand = (0.0, 0.0)
+            elif r == 6:
+                crop_loc_rand = (1.0, 0.0)
+            elif r == 7:
+                crop_loc_rand = (0.0, 1.0)
+            elif r == 8:
+                crop_loc_rand = (1.0, 1.0)
+            else:
+                crop_loc_rand = (random.random(), random.random())
+
             flip = random.random() > 0.5
 
-            frame1 = image_augmentation(frame1, cropping_size, crop_mag, crop_loc_rand, flip)
-            frame2 = image_augmentation(frame2, cropping_size, crop_mag, crop_loc_rand, flip)
-            density = image_augmentation(density, cropping_size, crop_mag, crop_loc_rand, flip)
+            frame1 = image_augmentation(frame1, self.cropping_size, crop_mag, crop_loc_rand, flip)
+            frame2 = image_augmentation(frame2, self.cropping_size, crop_mag, crop_loc_rand, flip)
+            density = image_augmentation(density, self.cropping_size, crop_mag, crop_loc_rand, flip)
 
         return frame1, frame2, density
 

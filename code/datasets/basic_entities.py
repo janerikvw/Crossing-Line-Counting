@@ -170,14 +170,31 @@ class BasicLineSample:
         self.point1 = point1
         self.point2 = point2
         self.labeled = labeled
-        self.crossed = (0, 0)
+        self.crossed = (-999, -999)
+
+        self.crossings = None
 
     def set_crossed(self, l1, l2):
         self.crossed = (l1, l2)
         self.labeled = True
 
+    def add_crossing(self, frame_num, side):
+        if self.crossings is None:
+            self.crossings = [[], []]
+
+        self.crossings[side].append(frame_num)
+
+    def get_crossings(self, side=None):
+        if side is not None:
+            return self.crossings[side]
+        else:
+            return self.crossings
+
     def get_crossed(self):
-        return self.crossed
+        if self.crossings is not None:
+            return len(self.crossings[0]), len(self.crossings[1])
+        else:
+            return self.crossed
 
     def get_video(self):
         return self.video

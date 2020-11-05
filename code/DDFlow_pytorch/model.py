@@ -203,9 +203,10 @@ class Refiner(torch.nn.Module):
 
 
 class PWCNet(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, flow_features = False):
         super(PWCNet, self).__init__()
 
+        self.flow_features = flow_features
 
         self.netExtractor = Extractor()
 
@@ -221,21 +222,27 @@ class PWCNet(torch.nn.Module):
         tenFirst = self.netExtractor(tenFirst)
         tenSecond = self.netExtractor(tenSecond)
 
-        return self.decode(tenFirst, tenSecond)
+        return self.decode(tenFirst, tenSecond)[0]
 
     def decode(self, tenFirstFeatures, tenSecondFeatures):
+        features = []
         objEstimate = self.netSix(tenFirstFeatures[-1], tenSecondFeatures[-1], None)
+        features.append(objEstimate['tenFeat'])
         objEstimate = self.netFiv(tenFirstFeatures[-2], tenSecondFeatures[-2], objEstimate)
+        features.append(objEstimate['tenFeat'])
         objEstimate = self.netFou(tenFirstFeatures[-3], tenSecondFeatures[-3], objEstimate)
+        features.append(objEstimate['tenFeat'])
         objEstimate = self.netThr(tenFirstFeatures[-4], tenSecondFeatures[-4], objEstimate)
+        features.append(objEstimate['tenFeat'])
         objEstimate = self.netTwo(tenFirstFeatures[-5], tenSecondFeatures[-5], objEstimate)
+        features.append(objEstimate['tenFeat'])
 
-        return objEstimate['tenFlow'] + self.netRefiner(objEstimate['tenFeat'])
+        return objEstimate['tenFlow'] + self.netRefiner(objEstimate['tenFeat']), features
 
     def full_decode(self, features1, features2, initial_sizes, processed_sizes):
         (int_width, int_height) = initial_sizes
         (int_preprocessed_width, int_preprocessed_height) = processed_sizes
-        flow = self.decode(features1, features2)
+        flow, flow_features = self.decode(features1, features2)
 
         # Resize back to original size
         flow = 20.0 * torch.nn.functional.interpolate(input=flow, size=(int_height, int_width),
@@ -244,7 +251,7 @@ class PWCNet(torch.nn.Module):
         # Resize weights when rescaling to original size
         flow[:, 0, :, :] *= float(int_width) / float(int_preprocessed_width)
         flow[:, 1, :, :] *= float(int_height) / float(int_preprocessed_height)
-        return flow
+        return flow, flow_features
 
     def full_forward(self, frame1, frame2, ret_features=False, ret_bw=False):
         int_width = frame1.shape[3]
@@ -263,18 +270,21 @@ class PWCNet(torch.nn.Module):
         # Feed through encoder and decode forward and backward
         features1 = self.netExtractor(frame1)
         features2 = self.netExtractor(frame2)
-        flow_fw = self.full_decode(features1, features2, initial_sizes=(int_width, int_height),
+        flow_fw, flow_features = self.full_decode(features1, features2, initial_sizes=(int_width, int_height),
                                    processed_sizes=(int_preprocessed_width, int_preprocessed_height))
         ret = [flow_fw]
 
         if ret_bw:
-            flow_bw = self.full_decode(features2, features1, initial_sizes=(int_width, int_height),
+            flow_bw, _ = self.full_decode(features2, features1, initial_sizes=(int_width, int_height),
                                        processed_sizes=(int_preprocessed_width, int_preprocessed_height))
             ret.append(flow_bw)
 
         if ret_features:
             ret.append(features1)
             ret.append(features2)
+
+        if self.flow_features:
+            ret.append(flow_features)
 
         return tuple(ret)
 
