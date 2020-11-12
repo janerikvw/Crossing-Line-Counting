@@ -8,14 +8,14 @@
 		\begin{tabular}{llll}
 		\hline
 		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 5.773 & 33.394 & 0.942 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & - & 0.531 \\
-		\multicolumn{1}{l|}{Baseline 2+m}        & 1.490 & - & 0.291 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 &  1.532 & 2.988 & 0.279 \\
-		\multicolumn{1}{l|}{Proposed+m+c}        &  1.443 & 3.100 & 0.243 \\
-		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m+c}        & 1.403 & 2.722 & 0.239 \\
-		\multicolumn{1}{l|}{Proposed+f+m} & 1.417 & 2.641 & 0.245 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 2.961 & 10.306 & 0.552 \\
+		\multicolumn{1}{l|}{Baseline 1+m}        & 1.394 & 3.724 & 0.273 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.238 & 12.230 & 0.603 \\
+		\multicolumn{1}{l|}{Baseline 2+m}        & 1.775 & 5.331 & 0.321 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.587 & 4.381 & 0.289 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & 1.785 & 5.531 & 0.320 \\
+		\multicolumn{1}{l|}{Proposed+w+m}        & 1.781 & 5.066 & 0.330 \\
+		\multicolumn{1}{l|}{Proposed+f+m}        & 1.795 & 5.625 & 0.324 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_fudan}The LOI results for Fudan}
 	\end{minipage}
@@ -24,11 +24,11 @@
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 16.402 & 340.435 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 7.569 & 80.51 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 5.066 & 50.37 \\
-		\multicolumn{1}{l|}{Proposed+f} 		 & 5.363 & 40.609 \\
-		\multicolumn{1}{l|}{Proposed+w} 		 & - & - \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 11.144 & 135.266 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 6.397 & 50.615 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 3.434 & 17.360 \\
+		\multicolumn{1}{l|}{Proposed+w} 		 & 8.223 & 99.051 \\
+		\multicolumn{1}{l|}{Proposed+f} 		 & 5.041 & 34.458 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:roi_fudan}The ROI results for Fudan}
 	\end{minipage}
@@ -81,13 +81,14 @@ The results of UCSD dataset (Table \ref{tab:loi_ucsd}) show that all proposed mo
 		\begin{tabular}{llll}
 		\hline
 		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & - & - & - \\
-		\multicolumn{1}{l|}{Baseline 2}          & - & - & - \\
+		\multicolumn{1}{l|}{Baseline 1}          & 11.17 & 195.77 & 0.448 \\
+		\multicolumn{1}{l|}{Baseline 1+m}          & 8.638 & 138.836 & 0.319 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 2.294 & 5.170 & - \\
 		\multicolumn{1}{l|}{Baseline 2+m}      & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 7.900 & 96.01 & 0.316 \\
-		\multicolumn{1}{l|}{Proposed+m+c}        & 5.370 & 30.36 & 0.213 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 3.658 & 12.819 & 0.182 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & 2.100 & 4.113 & 0.135 \\
 		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m+c}        & - & - & - \\ \hline
+		\multicolumn{1}{l|}{Proposed+f+m+c}        & 4.472 & 26.768 & 0.190 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_aicity}The LOI results for AI City Challenge dataset}
 	\end{minipage}
@@ -111,13 +112,14 @@ To be done about table \ref{tab:loi_aicity}
 		\begin{tabular}{llll}
 		\hline
 		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & - & - & - \\
-		\multicolumn{1}{l|}{Baseline 2}          & 24.23 & 756.2 & 0.351 \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 31.98 & 1093.4 & 0.444 \\
-		\multicolumn{1}{l|}{Proposed+m+c}        & 32.08 & 1064.7 & 0.426 \\
-		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m+c}        & - & - & - \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 20.712 & 408.545 & 0.254 \\
+		\multicolumn{1}{l|}{Baseline 1+m}          & 8.041 & 68.031 & 0.0976 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 21.259 & 482.676 & 0.249 \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & 9.827 & 114.031 & 0.111 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 18.863 & 312.253 & 0.227 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & 19.401 & 492.746 & 0.214 \\
+		\multicolumn{1}{l|}{Proposed+w+m}        & 18.517 & 347.058 & 0.229 \\
+		\multicolumn{1}{l|}{Proposed+f+m}        & 17.208 & 324.203 & 0.225 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_crowdflow}The LOI results for AI City Challenge dataset}
 	\end{minipage}
@@ -126,11 +128,11 @@ To be done about table \ref{tab:loi_aicity}
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & - & - \\
-		\multicolumn{1}{l|}{Baseline 2}          & 19.709 & 917.547 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 72.534 & 8550.0162 \\
-		\multicolumn{1}{l|}{Proposed+w} 		 & - & - \\
-		\multicolumn{1}{l|}{Proposed+f} & - & - \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 7.161 & 256.988 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 34.177 & 1658.608 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 34.041 & 2584.389 \\
+		\multicolumn{1}{l|}{Proposed+w} 		 & 56.653 & 4419.300 \\
+		\multicolumn{1}{l|}{Proposed+f} & 47.273 & 6741.279 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:roi_crowdflow}The ROI results for AI City Challenge dataset}
 	\end{minipage}
