@@ -170,7 +170,7 @@ class BasicLineSample:
         self.point1 = point1
         self.point2 = point2
         self.labeled = labeled
-        self.crossed = (-999, -999)
+        self.crossed = (0, 0)
 
         self.crossings = None
 

@@ -56,6 +56,8 @@ class SimpleDataset(torch.utils.data.Dataset):
 
         if args.dataset == 'ucsd':
             self.cropping_size = 1
+        elif args.dataset == 'tub':
+            self.cropping_size = 2
         else:
             self.cropping_size = 2
 

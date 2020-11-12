@@ -47,7 +47,7 @@ lines = {
         # Bottom
         ((600, 400), (610, 719), (35,45)),
         # Right
-        ((800, 300), (1200, 250), (20,35)),
+        #((800, 300), (1200, 250), (20,35)),
         # Left
         ((0, 250), (350, 380), (45,40))
     ]
@@ -89,6 +89,23 @@ def load_all_videos(path, load_peds=True):
                     frame_id = int(ret['GT_StartPoints'][i][0] + o)
                     frames[frame_id].add_point((loc[0], loc[1]))
                     # TODO: Add tracking, now we haven't connected the track between frames.
+
+
+            # Load crosses into lines
+            crosses = get_line_crossing_frames(video)
+            video_lines = lines[os.path.basename(video.get_path())]
+            for o, line in enumerate(video_lines):
+                line_obj = entities.BasicLineSample(video, line[0], line[1])
+                video.add_line(line_obj)
+
+                for cross in crosses[o][0]:
+                    line_obj.add_crossing(cross, 0)
+
+                for cross in crosses[o][1]:
+                    line_obj.add_crossing(cross, 1)
+
+
+
     return videos
 
 # Load all the frames from the video
@@ -157,67 +174,58 @@ def get_line_crossing_frames(video):
             crossing_frame = int(ret['GT_StartPoints'][i][0] + pos + 2)
             crosses[int(check[pos + 1])].append(crossing_frame)
 
-        print("Loaded line: ", len(crosses[0]), len(crosses[1]))  # 0 == left to right, 1 = right to left
         video_crosses[o] = crosses
 
     return video_crosses
 
 # Split the video and the crossing information into train and test information
-def train_val_test_split(video, crossing_frames = None, test_size=0.5, train_size=0.1):
-    # This function splits the video into train,val and test
-    frames = video.get_frames()
-    count_frames = len(frames)
-    count_train_frames = int(floor(count_frames * train_size))
-    count_test_frames = int(floor(count_frames * test_size))
+def split_train_test(videos, train=0.5):
+    train_videos = []
+    test_videos = []
+    for video in videos:
+        frames = video.get_frames()
+        train_vid = entities.BasicVideo(video.get_path())
+        test_vid = entities.BasicVideo(video.get_path())
 
-    # Get the train video
-    train_frames = frames[:count_train_frames]
-    train_video = entities.BasicVideo(video.get_path())
-    for frame in train_frames:
-        train_video.add_frame(frame)
+        test_start_index = int(len(frames)*train)
 
-    # Create test video
-    test_frames = frames[-count_test_frames:]
-    test_video = entities.BasicVideo(video.get_path())
-    for frame in test_frames:
-        test_video.add_frame(frame)
+        # Copy line information and split
+        for line in video.get_lines():
+            train_line = entities.BasicLineSample(train_vid, line.get_line()[0], line.get_line()[1])
+            train_vid.add_line(train_line)
+            test_line = entities.BasicLineSample(test_vid, line.get_line()[0], line.get_line()[1])
+            test_vid.add_line(test_line)
 
-    # Create validation video. Only add frames if train/test dont overlap
-    val_video = entities.BasicVideo(video.get_path())
-    if test_size + train_size < 1.0:
-        val_frames = frames[count_train_frames:-count_test_frames]
-        for frame in val_frames:
-            val_video.add_frame(frame)
+            for cross in line.get_crossings(0):
+                if cross < test_start_index:
+                    train_line.add_crossing(cross, 0)
+                else:
+                    test_line.add_crossing(cross-test_start_index, 0)
 
-    train_crossing = {}
-    val_crossing = {}
-    test_crossing = {}
+            for cross in line.get_crossings(1):
+                if cross < test_start_index:
+                    train_line.add_crossing(cross, 1)
+                else:
+                    test_line.add_crossing(cross-test_start_index, 1)
 
-    # Split the crossing notations for the train/test/val
-    if crossing_frames:
-        for i in crossing_frames:
-            train_crossing[i] = [[], []]
-            val_crossing[i] = [[], []]
-            test_crossing[i] = [[], []]
+        # Split frames
+        for frame in frames[:test_start_index]:
+            train_vid.add_frame(frame)
 
-            for o, crossing_side in enumerate(crossing_frames[i]):
-                for side_jump in crossing_side:
-                    if side_jump < count_train_frames:
-                        train_crossing[i][o].append(side_jump)
-                    elif side_jump >= (count_frames - count_test_frames):
-                        test_crossing[i][o].append(side_jump - (count_frames - count_test_frames))
-                    else:
-                        val_crossing[i][o].append(side_jump - count_train_frames)
-    else:
-        train_crossing = None
-        val_crossing = None
-        test_crossing = None
-    # Clean val if test/train only
-    if len(val_video.get_frames()) == 0:
-        val_crossing = None
-        val_video = None
+        for frame in frames[test_start_index:]:
+            test_vid.add_frame(frame)
 
-    return train_video, train_crossing, val_video, val_crossing, test_video, test_crossing
+        train_videos.append(train_vid)
+        test_videos.append(test_vid)
+
+    return train_videos, test_videos
+
+def train_val_test_split(videos, test_size=0.5, train_size=0.1):
+    train_videos, rest = split_train_test(videos, train=train_size)
+    left_perc = (1.0-train_size-test_size)/(1.0-train_size)
+    val_videos, test_videos = split_train_test(videos, train=left_perc)
+
+    return train_videos, val_videos, test_videos
 
 # Split a video (So probably only a test/validation video) into multiple shorter samples.
 # Sample_overlap is the amount of frames the begin of sample 1 and begin of sample 2 are apart.

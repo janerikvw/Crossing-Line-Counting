@@ -121,6 +121,7 @@ def load_all_videos(base_path, load_labeling=True):
     return videos
 
 
+# Split the video and the crossing information into train and test information
 def split_train_test(videos, train=0.5):
     train_videos = []
     test_videos = []
@@ -128,6 +129,8 @@ def split_train_test(videos, train=0.5):
         frames = video.get_frames()
         train_vid = entities.BasicVideo(video.get_path())
         test_vid = entities.BasicVideo(video.get_path())
+
+        test_start_index = int(len(frames)*train)
 
         # Copy line information and split
         for line in video.get_lines():
@@ -137,22 +140,22 @@ def split_train_test(videos, train=0.5):
             test_vid.add_line(test_line)
 
             for cross in line.get_crossings(0):
-                if cross < int(len(frames)*train):
+                if cross < test_start_index:
                     train_line.add_crossing(cross, 0)
                 else:
-                    test_line.add_crossing(cross, 0)
+                    test_line.add_crossing(cross-test_start_index, 0)
 
             for cross in line.get_crossings(1):
-                if cross < int(len(frames)*train):
+                if cross < test_start_index:
                     train_line.add_crossing(cross, 1)
                 else:
-                    test_line.add_crossing(cross, 1)
+                    test_line.add_crossing(cross-test_start_index, 1)
 
         # Split frames
-        for frame in frames[:int(len(frames)*train)]:
+        for frame in frames[:test_start_index]:
             train_vid.add_frame(frame)
 
-        for frame in frames[int(len(frames)*train):]:
+        for frame in frames[test_start_index:]:
             test_vid.add_frame(frame)
 
         train_videos.append(train_vid)
