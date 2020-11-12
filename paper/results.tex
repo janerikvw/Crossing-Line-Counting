@@ -5,14 +5,17 @@
 \begin{table}[!htb]
 	\begin{minipage}{.5\linewidth}
       \centering
-		\begin{tabular}{lll}
+		\begin{tabular}{llll}
 		\hline
-		Method (LOI)                               & MAE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 5.762 & 0.940 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.273 & 0.531 \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & 1.490 & 0.291 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 1.539 & 0.281 \\
-		\multicolumn{1}{l|}{Proposed+f+m} & 1.368 & 0.266 \\ \hline
+		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 2.961 & 10.306 & 0.552 \\
+		\multicolumn{1}{l|}{Baseline 1+m}        & 1.394 & 3.724 & 0.273 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 3.238 & 12.230 & 0.603 \\
+		\multicolumn{1}{l|}{Baseline 2+m}        & 1.775 & 5.331 & 0.321 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.587 & 4.381 & 0.289 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & 1.785 & 5.531 & 0.320 \\
+		\multicolumn{1}{l|}{Proposed+w+m}        & 1.781 & 5.066 & 0.330 \\
+		\multicolumn{1}{l|}{Proposed+f+m}        & 1.795 & 5.625 & 0.324 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_fudan}The LOI results for Fudan}
 	\end{minipage}
@@ -21,14 +24,16 @@
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 16.402 & 340.435 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 7.569 & 80.51 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 5.066 & 50.37 \\
-		\multicolumn{1}{l|}{Proposed+f} 		 & 9.516 & 132.920 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 11.144 & 135.266 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 6.397 & 50.615 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 3.434 & 17.360 \\
+		\multicolumn{1}{l|}{Proposed+w} 		 & 8.223 & 99.051 \\
+		\multicolumn{1}{l|}{Proposed+f} 		 & 5.041 & 34.458 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:roi_fudan}The ROI results for Fudan}
 	\end{minipage}
 \end{table}
+\todo{Add the shortcuts: m=maxingfilter, f=flowfeatures, w=flowwarping, c=newCrossingLOI}
 
 For te Fudan-ShanghaiTech dataset both the LOI performance and the ROI performance is displayed in table \ref{tab:loi_fudan} and table \ref{tab:roi_fudan}.
 
@@ -54,6 +59,9 @@ Looking at table \ref{tab:roi_fudan}, the results show that the proposed model o
 		\multicolumn{1}{l|}{Baseline 2}          & 2.56 & 0.56 & 4.85 & 0.90 \\
 		\multicolumn{1}{l|}{Baseline 2+m}      & 1.89 & 0.46 &  0.96 & 0.51 \\
 		\multicolumn{1}{l|}{Proposed+m}        	 & 1.82 & 0.51 & 0.88 & 0.47 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & - & - & - \\
+		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
+		\multicolumn{1}{l|}{Proposed+f+m+c}        & - & - & - \\
 		\multicolumn{1}{l|}{Proposed+f+m} & 4.33 & 0.78 & 0.73 & 0.47 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_ucsd}The LOI results for UCSD}
@@ -68,34 +76,69 @@ The results of UCSD dataset (Table \ref{tab:loi_ucsd}) show that all proposed mo
 \section{AI City Challenge}
 
 \begin{table}[!htb]
-    \begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & - & - \\
-		\multicolumn{1}{l|}{Baseline 2}          & - & - \\
-		\multicolumn{1}{l|}{Proposed}        	 & - & - \\
-		\multicolumn{1}{l|}{Proposed+f} & - & - \\ \hline
-		\end{tabular}
-		\caption{\label{tab:roi_aicity}The ROI results for AI City Challenge dataset}
-	\end{minipage}
 	\begin{minipage}{.5\linewidth}
       \centering
-		\begin{tabular}{lll}
+		\begin{tabular}{llll}
 		\hline
-		Method (LOI)                               & MAE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & - & - \\
-		\multicolumn{1}{l|}{Baseline 2}          & - & - \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & - & - \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m} & - & - \\ \hline
+		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 11.17 & 195.77 & 0.448 \\
+		\multicolumn{1}{l|}{Baseline 1+m}          & 8.638 & 138.836 & 0.319 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 2.294 & 5.170 & - \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & - & - & - \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 3.658 & 12.819 & 0.182 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & 2.100 & 4.113 & 0.135 \\
+		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
+		\multicolumn{1}{l|}{Proposed+f+m+c}        & 4.472 & 26.768 & 0.190 \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_aicity}The LOI results for AI City Challenge dataset}
 	\end{minipage}
 \end{table}
 
-To be done about table \ref{tab:roi_aicity} and table \ref{tab:loi_aicity}
+\todo{Retrain LOI Proposed+f+m+c}
+
+- It appears that the proposed LOI method isn't working perfectly. A reason for this is the sensitivity of the method on the Flow. When the prediction is off with the crossing LOI it can happen that it counts certain pixels double, because it thinks in the first pair that it crossed the line, where in reality it didn't, then it counts the pixel double. When using moving LOI it averages the speed difference. (However still weird when counted double in de Area, so wrong analysis???)
+
+- It appears that the proposed models have the tendency to overfit much more than CSRNet. This could be because of the encoder, which is much more robust for the CSRNet than the proposed model (Where the encoder is not designed for general usage).
+
+To be done about table \ref{tab:loi_aicity}
+\todo{To be done!!!}
+
+
+\section{CrowdFlow}
+
+\begin{table}[!htb]
+	\begin{minipage}{.5\linewidth}
+      \centering
+		\begin{tabular}{llll}
+		\hline
+		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 20.712 & 408.545 & 0.254 \\
+		\multicolumn{1}{l|}{Baseline 1+m}          & 8.041 & 68.031 & 0.0976 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 21.259 & 482.676 & 0.249 \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & 9.827 & 114.031 & 0.111 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 18.863 & 312.253 & 0.227 \\
+		\multicolumn{1}{l|}{Proposed+m+c}        & 19.401 & 492.746 & 0.214 \\
+		\multicolumn{1}{l|}{Proposed+w+m}        & 18.517 & 347.058 & 0.229 \\
+		\multicolumn{1}{l|}{Proposed+f+m}        & 17.208 & 324.203 & 0.225 \\ \hline
+		\end{tabular}
+		\caption{\label{tab:loi_crowdflow}The LOI results for AI City Challenge dataset}
+	\end{minipage}
+	\begin{minipage}{.5\linewidth}
+      \centering
+		\begin{tabular}{lll}
+		\hline
+		Method (ROI)                               & MAE & MSE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 7.161 & 256.988 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 34.177 & 1658.608 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 34.041 & 2584.389 \\
+		\multicolumn{1}{l|}{Proposed+w} 		 & 56.653 & 4419.300 \\
+		\multicolumn{1}{l|}{Proposed+f} & 47.273 & 6741.279 \\ \hline
+		\end{tabular}
+		\caption{\label{tab:roi_crowdflow}The ROI results for AI City Challenge dataset}
+	\end{minipage}
+\end{table}
+
+To be done about table \ref{tab:roi_crowdflow} and table \ref{tab:loi_crowdflow}
 \todo{To be done!!!}
 
 
@@ -108,24 +151,28 @@ To compare real world performance the models are compared on processing speed. A
 \begin{tabular}{lll}
 		\hline
 		FPS                               & MAE & RMAE \\ \hline
-		\multicolumn{1}{l|}{25}          & - & - \\
-		\multicolumn{1}{l|}{12.5}        & - & - \\
-		\multicolumn{1}{l|}{8.3}        & - & - \\
-		\multicolumn{1}{l|}{5}        & - & - \\
-		\multicolumn{1}{l|}{2.5} & - & - \\ \hline
+		\multicolumn{1}{l|}{25}          & 2.102 & 0.356 \\
+		\multicolumn{1}{l|}{12.5}        & 1.629 & 0.282 \\
+		\multicolumn{1}{l|}{5}        & 1.685 & 0.292 \\
+		\multicolumn{1}{l|}{2.5} & 2.339 & 0.384 \\
+		\multicolumn{1}{l|}{1} & 2.933 & 0.467 \\ \hline
 		\end{tabular}
 \caption{\label{tab:fps_fudan} Optimal FPS}
 \end{minipage}
 \begin{minipage}{.5\linewidth}
 \centering
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \hline
-Method                             & FPS & ms \\ \hline
-\multicolumn{1}{l|}{Baseline 2}    & 2.7 & 376ms \\
-\multicolumn{1}{l|}{Baseline 2+m} & 2.3 & 440ms \\
-\multicolumn{1}{l|}{Proposed+m}      & 4.0 & 248ms \\
-\multicolumn{1}{l|}{Proposed+f+m} &- & -\\
-\multicolumn{1}{l|}{Proposed+f+m+o} & - & - \\ \hline
+Method                             & FPS & ms & RMAE \\ \hline
+\multicolumn{1}{l|}{Baseline 2}    & 2.7 & 376ms & 0.531 \\
+\multicolumn{1}{l|}{Baseline 2+m} & 2.3 & 440ms & 0.291\\
+\multicolumn{1}{l|}{Proposed+m}      & 4.0 & 248ms & 0.281 \\
+\multicolumn{1}{l|}{Proposed+f+m} &- & - & 0.245 \\
+\multicolumn{1}{l|}{Proposed+m+c}        & - & - & - \\
+\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
+\multicolumn{1}{l|}{Proposed+f+m+c}        & - & - & - \\
+\multicolumn{1}{l|}{Proposed+m+c+o} & - & - & - \\
+\multicolumn{1}{l|}{Proposed+f+m+c+o} & - & - & - \\ \hline
 \end{tabular}
 \caption{\label{tab:processing_fudan}Processing time}
 \end{minipage} %
@@ -134,7 +181,6 @@ Method                             & FPS & ms \\ \hline
 Looking at table \ref{tab:fps_fudan} it shows that a higher FPS does not always improve performance. The table shows that the optimal results are made at a frame rate of 5 FPS. Which could be caused by the instability of the Flow Estimation on a very high frame rate. At a low frame rate people could walk in a non-linear way or it could enhance errors in the density map.
 
 Table \ref{tab:processing_fudan} shows that the proposed model with maxing is almost double the speed in performance. Additionally when an optimized version is used where further optimizations for unified models are applied the model performs even better without degradation of performance. Also the flow enhancing shows only a slight increase in processing time.
-
 
 
 \section{Flow estimation impact}
