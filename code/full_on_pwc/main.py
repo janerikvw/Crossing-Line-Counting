@@ -24,7 +24,7 @@ from models import V3EndFlow, \
     V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation,\
     V5Dilation, V501Dilation, V51Dilation, V52Dilation, V5Flow, V5FlowFeatures, V51FlowFeatures, V5FlowWarping, V51FlowWarping,\
     Baseline2, Baseline21, V6Blocker, V61Blocker, V62Blocker, V601Blocker, V55FlowWarping
-from dense_models import P2Base, P21Base, P3Base, P4Base
+from dense_models import P2Base, P21Base, P3Base, P4Base, PCustom
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -253,6 +253,8 @@ def load_model(args):
         model = P3Base(load_pretrained=True).cuda()
     elif args.model == 'p4base':
         model = P4Base(load_pretrained=True).cuda()
+    elif args.model == 'pcustom':
+        model = PCustom(load_pretrained=True).cuda()
     elif args.model == 'old_v31':
         model = ModelV31(load_pretrained=True).cuda()
     elif args.model == 'v3dilation':
