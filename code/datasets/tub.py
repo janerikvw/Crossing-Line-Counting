@@ -86,8 +86,18 @@ def load_all_videos(path, load_peds=True):
                 arr = arr[:, [1, 0]]
 
                 for o, loc in enumerate(arr):
+
+                    if o + 5 < len(arr):
+                        speed = np.linalg.norm(np.array(arr[o]) - np.array(arr[o + 5]))
+                        if speed > 3:
+                            moving = True
+                        else:
+                            moving = False
+                    else:
+                        moving = False
+
                     frame_id = int(ret['GT_StartPoints'][i][0] + o)
-                    frames[frame_id].add_point((loc[0], loc[1]))
+                    frames[frame_id].add_point((loc[0], loc[1]), moving=moving)
                     # TODO: Add tracking, now we haven't connected the track between frames.
 
 

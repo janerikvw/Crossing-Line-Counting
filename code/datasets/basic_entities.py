@@ -74,17 +74,26 @@ Both the frame path and the labeled information are stored here.
 class BasicFrame:
     def __init__(self, image_path, labeled=False):
         self.centers = []
+        self.is_moving = []
         self.image_path = image_path
         self.labeled = labeled
 
     # Get all the coordinates of the labeled heads in the frame
-    def get_centers(self):
-        return self.centers
+    def get_centers(self, only_moving=False):
+        if only_moving:
+            ret = []
+            for i, t in enumerate(self.is_moving):
+                if t:
+                    ret.append(self.centers[i])
+            return ret
+        else:
+            return self.centers
 
     # Add an individual head location
-    def add_point(self, xy, bbox = None):
+    def add_point(self, xy, bbox = None, moving=False):
         self.labeled = True
         self.centers.append((int(xy[0]), int(xy[1])))
+        self.is_moving.append(moving)
 
     # Retrieve the image path
     def get_image_path(self):

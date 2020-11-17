@@ -85,7 +85,16 @@ def load_video(base_path, video_path, load_labeling=True):
         if load_labeling:
             if i+1 in framer:
                 for point_i in framer[i+1]:
-                    frame_obj.add_point(framer[i+1][point_i])
+                    if i+3 in framer and point_i in framer[i+3]:
+                        speed = np.linalg.norm(np.array(framer[i+1][point_i]) - np.array(framer[i+3][point_i]))
+                        if speed > 6:
+                            moving = True
+                        else:
+                            moving = False
+                    else:
+                        moving = False
+
+                    frame_obj.add_point(framer[i+1][point_i], moving=moving)
 
     # Add line crossing
     if load_labeling:

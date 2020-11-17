@@ -1,14 +1,11 @@
 import torch.nn as nn
 import torch
 
-from guided_filter.guided_filter import GuidedFilter as GuidedFilter
-
 import os,sys,inspect
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 from DDFlow_pytorch.model import Extractor, PWCNet
-from FlowNetPytorch.models.FlowNetS import FlowNetS
 
 from DDFlow_pytorch.model_utils import backwarp
 try:
@@ -1942,39 +1939,6 @@ class V35EndFlowDilation(torch.nn.Module):
         density = self.cc_forward(features1, features2, flow_fw)
         return flow_fw, flow_bw, density
 
-
-class Baseline1(torch.nn.Module):
-    def __init__(self, load_pretrained=True):
-        super().__init__()
-
-        self.flownet = FlowNetS(retCat2=True)
-
-        if load_pretrained:
-            path = '../FlowNetPytorch/flownets_bn_EPE2.459.pth.tar'
-            self.flownet.load_state_dict(torch.load(path)['state_dict'])
-
-        self.output_layer = nn.Conv2d(194, 1, kernel_size=3, stride=1, padding=1, bias=False)
-
-    def flow_to_orig(self, flow, orig_shape):
-        flow_shape = flow.shape
-        flow = torch.nn.functional.interpolate(input=flow, size=(orig_shape[2], orig_shape[3]),
-                                                      mode='bicubic', align_corners=False)
-
-        # Resize weights when rescaling to original size
-        flow[:, 0, :, :] *= float(orig_shape[2]) / float(flow_shape[2])
-        flow[:, 1, :, :] *= float(orig_shape[3]) / float(flow_shape[3])
-
-        return flow
-
-    def forward(self, frame1, frame2):
-        flow_fw, combined = self.flownet(torch.cat([frame1, frame2], 1))
-        flow_bw, _ = self.flownet(torch.cat([frame2, frame1], 1))
-
-        flow_fw = self.flow_to_orig(flow_fw, frame1.shape)
-        flow_bw = self.flow_to_orig(flow_bw, frame1.shape)
-
-        density = self.output_layer(combined)
-        return flow_fw, flow_bw, density
 
 
 class V3Correlation(torch.nn.Module):
