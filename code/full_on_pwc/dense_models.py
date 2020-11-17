@@ -732,24 +732,24 @@ class DecoderCustom(torch.nn.Module):
 # end
 
 class RefinerCustom(torch.nn.Module):
-    def __init__(self, input_features):
+    def __init__(self, input_features, layers_features = [128, 128, 128, 96, 64, 32]):
         super().__init__()
 
         self.netMain = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels=input_features, out_channels=128, kernel_size=3,
+            torch.nn.Conv2d(in_channels=input_features, out_channels=layers_features[0], kernel_size=3,
                             stride=1, padding=1, dilation=1),
             torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=2, dilation=2),
+            torch.nn.Conv2d(in_channels=layers_features[0], out_channels=layers_features[1], kernel_size=3, stride=1, padding=2, dilation=2),
             torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=4, dilation=4),
+            torch.nn.Conv2d(in_channels=layers_features[1], out_channels=layers_features[2], kernel_size=3, stride=1, padding=4, dilation=4),
             torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=128, out_channels=96, kernel_size=3, stride=1, padding=8, dilation=8),
+            torch.nn.Conv2d(in_channels=layers_features[2], out_channels=layers_features[3], kernel_size=3, stride=1, padding=8, dilation=8),
             torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=96, out_channels=64, kernel_size=3, stride=1, padding=16, dilation=16),
+            torch.nn.Conv2d(in_channels=layers_features[3], out_channels=layers_features[4], kernel_size=3, stride=1, padding=16, dilation=16),
             torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1, dilation=1),
+            torch.nn.Conv2d(in_channels=layers_features[4], out_channels=layers_features[5], kernel_size=3, stride=1, padding=1, dilation=1),
             torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=32, out_channels=1, kernel_size=3, stride=1, padding=1, dilation=1)
+            torch.nn.Conv2d(in_channels=layers_features[5], out_channels=1, kernel_size=3, stride=1, padding=1, dilation=1)
         )
     # end
 
@@ -771,27 +771,27 @@ class PCustom(torch.nn.Module):
                                          torch.load(path).items()})
 
         more_dilation = True
+        fm = 1.5
+        bf = 32 # int(fm*16) # Bottleneck features
 
-        self.netSix = DecoderCustom(6, input_features=196 * 2, more_dilation=more_dilation)
-        self.netFiv = DecoderCustom(5, input_features=128 * 2, prev_features=self.netSix.get_num_output_features(), more_dilation=more_dilation)
-        self.netFou = DecoderCustom(4, input_features=96 * 2, prev_features=self.netFiv.get_num_output_features(), more_dilation=more_dilation)
-        self.netThr = DecoderCustom(3, input_features=64*2, prev_features=self.netFou.get_num_output_features(), more_dilation=more_dilation)
-        self.netRefiner = RefinerCustom(input_features=self.netThr.get_num_output_features())
-
-        self.flowReduceThr = torch.nn.Conv2d(in_channels=597,
-                                             out_channels=64, kernel_size=3, stride=1, padding=1, dilation=1)
-        self.flowReduceFou = torch.nn.Conv2d(in_channels=629,
-                                             out_channels=96, kernel_size=3, stride=1, padding=1, dilation=1)
-        self.flowReduceFiv = torch.nn.Conv2d(in_channels=661,
-                                             out_channels=128, kernel_size=3, stride=1, padding=1, dilation=1)
-        self.flowReduceSix = torch.nn.Conv2d(in_channels=529,
-                                             out_channels=196, kernel_size=3, stride=1, padding=1, dilation=1)
+        layers_features = [int(fm*128), int(fm*128), int(fm*96), int(fm*64), int(fm*32)]
+        self.netSix = DecoderCustom(6, input_features=196 * 2, layers_features=layers_features,
+                                    bottleneck_features=bf, more_dilation=more_dilation)
+        self.netFiv = DecoderCustom(5, input_features=128 * 2, prev_features=self.netSix.get_num_output_features(),
+                                    layers_features=layers_features, bottleneck_features=bf, more_dilation=more_dilation)
+        self.netFou = DecoderCustom(4, input_features=96 * 2, prev_features=self.netFiv.get_num_output_features(),
+                                    layers_features=layers_features, bottleneck_features=bf, more_dilation=more_dilation)
+        self.netThr = DecoderCustom(3, input_features=64*2, prev_features=self.netFou.get_num_output_features(),
+                                    layers_features=layers_features, bottleneck_features=bf, more_dilation=more_dilation)
+        
+        layers_features = [int(fm*128), int(fm*128), int(fm*128), int(fm*96), int(fm*64), int(fm*32)]
+        self.netRefiner = RefinerCustom(input_features=self.netThr.get_num_output_features(), layers_features=layers_features)
 
     def decode(self, features1, features2):
-        objEstimate = self.netSix(torch.cat([features1[-1], self.flowReduceSix(features2[0])], 1))
-        objEstimate = self.netFiv(torch.cat([features1[-2], self.flowReduceFiv(features2[1])], 1), objEstimate)
-        objEstimate = self.netFou(torch.cat([features1[-3], self.flowReduceFou(features2[2])], 1), objEstimate)
-        objEstimate = self.netThr(torch.cat([features1[-4], self.flowReduceThr(features2[3])], 1), objEstimate)
+        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1]], 1))
+        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2]], 1), objEstimate)
+        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3]], 1), objEstimate)
+        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4]], 1), objEstimate)
         output = self.netRefiner(objEstimate['tenFeat'])
 
         if not self.training:
@@ -800,7 +800,7 @@ class PCustom(torch.nn.Module):
         return output
 
     def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, flow_features)
+        output = self.decode(features1, features2)
 
         return output
 

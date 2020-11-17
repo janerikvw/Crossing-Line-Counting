@@ -255,8 +255,6 @@ def load_model(args):
         model = P4Base(load_pretrained=True).cuda()
     elif args.model == 'pcustom':
         model = PCustom(load_pretrained=True).cuda()
-    elif args.model == 'old_v31':
-        model = ModelV31(load_pretrained=True).cuda()
     elif args.model == 'v3dilation':
         model = V3Dilation(load_pretrained=True).cuda()
     elif args.model == 'v32dilation':
@@ -402,17 +400,8 @@ def train(args):
     print('Start training...')
 
     _, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-    # if args.single_dataset:
-    #     train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-    #     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-    #                                                num_workers=args.dataloader_workers)
 
     for epoch in range(args.epochs):
-        # if not args.single_dataset:
-        #     train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-        #     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-        #                                                num_workers=args.dataloader_workers)
-
         train_dataset, _ = setup_train_cross_dataset(train_pair_splits, 0, args)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataloader_workers)
@@ -987,17 +976,14 @@ if __name__ == '__main__':
 
     args.resize_to_orig = True  # Resize output to orig. (Or groundtruth to output)
 
-    args.print_every = 40  # Print every x amount of minibatches
-    args.test_epochs = 1  # Run every tenth epoch a test
+    args.test_epochs = 2  # Run every tenth epoch a test
 
     args.train_split = 4
     args.cross_val_amount = 50
     args.train_amount = 200
 
-    args.single_dataset = False
-
     # Add date and time so we can just run everything very often :)
-    args.save_dir = args.name # '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
+    args.save_dir = args.name
 
     args.loi_flow_smoothing = False
     args.loi_flow_width = False
@@ -1017,11 +1003,9 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     if args.pre != '':
-        args.pre = 'weights/{}/best_model.pt'.format(args.pre)
+        args.pre = 'weights/{}/last_model.pt'.format(args.pre)
 
     if args.mode == 'loi':
         print(loi_test(args))
     else:
         train(args)
-        # args.pre = ''
-        # loi_test(args)
