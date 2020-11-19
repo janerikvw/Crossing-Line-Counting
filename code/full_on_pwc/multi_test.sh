@@ -5,8 +5,8 @@
 # python main.py 20201117_082909_dataset-fudan_model-p31base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p31base --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
 # python main.py 20201117_154221_dataset-fudan_model-pcustom_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model pcustom --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
 # python main.py 20201117_154540_dataset-fudan_model-p4base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p4base --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
-python main.py 20201118_034001_dataset-fudan_model-csrnet_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-750_lr_setting-adam_2 --mode loi --model csrnet --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
-python main.py 20201118_143201_dataset-fudan_model-baseline21_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-750_lr_setting-adam_2 --mode loi --model baseline21 --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201118_034001_dataset-fudan_model-csrnet_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-750_lr_setting-adam_2 --mode loi --model csrnet --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201118_143201_dataset-fudan_model-baseline21_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-750_lr_setting-adam_2 --mode loi --model baseline21 --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
 # python main.py 20201118_093140_dataset-fudan_model-p4base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-500_lr_setting-adam_9 --mode loi --model p4base --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
 
 

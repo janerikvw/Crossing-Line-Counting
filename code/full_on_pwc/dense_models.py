@@ -56,19 +56,19 @@ class DecoderCustom(torch.nn.Module):
 
         if level < 4 and more_dilation:
             self.netThr = torch.nn.Sequential(
-                torch.nn.Conv2d(in_channels=input_features + layers_features[0] + layers_features[1], out_channels=layers_features[2]*2, kernel_size=3, stride=1,
+                torch.nn.Conv2d(in_channels=input_features + layers_features[0] + layers_features[1], out_channels=layers_features[2], kernel_size=3, stride=1,
                                 padding=multi_dilation, dilation=multi_dilation),
                 torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-                torch.nn.Conv2d(in_channels=layers_features[2]*2, out_channels=layers_features[2], kernel_size=3, stride=1,
+                torch.nn.Conv2d(in_channels=layers_features[2], out_channels=layers_features[2], kernel_size=3, stride=1,
                                 padding=multi_dilation, dilation=multi_dilation),
                 torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
             )
 
             self.netFou = torch.nn.Sequential(
-                torch.nn.Conv2d(in_channels=input_features + layers_features[0] + layers_features[1] + layers_features[2], out_channels=layers_features[3]*2, kernel_size=3, stride=1,
+                torch.nn.Conv2d(in_channels=input_features + layers_features[0] + layers_features[1] + layers_features[2], out_channels=layers_features[3], kernel_size=3, stride=1,
                                 padding=multi_dilation * 2, dilation=multi_dilation*2),
                 torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-                torch.nn.Conv2d(in_channels=layers_features[3]*2, out_channels=layers_features[3], kernel_size=3, stride=1,
+                torch.nn.Conv2d(in_channels=layers_features[3], out_channels=layers_features[3], kernel_size=3, stride=1,
                                 padding=multi_dilation * 2, dilation=multi_dilation * 2),
                 torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)
             )
@@ -180,8 +180,7 @@ class P2Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-
-    def decode(self, features1, features2):
+    def cc_forward(self, features1, features2, flow2, flow_features):
         objEstimate = self.netSix(features1[-1], None)
         objEstimate = self.netFiv(features1[-2], objEstimate)
         objEstimate = self.netFou(features1[-3], objEstimate)
@@ -191,10 +190,6 @@ class P2Base(torch.nn.Module):
         if not self.training:
             output = F.relu(output)
 
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, features2)
         return output
 
     def forward(self, frame1, frame2):
@@ -225,8 +220,7 @@ class P21Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-
-    def decode(self, features1, features2):
+    def cc_forward(self, features1, features2, flow2, flow_features):
         objEstimate = self.netSix(features1[-1], None)
         objEstimate = self.netFiv(features1[-2], objEstimate)
         objEstimate = self.netFou(features1[-3], objEstimate)
@@ -235,11 +229,7 @@ class P21Base(torch.nn.Module):
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, features2)
+        
         return output
 
     def forward(self, frame1, frame2):
@@ -271,9 +261,7 @@ class P3Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-
-    def decode(self, features1, features2):
-        features = []
+    def cc_forward(self, features1, features2, flow2, flow_features):
         objEstimate = self.netSix(torch.cat([features1[-1], features2[-1]], 1), None)
         objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2]], 1), objEstimate)
         objEstimate = self.netFou(torch.cat([features1[-3], features2[-3]], 1), objEstimate)
@@ -282,11 +270,7 @@ class P3Base(torch.nn.Module):
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, features2)
+        
         return output
 
     def forward(self, frame1, frame2):
@@ -318,9 +302,7 @@ class P31Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-
-    def decode(self, features1, features2):
-        features = []
+    def cc_forward(self, features1, features2, flow2, flow_features):
         objEstimate = self.netSix(torch.cat([features1[-1], features2[-1]], 1), None)
         objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2]], 1), objEstimate)
         objEstimate = self.netFou(torch.cat([features1[-3], features2[-3]], 1), objEstimate)
@@ -330,10 +312,6 @@ class P31Base(torch.nn.Module):
         if not self.training:
             output = F.relu(output)
 
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, features2)
         return output
 
     def forward(self, frame1, frame2):
@@ -369,20 +347,15 @@ class P4Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-    def decode(self, features1, features2):
-        objEstimate = self.netSix(torch.cat([features1[-1], self.flowReduceSix(features2[0])], 1), None)
-        objEstimate = self.netFiv(torch.cat([features1[-2], self.flowReduceFiv(features2[1])], 1), objEstimate)
-        objEstimate = self.netFou(torch.cat([features1[-3], self.flowReduceFou(features2[2])], 1), objEstimate)
-        objEstimate = self.netThr(torch.cat([features1[-4], self.flowReduceThr(features2[3])], 1), objEstimate)
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(torch.cat([features1[-1], self.flowReduceSix(flow_features[0])], 1), None)
+        objEstimate = self.netFiv(torch.cat([features1[-2], self.flowReduceFiv(flow_features[1])], 1), objEstimate)
+        objEstimate = self.netFou(torch.cat([features1[-3], self.flowReduceFou(flow_features[2])], 1), objEstimate)
+        objEstimate = self.netThr(torch.cat([features1[-4], self.flowReduceThr(flow_features[3])], 1), objEstimate)
         output = self.netRefiner(objEstimate['tenFeat'])
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, flow_features)
 
         return output
 
@@ -418,20 +391,15 @@ class P41Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-    def decode(self, features1, features2):
-        objEstimate = self.netSix(torch.cat([features1[-1], self.flowReduceSix(features2[0])], 1), None)
-        objEstimate = self.netFiv(torch.cat([features1[-2], self.flowReduceFiv(features2[1])], 1), objEstimate)
-        objEstimate = self.netFou(torch.cat([features1[-3], self.flowReduceFou(features2[2])], 1), objEstimate)
-        objEstimate = self.netThr(torch.cat([features1[-4], self.flowReduceThr(features2[3])], 1), objEstimate)
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(torch.cat([features1[-1], self.flowReduceSix(flow_features[0])], 1), None)
+        objEstimate = self.netFiv(torch.cat([features1[-2], self.flowReduceFiv(flow_features[1])], 1), objEstimate)
+        objEstimate = self.netFou(torch.cat([features1[-3], self.flowReduceFou(flow_features[2])], 1), objEstimate)
+        objEstimate = self.netThr(torch.cat([features1[-4], self.flowReduceThr(flow_features[3])], 1), objEstimate)
         output = self.netRefiner(objEstimate['tenFeat'])
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, flow_features)
 
         return output
 
@@ -467,20 +435,15 @@ class P5Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-    def decode(self, features1, features2):
-        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1], self.flowReduceSix(features2[0])], 1), None)
-        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2], self.flowReduceFiv(features2[1])], 1), objEstimate)
-        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3], self.flowReduceFou(features2[2])], 1), objEstimate)
-        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4], self.flowReduceThr(features2[3])], 1), objEstimate)
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1], self.flowReduceSix(flow_features[0])], 1), None)
+        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2], self.flowReduceFiv(flow_features[1])], 1), objEstimate)
+        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3], self.flowReduceFou(flow_features[2])], 1), objEstimate)
+        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4], self.flowReduceThr(flow_features[3])], 1), objEstimate)
         output = self.netRefiner(objEstimate['tenFeat'])
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, flow_features)
 
         return output
 
@@ -517,20 +480,15 @@ class P51Base(torch.nn.Module):
 
         self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
 
-    def decode(self, features1, features2):
-        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1], self.flowReduceSix(features2[0])], 1), None)
-        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2], self.flowReduceFiv(features2[1])], 1), objEstimate)
-        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3], self.flowReduceFou(features2[2])], 1), objEstimate)
-        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4], self.flowReduceThr(features2[3])], 1), objEstimate)
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1], self.flowReduceSix(flow_features[0])], 1), None)
+        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2], self.flowReduceFiv(flow_features[1])], 1), objEstimate)
+        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3], self.flowReduceFou(flow_features[2])], 1), objEstimate)
+        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4], self.flowReduceThr(flow_features[3])], 1), objEstimate)
         output = self.netRefiner(objEstimate['tenFeat'])
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, flow_features)
 
         return output
 
@@ -572,20 +530,15 @@ class P52Base(torch.nn.Module):
         self.flowReduceFou = torch.nn.Conv2d(in_channels=629, out_channels=96, kernel_size=3, padding=1)
         self.flowReduceThr = torch.nn.Conv2d(in_channels=597, out_channels=64, kernel_size=3, padding=1)
 
-    def decode(self, features1, features2):
-        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1], self.flowReduceSix(features2[0])], 1), None)
-        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2], self.flowReduceFiv(features2[1])], 1), objEstimate)
-        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3], self.flowReduceFou(features2[2])], 1), objEstimate)
-        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4], self.flowReduceThr(features2[3])], 1), objEstimate)
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(torch.cat([features1[-1], features2[-1], self.flowReduceSix(flow_features[0])], 1), None)
+        objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2], self.flowReduceFiv(flow_features[1])], 1), objEstimate)
+        objEstimate = self.netFou(torch.cat([features1[-3], features2[-3], self.flowReduceFou(flow_features[2])], 1), objEstimate)
+        objEstimate = self.netThr(torch.cat([features1[-4], features2[-4], self.flowReduceThr(flow_features[3])], 1), objEstimate)
         output = self.netRefiner(objEstimate['tenFeat'])
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, flow_features)
 
         return output
 
@@ -623,7 +576,7 @@ class PCustom(torch.nn.Module):
         layers_features = [int(fm*128), int(fm*128), int(fm*128), int(fm*96), int(fm*64), int(fm*32)]
         self.netRefiner = RefinerCustom(input_features=self.netThr.get_num_output_features(), layers_features=layers_features)
 
-    def decode(self, features1, features2):
+    def cc_forward(self, features1, features2, flow2, flow_features):
         objEstimate = self.netSix(torch.cat([features1[-1], features2[-1]], 1))
         objEstimate = self.netFiv(torch.cat([features1[-2], features2[-2]], 1), objEstimate)
         objEstimate = self.netFou(torch.cat([features1[-3], features2[-3]], 1), objEstimate)
@@ -632,11 +585,6 @@ class PCustom(torch.nn.Module):
 
         if not self.training:
             output = F.relu(output)
-
-        return output
-
-    def cc_forward(self, features1, features2, flow2, flow_features):
-        output = self.decode(features1, features2)
 
         return output
 

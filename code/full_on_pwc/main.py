@@ -18,7 +18,7 @@ from torchvision.utils import save_image
 # from model import DRNetModel
 from dataset import SimpleDataset
 from models import Baseline2, Baseline21
-from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, P41Base, PCustom
+from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, P41Base, P5Base, P51Base, PCustom
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -251,6 +251,10 @@ def load_model(args):
         model = P4Base(load_pretrained=True).cuda()
     elif args.model == 'p41base':
         model = P41Base(load_pretrained=True).cuda()
+    elif args.model == 'p5base':
+        model = P5Base(load_pretrained=True).cuda()
+    elif args.model == 'p51base':
+        model = P51Base(load_pretrained=True).cuda()
     elif args.model == 'pcustom':
         model = PCustom(load_pretrained=True).cuda()
     elif args.model == 'baseline2':
@@ -320,10 +324,8 @@ def train(args):
     best_loss = None
     print('Start training...')
 
-    _, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-
     for epoch in range(args.epochs):
-        train_dataset, _ = setup_train_cross_dataset(train_pair_splits, 0, args)
+        train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, epoch, args)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataloader_workers)
 
@@ -742,6 +744,9 @@ def loi_test(args):
                         metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
                         metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
+                        metrics['real_roi_mae'].update(abs(cc_output.sum().item() - len(frame_pair.get_frames(0).get_centers())))
+                        metrics['real_roi_mse'].update(math.pow(cc_output.sum().item() - len(frame_pair.get_frames(0).get_centers()), 2))
+
                     # Get 2 frame results and sum
                     # @TODO: Here is switch between sides. Correct this!!!!!!
                     total_d1 += sum(loi_results[1])
@@ -868,15 +873,17 @@ def loi_test(args):
                                                    metrics['loi_mse'].avg,
                                                    metrics['loi_ptmae'].avg))
 
-        results = {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_ptmae': metrics['loi_ptmae'].avg,\
-               'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg}  # ROI (First Line is LOI)
+        results = {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg,
+                    'loi_ptmae': metrics['loi_ptmae'].avg, 'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg,
+                    'roi2_mae': metrics['real_roi_mae'].avg, 'roi2_mse': metrics['real_roi_mse'].avg
+               }  # ROI (First Line is LOI)
 
         if args.loi_level == 'moving_counting':
             results['m_mae'] = metrics['m_mae'].avg
             results['m_mse'] = metrics['m_mse'].avg
 
 
-        outname = 'full_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        outname = 'new_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
         with open('loi_results/{}.json'.format(outname), 'w') as outfile:
             json.dump(results, outfile)
 
@@ -896,7 +903,7 @@ if __name__ == '__main__':
 
     args.test_epochs = 5  # Run every tenth epoch a test
 
-    args.train_split = 4
+    args.train_split = 5
     args.cross_val_amount = 50
     args.train_amount = 200
 
