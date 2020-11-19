@@ -17,6 +17,7 @@ from torchvision.utils import save_image
 
 # from model import DRNetModel
 from dataset import SimpleDataset
+from models import Baseline2, Baseline21
 from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, P41Base, PCustom
 from PIL import Image, ImageDraw
 from tqdm import tqdm
@@ -527,10 +528,9 @@ def loi_test(args):
     model = load_model(args)
     model.eval()
     if args.loss_focus == 'cc':
-        fe_model = V332Dilation(load_pretrained=True).cuda()
         if args.dataset == 'fudan':
-            fe_model = P21Base(load_pretrained=True).cuda()
-            pre_fe = '20201116_145333_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
+            fe_model = PCustom(load_pretrained=True).cuda()
+            pre_fe = '20201117_154221_dataset-fudan_model-pcustom_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
         elif args.dataset == 'ucsd':
             pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
         elif args.dataset == 'tub':
