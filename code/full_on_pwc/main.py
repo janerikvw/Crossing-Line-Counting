@@ -17,7 +17,7 @@ from torchvision.utils import save_image
 
 # from model import DRNetModel
 from dataset import SimpleDataset
-from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, PCustom
+from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, P41Base, PCustom
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -248,6 +248,8 @@ def load_model(args):
         model = P31Base(load_pretrained=True).cuda()
     elif args.model == 'p4base':
         model = P4Base(load_pretrained=True).cuda()
+    elif args.model == 'p41base':
+        model = P41Base(load_pretrained=True).cuda()
     elif args.model == 'pcustom':
         model = PCustom(load_pretrained=True).cuda()
     elif args.model == 'baseline2':
