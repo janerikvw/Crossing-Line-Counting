@@ -212,11 +212,13 @@ class P21Base(torch.nn.Module):
             self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
                                          torch.load(path).items()})
 
-        self.netTwo = Decoder2(2, True)
-        self.netThr = Decoder2(3, True)
-        self.netFou = Decoder2(4, True)
-        self.netFiv = Decoder2(5, True)
-        self.netSix = Decoder2(6, True)
+        more_dilation = True 
+
+        self.netTwo = Decoder2(2, more_dilation)
+        self.netThr = Decoder2(3, more_dilation)
+        self.netFou = Decoder2(4, more_dilation)
+        self.netFiv = Decoder2(5, more_dilation)
+        self.netSix = Decoder2(6, more_dilation)
 
         self.netRefiner = Refiner2()
 
@@ -386,6 +388,52 @@ class Refiner3(torch.nn.Module):
 # end
 
 class P3Base(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        more_dilation = False
+
+        self.netTwo = Decoder2(2, more_dilation)
+        self.netThr = Decoder2(3, more_dilation)
+        self.netFou = Decoder2(4, more_dilation)
+        self.netFiv = Decoder2(5, more_dilation)
+        self.netSix = Decoder2(6, more_dilation)
+
+        self.netRefiner = Refiner2()
+
+
+    def decode(self, features1, features2):
+        features = []
+        objEstimate = self.netSix(features1[-1], features2[-1], None)
+        objEstimate = self.netFiv(features1[-2], features2[-2], objEstimate)
+        objEstimate = self.netFou(features1[-3], features2[-3], objEstimate)
+        objEstimate = self.netThr(features1[-4], features2[-4], objEstimate)
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+
+        return output
+
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        output = self.decode(features1, features2)
+
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
+
+
+class P31Base(torch.nn.Module):
     def __init__(self, load_pretrained=True):
         super().__init__()
 

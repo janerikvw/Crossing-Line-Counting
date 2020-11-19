@@ -17,14 +17,7 @@ from torchvision.utils import save_image
 
 # from model import DRNetModel
 from dataset import SimpleDataset
-from models import V3EndFlow, \
-    V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
-    V33Dilation, V332SingleFlow,\
-    V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation,\
-    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation,\
-    V5Dilation, V501Dilation, V51Dilation, V52Dilation, V5Flow, V5FlowFeatures, V51FlowFeatures, V5FlowWarping, V51FlowWarping,\
-    Baseline2, Baseline21, V6Blocker, V61Blocker, V62Blocker, V601Blocker, V55FlowWarping
-from dense_models import P2Base, P21Base, P3Base, P4Base, PCustom
+from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, PCustom
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -251,70 +244,12 @@ def load_model(args):
         model = P21Base(load_pretrained=True).cuda()
     elif args.model == 'p3base':
         model = P3Base(load_pretrained=True).cuda()
+    elif args.model == 'p31base':
+        model = P31Base(load_pretrained=True).cuda()
     elif args.model == 'p4base':
         model = P4Base(load_pretrained=True).cuda()
     elif args.model == 'pcustom':
         model = PCustom(load_pretrained=True).cuda()
-    elif args.model == 'v3dilation':
-        model = V3Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v32dilation':
-        model = V32Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v33dilation':
-        model = V33Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v332dilation':
-        model = V332Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v332singleflow':
-        model = V332SingleFlow(load_pretrained=True).cuda()
-    elif args.model == 'v333dilation':
-        model = V333Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v34dilation':
-        model = V34Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v35dilation':
-        model = V35Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v351dilation':
-        model = V351Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v341dilation':
-        model = V341Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v5dilation':
-        model = V5Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v501dilation':
-        model = V501Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v51dilation':
-        model = V51Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v52dilation':
-        model = V52Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v5flow':
-        model = V5Flow(load_pretrained=True).cuda()
-    elif args.model == 'v6blocker':
-        model = V6Blocker(load_pretrained=True).cuda()
-    elif args.model == 'v601blocker':
-        model = V601Blocker(load_pretrained=True).cuda()
-    elif args.model == 'v61blocker':
-        model = V61Blocker(load_pretrained=True).cuda()
-    elif args.model == 'v62blocker':
-        model = V62Blocker(load_pretrained=True).cuda()
-    elif args.model == 'v5flowfeatures':
-        model = V5FlowFeatures(load_pretrained=True).cuda()
-    elif args.model == 'v51flowfeatures':
-        model = V51FlowFeatures(load_pretrained=True).cuda()
-    elif args.model == 'v5flowwarping':
-        model = V5FlowWarping(load_pretrained=True).cuda()
-    elif args.model == 'v55flowwarping':
-        model = V55FlowWarping(load_pretrained=True).cuda()
-    elif args.model == 'v51flowwarping':
-        model = V51FlowWarping(load_pretrained=True).cuda()
-    elif args.model == 'v3endflowdilation':
-        model = V3EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v32endflowdilation':
-        model = V32EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v33endflowdilation':
-        model = V33EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v332endflowdilation':
-        model = V332EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v34endflowdilation':
-        model = V34EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v35endflowdilation':
-        model = V35EndFlowDilation(load_pretrained=True).cuda()
     elif args.model == 'baseline2':
         model = Baseline2(load_pretrained=True).cuda()
     elif args.model == 'baseline21':
@@ -322,8 +257,6 @@ def load_model(args):
     elif args.model == 'csrnet':
         model = CSRNet().cuda()
         args.loss_focus = 'cc'
-    elif args.model == 'v3endflow':
-        model = V3EndFlow(load_pretrained=True).cuda()
     else:
         print("Error! Incorrect model selected")
         exit()
@@ -358,39 +291,24 @@ def train(args):
         exit()
 
     if args.optimizer == 'adam':
-        if args.lr_setting == 'adam_1':
-            optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
-        elif args.lr_setting == 'adam_2':
+        if args.lr_setting == 'adam_2':
             optimizer = optim.Adam(model.parameters(), lr=2e-5, weight_decay=1e-4)
-        elif args.lr_setting == 'adam_5_no':
-            optimizer = optim.Adam(model.parameters(), lr=5e-5, weight_decay=0)
-        elif args.lr_setting == 'adam_8':
-            ret_params = []
-            for name, params in model.named_parameters():
-                if name.split('.')[0] == 'fe_net':
-                    ret_params.append({'params': params, 'lr': 4e-5})
-                else:
-                    ret_params.append({'params': params, 'lr': 8e-4})
-
-            optimizer = optim.Adam(ret_params, lr=2e-5, weight_decay=1e-4)
         elif args.lr_setting == 'adam_9':
             ret_params = []
             for name, params in model.named_parameters():
-                if name.split('.')[0] == 'fe_net':
+                if name.split('.')[0] == 'frontend_feat':
+                    ret_params.append({'params': params, 'lr': 1e-5})
+                elif name.split('.')[0] == 'fe_net':
                     ret_params.append({'params': params, 'lr': 4e-5})
                 else:
                     ret_params.append({'params': params, 'lr': 1e-4})
 
             optimizer = optim.Adam(ret_params, lr=2e-5, weight_decay=1e-4)
-        elif args.lr_setting == 'adam_6_yes':
-            optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=1e-4)
     else:
-        optimizer = optim.SGD(model.parameters(), 1e-6, momentum=0.95, weight_decay=5*1e-4)
+        optimizer = optim.SGD(model.parameters(), 1e-5, momentum=0.95, weight_decay=5*1e-4)
 
-    if args.lr_setting == 'adam_8':
-        optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.5)
-    elif args.lr_setting == 'adam_9':
-        optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.7)
+    if args.lr_setting == 'adam_9':
+        optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(args.epochs/14), gamma=0.7)
     else:
         optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
 
@@ -609,8 +527,8 @@ def loi_test(args):
     if args.loss_focus == 'cc':
         fe_model = V332Dilation(load_pretrained=True).cuda()
         if args.dataset == 'fudan':
-            fe_model = V3Correlation(load_pretrained=True).cuda()
-            pre_fe = '20200916_093740_dataset-fudan_frames_between-5_loss_focus-fe_resize_patch-off'
+            fe_model = P21Base(load_pretrained=True).cuda()
+            pre_fe = '20201116_145333_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
         elif args.dataset == 'ucsd':
             pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
         elif args.dataset == 'tub':
@@ -670,7 +588,14 @@ def loi_test(args):
                 line.set_crossed(1,1)
                 lines = [line]
             else:
-                lines = video.get_lines()
+                if len(video.get_lines()) == 0:
+                    line = basic_entities.BasicLineSample(video, (0,0), (100,150))
+                    line.set_crossed(1,1)
+                    lines = [line]
+                    real_line = False
+                else:
+                    lines = video.get_lines()
+                    real_line = True
 
             for l_i, line in enumerate(lines):
                 if line.get_crossed()[0] + line.get_crossed()[1] == 0:
@@ -755,7 +680,6 @@ def loi_test(args):
                     fe_output = fe_output.detach().cpu().data.numpy()
 
                     if args.loi_level == 'take_image':
-
                         dir1 = 'full_imgs/{}-{}/'.format(v_i, s_i)
                         back = '{}_m{}_{}'.format(args.model, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
                         Path(dir1).mkdir(parents=True, exist_ok=True)
@@ -797,7 +721,6 @@ def loi_test(args):
                         loi_results = loi_model.cross_pixelwise_forward(cc_output, fe_output)
                     elif args.loi_level == 'moving_counting':
                         loi_results = ([0], [0])
-
                         if args.dataset == 'tub':
                             minimum_move = 3
                         elif args.dataset == 'aicity':
@@ -813,8 +736,9 @@ def loi_test(args):
                         print('Incorrect LOI level')
                         exit()
 
-                    metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
-                    metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
+                    if l_i == 0:
+                        metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
+                        metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
                     # Get 2 frame results and sum
                     # @TODO: Here is switch between sides. Correct this!!!!!!
@@ -837,18 +761,6 @@ def loi_test(args):
 
 
                     if v_i == 0 and l_i == 0:
-
-                        # Save for debugging
-                        if s_i == 0:
-                            cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
-                            cc_img = cc_img.convert("L")
-                            cc_img.save('counting.png')
-
-                            frame1_img = frame_pair.get_frames(0).get_image()
-                            total_image = frame1_img.copy().convert('RGB')
-                            total_image.save('orig.png')
-
-
                         if s_i < 10:
                             img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
 
@@ -860,6 +772,10 @@ def loi_test(args):
 
 
                 pbar.close()
+
+                # Non-real line is important for ROI counting, but not LOI counting
+                if not real_line:
+                    break
 
                 if args.loi_level == 'take_image':
                     break
@@ -958,7 +874,7 @@ def loi_test(args):
             results['m_mse'] = metrics['m_mse'].avg
 
 
-        outname = 'flow_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        outname = 'full_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
         with open('loi_results/{}.json'.format(outname), 'w') as outfile:
             json.dump(results, outfile)
 
@@ -976,7 +892,7 @@ if __name__ == '__main__':
 
     args.resize_to_orig = True  # Resize output to orig. (Or groundtruth to output)
 
-    args.test_epochs = 2  # Run every tenth epoch a test
+    args.test_epochs = 5  # Run every tenth epoch a test
 
     args.train_split = 4
     args.cross_val_amount = 50
