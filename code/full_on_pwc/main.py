@@ -18,7 +18,8 @@ from torchvision.utils import save_image
 # from model import DRNetModel
 from dataset import SimpleDataset
 from models import Baseline2, Baseline21
-from dense_models import P2Base, P21Base, P3Base, P31Base, P4Base, P41Base, P5Base, P51Base, PCustom
+from dense_models import P2Base, P21Base, P3Base, P31Base, P32Base, P4Base, P41Base, P5Base, P51Base, P622Base, P62Base, PCustom,\
+                         P2Small, P21Small, P212Small
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -98,6 +99,9 @@ parser.add_argument('--loi_level', metavar='LOI_LEVEL', default='pixel', type=st
 
 parser.add_argument('--loi_height', metavar='LOI_HEIGHT', default=2.0, type=float,
                     help='How many times the width to get good results')
+
+parser.add_argument('--eval_method', metavar='EVAL_METHOD', default='loi', type=str,
+                    help='Focus on the LOI or ROI')
 
 
 def save_sample(args, dir, info, density, true, img, flow):
@@ -241,12 +245,20 @@ def load_model(args):
     model = None
     if args.model == 'p2base':
         model = P2Base(load_pretrained=True).cuda()
+    elif args.model == 'p2small':
+        model = P2Small(load_pretrained=True).cuda()
+    elif args.model == 'p21small':
+        model = P21Small(load_pretrained=True).cuda()
+    elif args.model == 'p212small':
+        model = P212Small(load_pretrained=True).cuda()
     elif args.model == 'p21base':
         model = P21Base(load_pretrained=True).cuda()
     elif args.model == 'p3base':
         model = P3Base(load_pretrained=True).cuda()
     elif args.model == 'p31base':
         model = P31Base(load_pretrained=True).cuda()
+    elif args.model == 'p32base':
+        model = P32Base(load_pretrained=True).cuda()
     elif args.model == 'p4base':
         model = P4Base(load_pretrained=True).cuda()
     elif args.model == 'p41base':
@@ -255,6 +267,10 @@ def load_model(args):
         model = P5Base(load_pretrained=True).cuda()
     elif args.model == 'p51base':
         model = P51Base(load_pretrained=True).cuda()
+    elif args.model == 'p62base':
+        model = P62Base(load_pretrained=True).cuda()
+    elif args.model == 'p622base':
+        model = P622Base(load_pretrained=True).cuda()
     elif args.model == 'pcustom':
         model = PCustom(load_pretrained=True).cuda()
     elif args.model == 'baseline2':
@@ -531,8 +547,8 @@ def loi_test(args):
     model.eval()
     if args.loss_focus == 'cc':
         if args.dataset == 'fudan':
-            fe_model = PCustom(load_pretrained=True).cuda()
-            pre_fe = '20201117_154221_dataset-fudan_model-pcustom_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
+            fe_model = P21Base(load_pretrained=True).cuda()
+            pre_fe = '20201119_153835_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
         elif args.dataset == 'ucsd':
             pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
         elif args.dataset == 'tub':
@@ -561,7 +577,12 @@ def loi_test(args):
             vid_result = []
             print("Video ({}): {}".format(v_i, video.get_path()))
 
-            video.generate_frame_pairs(distance=args.frames_between, skip_inbetween=True)
+            if args.eval_method == 'roi':
+                skip_inbetween = False
+            else:
+                skip_inbetween = True
+
+            video.generate_frame_pairs(distance=args.frames_between, skip_inbetween=skip_inbetween)
             dataset = SimpleDataset(video.get_frame_pairs(), args, False)
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, num_workers=args.dataloader_workers)
 
@@ -587,10 +608,11 @@ def loi_test(args):
 
             if args.loi_level == 'moving_counting':
                 lines = video.get_lines()[0:1]
-            elif args.loi_level == 'take_image':
+            elif args.loi_level == 'take_image' or args.eval_method == 'roi':
                 line = basic_entities.BasicLineSample(video, (0,0), (100,150))
                 line.set_crossed(1,1)
                 lines = [line]
+                real_line = False
             else:
                 if len(video.get_lines()) == 0:
                     line = basic_entities.BasicLineSample(video, (0,0), (100,150))
@@ -883,7 +905,7 @@ def loi_test(args):
             results['m_mse'] = metrics['m_mse'].avg
 
 
-        outname = 'new_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        outname = 'new_{}_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.eval_method, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
         with open('loi_results/{}.json'.format(outname), 'w') as outfile:
             json.dump(results, outfile)
 
@@ -902,7 +924,6 @@ if __name__ == '__main__':
     args.resize_to_orig = True  # Resize output to orig. (Or groundtruth to output)
 
     args.test_epochs = 5  # Run every tenth epoch a test
-
     args.train_split = 5
     args.cross_val_amount = 50
     args.train_amount = 200

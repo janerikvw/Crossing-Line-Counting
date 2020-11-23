@@ -129,6 +129,59 @@ class DecoderCustom(torch.nn.Module):
     # end
 # end
 
+
+class DecoderCustomSmall(torch.nn.Module):
+    def __init__(self, level, input_features, prev_features=0, output_features=-1):
+        super().__init__()
+
+        self.level = level
+        self.input_features = input_features
+
+        if output_features == -1:
+            self.output_features = input_features
+        else:
+            self.output_features = output_features
+
+        if level < 6: self.netUpfeat = torch.nn.ConvTranspose2d(in_channels=prev_features,
+                                                                   out_channels=prev_features, kernel_size=4, stride=2, padding=1)
+        if level < 6:
+            begin_features = input_features + prev_features
+        else:
+            begin_features = input_features
+
+
+        self.netOne = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels=begin_features, out_channels=self.output_features, kernel_size=3, stride=1, padding=1, dilation=1),
+            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)
+        )
+
+        self.netTwo = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels=self.output_features, out_channels=self.output_features, kernel_size=3, stride=1,
+                            padding=1, dilation=1),
+            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)
+        )
+    # end
+
+    def get_num_output_features(self):
+        return self.output_features
+
+    def forward(self, features, previous=None):
+        if previous is None:
+            tenFeat = features
+        else:
+            tenFeat = self.netUpfeat(previous['tenFeat'])
+
+            tenFeat = torch.cat([features, tenFeat], 1)
+
+        tenFeat = self.netOne(tenFeat)
+        tenFeat = self.netTwo(tenFeat)
+
+        return {
+            'tenFeat': tenFeat
+        }
+    # end
+# end
+
 class RefinerCustom(torch.nn.Module):
     def __init__(self, input_features, layers_features = [128, 128, 128, 96, 64, 32]):
         super().__init__()
@@ -156,6 +209,116 @@ class RefinerCustom(torch.nn.Module):
     # end
 # end
 # end
+
+class P2Small(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        self.netSix = DecoderCustomSmall(6, input_features=196, output_features=196)
+        self.netFiv = DecoderCustomSmall(5, input_features=128, output_features=128*2, prev_features=self.netSix.get_num_output_features())
+        self.netFou = DecoderCustomSmall(4, input_features=96, output_features=96*2, prev_features=self.netFiv.get_num_output_features())
+        self.netThr = DecoderCustomSmall(3, input_features=64, output_features=64*2, prev_features=self.netFou.get_num_output_features())
+
+        self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(features1[-1], None)
+        objEstimate = self.netFiv(features1[-2], objEstimate)
+        objEstimate = self.netFou(features1[-3], objEstimate)
+        objEstimate = self.netThr(features1[-4], objEstimate)
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+        
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
+
+
+class P21Small(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        self.netSix = DecoderCustomSmall(6, input_features=196, output_features=196)
+        self.netFiv = DecoderCustomSmall(5, input_features=128, output_features=128*2, prev_features=self.netSix.get_num_output_features())
+        self.netFou = DecoderCustomSmall(4, input_features=96, output_features=96*2, prev_features=self.netFiv.get_num_output_features())
+        self.netThr = DecoderCustomSmall(3, input_features=64, output_features=64*2, prev_features=self.netFou.get_num_output_features())
+        self.netTwo = DecoderCustomSmall(3, input_features=32, output_features=32*2, prev_features=self.netThr.get_num_output_features())
+
+        self.netRefiner = RefinerCustom(self.netTwo.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(features1[-1], None)
+        objEstimate = self.netFiv(features1[-2], objEstimate)
+        objEstimate = self.netFou(features1[-3], objEstimate)
+        objEstimate = self.netThr(features1[-4], objEstimate)
+        objEstimate = self.netTwo(features1[-5], objEstimate)
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+        
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
+
+class P212Small(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        self.netSix = DecoderCustomSmall(6, input_features=196, output_features=196)
+        self.netFiv = DecoderCustomSmall(5, input_features=128, output_features=128*2, prev_features=self.netSix.get_num_output_features())
+        self.netFou = DecoderCustomSmall(4, input_features=96, output_features=96*2, prev_features=self.netFiv.get_num_output_features())
+        self.netThr = DecoderCustomSmall(3, input_features=64, output_features=64*2, prev_features=self.netFou.get_num_output_features())
+        self.netTwo = DecoderCustomSmall(3, input_features=32, output_features=64*2, prev_features=self.netThr.get_num_output_features())
+
+        self.netRefiner = RefinerCustom(self.netTwo.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(features1[-1], None)
+        objEstimate = self.netFiv(features1[-2], objEstimate)
+        objEstimate = self.netFou(features1[-3], objEstimate)
+        objEstimate = self.netThr(features1[-4], objEstimate)
+        objEstimate = self.netTwo(features1[-5], objEstimate)
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+        
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
 
 class P2Base(torch.nn.Module):
     def __init__(self, load_pretrained=True):
@@ -312,6 +475,66 @@ class P31Base(torch.nn.Module):
         if not self.training:
             output = F.relu(output)
 
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
+
+class P32Base(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        more_dilation = True 
+
+        self.netSix = DecoderCustom(6, input_features=196, more_dilation=more_dilation)
+        self.netFiv = DecoderCustom(5, input_features=128, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou = DecoderCustom(4, input_features=96, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr = DecoderCustom(3, input_features=64, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netSix2 = DecoderCustom(6, input_features=196, more_dilation=more_dilation)
+        self.netFiv2 = DecoderCustom(5, input_features=128, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou2 = DecoderCustom(4, input_features=96, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr2 = DecoderCustom(3, input_features=64, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow2, flow_features):
+        objEstimate = self.netSix(features1[-1], None)
+        objEstimate2 = self.netSix2(features2[-1], None)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + objEstimate2['tenFeat']
+
+        objEstimate = self.netFiv(features1[-2], objEstimate)
+        objEstimate2 = self.netFiv2(features2[-2], objEstimate2)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + objEstimate2['tenFeat']
+
+        objEstimate = self.netFou(features1[-3], objEstimate)
+        objEstimate2 = self.netFou2(features2[-3], objEstimate2)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + objEstimate2['tenFeat']
+
+        objEstimate = self.netThr(features1[-4], objEstimate)
+        objEstimate2 = self.netThr2(features2[-4], objEstimate2)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + objEstimate2['tenFeat']
+
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+        
         return output
 
     def forward(self, frame1, frame2):
@@ -547,6 +770,235 @@ class P52Base(torch.nn.Module):
         density = self.cc_forward(features1, features2, flow_fw, flow_features)
         return flow_fw, flow_bw, density
 
+
+class P61Base(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        # Variable that adds the second density as loss as well
+        self.needs_second_density = True
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        more_dilation = True
+
+        self.netSix = DecoderCustom(6, input_features=196*2, more_dilation=more_dilation)
+        self.netFiv = DecoderCustom(5, input_features=128*2, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou = DecoderCustom(4, input_features=96*2, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr = DecoderCustom(3, input_features=64*2, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow, flow_features):
+        flow6 = F.interpolate(input=flow, size=(features2[-1].shape[2], features2[-1].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow6[:, 0, :, :] = flow6[:, 0, :, :] / flow.shape[2] * features2[-1].shape[2]
+        flow6[:, 1, :, :] = flow6[:, 1, :, :] / flow.shape[3] * features2[-1].shape[3]
+        back6 = backwarp(tenInput=features2[-1], tenFlow=flow6)
+        objEstimate = self.netSix(torch.cat([features1[-1], back6], 1), None)
+
+        flow5 = F.interpolate(input=flow, size=(features2[-2].shape[2], features2[-2].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow5[:, 0, :, :] = flow5[:, 0, :, :] / flow.shape[2] * features2[-2].shape[2]
+        flow5[:, 1, :, :] = flow5[:, 1, :, :] / flow.shape[3] * features2[-2].shape[3]
+        back5 = backwarp(tenInput=features2[-2], tenFlow=flow5)
+        objEstimate = self.netFiv(torch.cat([features1[-2], back5], 1), objEstimate)
+
+        flow4 = F.interpolate(input=flow, size=(features2[-3].shape[2], features2[-3].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow4[:, 0, :, :] = flow4[:, 0, :, :] / flow.shape[2] * features2[-3].shape[2]
+        flow4[:, 1, :, :] = flow4[:, 1, :, :] / flow.shape[3] * features2[-3].shape[3]
+        back4 = backwarp(tenInput=features2[-3], tenFlow=flow4)
+        objEstimate = self.netFou(torch.cat([features1[-3], back4], 1), objEstimate)
+
+        flow3 = F.interpolate(input=flow, size=(features2[-4].shape[2], features2[-4].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow3[:, 0, :, :] = flow3[:, 0, :, :] / flow.shape[2] * features2[-4].shape[2]
+        flow3[:, 1, :, :] = flow3[:, 1, :, :] / flow.shape[3] * features2[-4].shape[3]
+        back3 = backwarp(tenInput=features2[-4], tenFlow=flow3)
+        objEstimate = self.netThr(torch.cat([features1[-4], back3], 1), objEstimate)
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
+
+class P62Base(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        more_dilation = True 
+
+        self.netSix = DecoderCustom(6, input_features=196, more_dilation=more_dilation)
+        self.netFiv = DecoderCustom(5, input_features=128, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou = DecoderCustom(4, input_features=96, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr = DecoderCustom(3, input_features=64, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netSix2 = DecoderCustom(6, input_features=196, more_dilation=more_dilation)
+        self.netFiv2 = DecoderCustom(5, input_features=128, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou2 = DecoderCustom(4, input_features=96, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr2 = DecoderCustom(3, input_features=64, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow, flow_features):
+        objEstimate = self.netSix(features1[-1], None)
+        objEstimate2 = self.netSix2(features2[-1], None)
+        flow6 = F.interpolate(input=flow, size=(features2[-1].shape[2], features2[-1].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow6[:, 0, :, :] = flow6[:, 0, :, :] / flow.shape[2] * features2[-1].shape[2]
+        flow6[:, 1, :, :] = flow6[:, 1, :, :] / flow.shape[3] * features2[-1].shape[3]
+        back6 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow6)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back6
+
+        objEstimate = self.netFiv(features1[-2], objEstimate)
+        objEstimate2 = self.netFiv2(features2[-2], objEstimate2)
+        flow5 = F.interpolate(input=flow, size=(features2[-2].shape[2], features2[-2].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow5[:, 0, :, :] = flow5[:, 0, :, :] / flow.shape[2] * features2[-2].shape[2]
+        flow5[:, 1, :, :] = flow5[:, 1, :, :] / flow.shape[3] * features2[-2].shape[3]
+        back5 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow5)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back5
+
+        objEstimate = self.netFou(features1[-3], objEstimate)
+        objEstimate2 = self.netFou2(features2[-3], objEstimate2)
+        flow4 = F.interpolate(input=flow, size=(features2[-3].shape[2], features2[-3].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow4[:, 0, :, :] = flow4[:, 0, :, :] / flow.shape[2] * features2[-3].shape[2]
+        flow4[:, 1, :, :] = flow4[:, 1, :, :] / flow.shape[3] * features2[-3].shape[3]
+        back4 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow4)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back4
+
+        objEstimate = self.netThr(features1[-4], objEstimate)
+        objEstimate2 = self.netThr2(features2[-4], objEstimate2)
+        flow3 = F.interpolate(input=flow, size=(features2[-4].shape[2], features2[-4].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow3[:, 0, :, :] = flow3[:, 0, :, :] / flow.shape[2] * features2[-4].shape[2]
+        flow3[:, 1, :, :] = flow3[:, 1, :, :] / flow.shape[3] * features2[-4].shape[3]
+        back3 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow3)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back3
+
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if not self.training:
+            output = F.relu(output)
+        
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
+
+class P622Base(torch.nn.Module):
+    def __init__(self, load_pretrained=True):
+        super().__init__()
+
+        self.fe_net = PWCNet(flow_features=True)
+
+        if load_pretrained == True:
+            path = '../DDFlow_pytorch/network-chairs-things.pytorch'
+            self.fe_net.load_state_dict({strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in
+                                         torch.load(path).items()})
+
+        more_dilation = True 
+
+        self.netSix = DecoderCustom(6, input_features=196, more_dilation=more_dilation)
+        self.netFiv = DecoderCustom(5, input_features=128, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou = DecoderCustom(4, input_features=96, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr = DecoderCustom(3, input_features=64, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netSix2 = DecoderCustom(6, input_features=196, more_dilation=more_dilation)
+        self.netFiv2 = DecoderCustom(5, input_features=128, prev_features=self.netSix.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netFou2 = DecoderCustom(4, input_features=96, prev_features=self.netFiv.get_num_output_features(),
+                                    more_dilation=more_dilation)
+        self.netThr2 = DecoderCustom(3, input_features=64, prev_features=self.netFou.get_num_output_features(),
+                                    more_dilation=more_dilation)
+
+        self.netRefiner = RefinerCustom(self.netThr.get_num_output_features())
+        self.netRefiner2 = RefinerCustom(self.netThr.get_num_output_features())
+
+    def cc_forward(self, features1, features2, flow, flow_features):
+        objEstimate = self.netSix(features1[-1], None)
+        objEstimate2 = self.netSix2(features2[-1], None)
+        flow6 = F.interpolate(input=flow, size=(features2[-1].shape[2], features2[-1].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow6[:, 0, :, :] = flow6[:, 0, :, :] / flow.shape[2] * features2[-1].shape[2]
+        flow6[:, 1, :, :] = flow6[:, 1, :, :] / flow.shape[3] * features2[-1].shape[3]
+        back6 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow6)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back6
+
+        objEstimate = self.netFiv(features1[-2], objEstimate)
+        objEstimate2 = self.netFiv2(features2[-2], objEstimate2)
+        flow5 = F.interpolate(input=flow, size=(features2[-2].shape[2], features2[-2].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow5[:, 0, :, :] = flow5[:, 0, :, :] / flow.shape[2] * features2[-2].shape[2]
+        flow5[:, 1, :, :] = flow5[:, 1, :, :] / flow.shape[3] * features2[-2].shape[3]
+        back5 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow5)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back5
+
+        objEstimate = self.netFou(features1[-3], objEstimate)
+        objEstimate2 = self.netFou2(features2[-3], objEstimate2)
+        flow4 = F.interpolate(input=flow, size=(features2[-3].shape[2], features2[-3].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow4[:, 0, :, :] = flow4[:, 0, :, :] / flow.shape[2] * features2[-3].shape[2]
+        flow4[:, 1, :, :] = flow4[:, 1, :, :] / flow.shape[3] * features2[-3].shape[3]
+        back4 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow4)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back4
+
+        objEstimate = self.netThr(features1[-4], objEstimate)
+        objEstimate2 = self.netThr2(features2[-4], objEstimate2)
+        flow3 = F.interpolate(input=flow, size=(features2[-4].shape[2], features2[-4].shape[3]),
+                              mode='bicubic', align_corners=False)
+        flow3[:, 0, :, :] = flow3[:, 0, :, :] / flow.shape[2] * features2[-4].shape[2]
+        flow3[:, 1, :, :] = flow3[:, 1, :, :] / flow.shape[3] * features2[-4].shape[3]
+        back3 = backwarp(tenInput=objEstimate2['tenFeat'], tenFlow=flow3)
+        objEstimate['tenFeat'] = objEstimate['tenFeat'] + back3
+
+        output = self.netRefiner(objEstimate['tenFeat'])
+
+        if self.training:
+            output = torch.cat([output, self.netRefiner2(objEstimate2['tenFeat'])], 1)
+        else:
+            output = F.relu(output)
+        
+        return output
+
+    def forward(self, frame1, frame2):
+        flow_fw, flow_bw, features1, features2, flow_features = self.fe_net.bidirection_forward(frame1, frame2, ret_features=True)
+        density = self.cc_forward(features1, features2, flow_fw, flow_features)
+        return flow_fw, flow_bw, density
 
 class PCustom(torch.nn.Module):
     def __init__(self, load_pretrained=True):
