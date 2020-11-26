@@ -1,8 +1,11 @@
 #!/bin/bash
 
-python main.py 20201121_092743_dataset-fudan_model-csrnet_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-2000_lr_setting-adam_2 --mode loi --model csrnet --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
-python main.py 20201121_093417_dataset-fudan_model-baseline21_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-2000_lr_setting-adam_2 --mode loi --model baseline21 --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
-python main.py 20201122_141307_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-1500_lr_setting-adam_2 --mode loi --model p21base --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201125_152247_dataset-fudan_model-p62small_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p62small --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201125_152255_dataset-fudan_model-p43small_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p43small --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201125_152055_dataset-tub_model-p21small_density_model-fixed-5_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p21small --dataset tub --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201126_055312_dataset-tub_model-p62small_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p62small --dataset tub --frames_between 5 --loi_level pixel --loi_maxing 1
+# python main.py 20201123_122014_dataset-fudan_model-p21small_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-400_lr_setting-adam_9 --mode loi --model p21small --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 0
+
 
 # python main.py 20201119_153835_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9 --mode loi --model p21base --dataset fudan --frames_between 5 --loi_level pixel --loi_maxing 1
 # python main.py 20201119_153844_dataset-fudan_model-p51base_density_model-fixed-8_cc_weight-50_frames_between-15_epochs-350_lr_setting-adam_9 --mode loi --model p51base --dataset fudan --frames_between 15 --loi_level pixel --loi_maxing 1 --eval_method roi

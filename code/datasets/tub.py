@@ -113,8 +113,9 @@ def load_all_videos(path, load_peds=True):
 
                 for cross in crosses[o][1]:
                     line_obj.add_crossing(cross, 1)
-
-
+        
+        #Skip beat, because it's weird
+        video.frames = video.frames[1:]
 
     return videos
 
@@ -182,6 +183,9 @@ def get_line_crossing_frames(video):
                 continue
 
             crossing_frame = int(ret['GT_StartPoints'][i][0] + pos + 2)
+            if crossing_frame < 1: # Skip first frame
+                continue
+                
             crosses[int(check[pos + 1])].append(crossing_frame)
 
         video_crosses[o] = crosses

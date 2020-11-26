@@ -19,7 +19,7 @@ from torchvision.utils import save_image
 from dataset import SimpleDataset
 from models import Baseline2, Baseline21
 from dense_models import P2Base, P21Base, P3Base, P31Base, P32Base, P4Base, P41Base, P5Base, P51Base, P622Base, P62Base, PCustom,\
-                         P2Small, P21Small, P212Small
+                         P2Small, P21Small, P31Small, P32Small, P33Small, P41Small, P42Small, P43Small, P61Small, P62Small, P63Small
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -249,8 +249,24 @@ def load_model(args):
         model = P2Small(load_pretrained=True).cuda()
     elif args.model == 'p21small':
         model = P21Small(load_pretrained=True).cuda()
-    elif args.model == 'p212small':
-        model = P212Small(load_pretrained=True).cuda()
+    elif args.model == 'p31small':
+        model = P31Small(load_pretrained=True).cuda()
+    elif args.model == 'p32small':
+        model = P32Small(load_pretrained=True).cuda()
+    elif args.model == 'p33small':
+        model = P33Small(load_pretrained=True).cuda()
+    elif args.model == 'p41small':
+        model = P41Small(load_pretrained=True).cuda()
+    elif args.model == 'p42small':
+        model = P42Small(load_pretrained=True).cuda()
+    elif args.model == 'p43small':
+        model = P43Small(load_pretrained=True).cuda()
+    elif args.model == 'p61small':
+        model = P61Small(load_pretrained=True).cuda()
+    elif args.model == 'p62small':
+        model = P62Small(load_pretrained=True).cuda()
+    elif args.model == 'p63small':
+        model = P63Small(load_pretrained=True).cuda()
     elif args.model == 'p21base':
         model = P21Base(load_pretrained=True).cuda()
     elif args.model == 'p3base':
@@ -652,6 +668,8 @@ def loi_test(args):
 
                 metrics['timing'].reset()
 
+                roi = aicity.create_roi(video)
+
                 for s_i, batch in enumerate(dataloader):
                     torch.cuda.empty_cache()
                     timer = utils.sTimer("Full process time")
@@ -737,6 +755,11 @@ def loi_test(args):
                         blended = Image.blend(cc_img, fe_img, alpha=0.25)
                         blended.save('{}blend_{}.jpg'.format(dir1, back))
                         continue
+
+                    if args.dataset == 'aicity':
+                        cc_output = np.multiply(roi, cc_output)
+                        densities = np.multiply(roi, densities)
+
 
                     # Extract LOI results
                     if args.loi_level == 'pixel':
@@ -897,7 +920,8 @@ def loi_test(args):
 
         results = {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg,
                     'loi_ptmae': metrics['loi_ptmae'].avg, 'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg,
-                    'roi2_mae': metrics['real_roi_mae'].avg, 'roi2_mse': metrics['real_roi_mse'].avg
+                    'roi2_mae': metrics['real_roi_mae'].avg, 'roi2_mse': metrics['real_roi_mse'].avg,
+                    'timing': metrics['timing'].avg
                }  # ROI (First Line is LOI)
 
         if args.loi_level == 'moving_counting':

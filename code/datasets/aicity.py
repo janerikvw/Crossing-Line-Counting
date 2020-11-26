@@ -2,6 +2,7 @@ from glob import glob
 import os
 import json
 import numpy as np
+from PIL import Image
 
 from . import basic_entities as entities
 
@@ -12,6 +13,13 @@ lines = {
     'S02/c009': [[(1, 620), (1300, 580)]]
 }
 
+def create_roi(video):
+    video_path = '/'.join(video.get_path().split('/')[-2:])
+    base_path = '/'.join(video.get_path().split('/')[:-2])
+    roi_path = '{}/ROI/{}.jpg'
+    img = Image.open(roi_path)
+    roi = np.asarray(img)/255
+    return roi
 
 def ped_crossed_line(ped_traject, line):
     frames = list(ped_traject.keys())
