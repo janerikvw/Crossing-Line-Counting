@@ -22,6 +22,7 @@ This stronger baseline is a combination of two independent models (Figure \ref{f
 \todo{In V2, a pyramid decoder is used, which intermediately sends lower resolution density maps to optimize weight optimization and reduce overfitting}
 
 \subsection{Unified model}
+\todo{Show decoder per layer??}
 The first proposed model shares the decoder of the PWCNet model (Full network in appendix, figure \ref{fig:unified_proposed_model}). The PWCNet makes use of a pyramide shaped architecture and the encoder provides the decoder with 6 feature maps ranging from 1/2 the size to 1/64 the size of the original image.
 
 The decoder contains two essential processing blocks. The dilation block, which is a block with 4 conv-layers with a dilation of 2. Additionally an upscaling block is used, which first upscales the input by two and then refines by 2 conv-layers. All conv-layers use a kernel of 3x3 and a stride of 1.
@@ -34,8 +35,11 @@ After processing the fourth feature map and concatenation the upscaled feature m
 
 
 \subsection{Flow context density map}
+\todo{Explain more in depth}
 The second model proposed enhances the feature maps with the output of the flow map. The flow enhanced model uses the first proposed model (Figure \ref{fig:unified_proposed_model}) as base decoder. Instead of only decoding the feature maps on each level, the output flow map is reshaped and concatenated to each feature map. Which results the information of the flow on each level available.
 
+\section{LOI Counting}
+Explain here in more depth adding smoothing by using a region
 
 \section{Environment}
 

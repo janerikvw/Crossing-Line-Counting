@@ -21,19 +21,19 @@ The labeller loads a video from the unlabeled videos. In this video the user can
 \centering
 \begin{subfigure}{.33\textwidth}
   \centering
-  \includegraphics[width=.8\linewidth]{images/dataset_ucsd}
-  \caption{UCSD}
+  \includegraphics[width=.9\linewidth]{images/dataset_tub}
+  \caption{TUB}
   \label{fig:dataset_ucsd}
 \end{subfigure}%
 \begin{subfigure}{.33\textwidth}
   \centering
-  \includegraphics[width=1.0\linewidth]{images/dataset_fudan}
+  \includegraphics[width=.9\linewidth]{images/dataset_fudan}
   \caption{Fudan-ShanghaiTech}
   \label{fig:dataset_fudan}
 \end{subfigure}%
 \begin{subfigure}{.33\textwidth}
   \centering
-  \includegraphics[width=.8\linewidth]{images/dataset_aicity}
+  \includegraphics[width=.9\linewidth]{images/dataset_aicity}
   \caption{AI City Challenge}
   \label{fig:dataset_aicity}
 \end{subfigure}%
@@ -41,26 +41,19 @@ The labeller loads a video from the unlabeled videos. In this video the user can
 \label{fig:datasets}
 \end{figure}
 
-\subsection{UCSD}
-The UCSD Pedestrian dataset \cite{Chan2008} is a public dataset created in 2008. The dataset contains a video of a path where people cross each other (See figure \ref{fig:dataset_ucsd}). The dataset is 720x480 in resolution. The original videos are in 30fps, but are downscaled to 10fps. A total of 5680 frames are captured. The first 2000 frames contain line of interest labelling \cite{Ma2013}. Frames 0-599 and 1400-1999 are used for testing. The rest of the frames are used as training samples.
-
-For the training samples all the locations of each pedestrian is provided, so no extra labelling required for density generation \cite{Chan2012}.
-
 \subsection{Fudan-ShanghaiTech}
 The Fudan ShanghaiTech dataset \cite{Fang2019} is a public dataset with 100 videos of 13 different scenes. Each video contains 6 seconds of footage at 25 fps and have a resolution of 1920x1080 or 1280x720 (Sample of scene in figure \ref{fig:dataset_fudan}). The scenes have between 20-100 pedestrians per frame. In each frame the pedestrians in the frame are labeled with a bounding-box and a center-point of the bounding-box. The dataset contains 60 training videos and 40 testing videos.
 
 The lack of trajectories and custom line crossing labelling requires the use of the custom build labeller (Figure \ref{fig:labeller}). This is done on the 40 videos of the test set.
 
 \subsection{AI City Challenge}
-The AI City Challenge dataset is a huge dataset of cars crossing on a road. The dataset contains 20 different scenes, whereas 11 of the scenes are crossroads. A total of around 2.5 hour footage is captured at 10FPS (1 hour for training, 1.5 hours for testing). Each vehicle which is labeled as a bounding box, which can be used for the centre-point. Additionally a set of Line of Interest labelling is provided. So no extra labelling for this dataset is required.
-
-\todo{Reducing the amount of footage to create a doable benchmark, then define this here as well. Fixed-16 is used instead of fixed-8. 4 sequences are used.}
+The AI City Challenge dataset is a huge dataset of cars crossing on a road. The total dataset contains 20 different scenes, but only the four busiest scenes are used for training and testing. Each scene contains 3.5 minutes of footage in 10FPS, where the first half of the scene is used as training and the second half for testing. Each vehicle is labeled as a bounding box, which can be used for the centre-point. Additionally a trajectory of each vehicle is provided, which will be used to create the Line of Interest labelling. So no extra labelling for this dataset is required. ww
 
 \subsection{CrowdFlow}
 CrowdFlow is a synthetic dataset generated using the game engine Unreal. The dataset contains 5 scenes with each a sequence with a panning camera and a fixed camera. For the experiments only 5 sequences with the fixed camera are used. Each sequences has a duration of 12.5 seconds at a FPS of 25. The CrowdFlow dataset sequences contain a large amount of pedestrians ranging between 200-1000. For each pedestrian the position and trajectory is labeled. 
 
 For each sequence 3 lines are drawn. By utilizing the present trajectory, for each line the crossed pedestrians can be counted, these crosses range between 20 and 150 per line.
 
-Due to the sparsity of the data only 20\% of the data (10\% at the start and 10\% at the end of the sequence) is used for training and the rest is used as testing. \todo{This is very sparse for training, which appears especially in IM01, what should I do? Increase the amount of training data from 20\% to 30\%??}
+Due to the sparsity of the data only 20\% of the data (10\% at the start and 10\% at the end of the sequence) is used for training and the rest is used as testing.
 
 During testing it appeared that the last sequence (IM05) contains errors in the labeling. Therefore the last sequences is discarded, so in total 4 sequences are used for this dataset.

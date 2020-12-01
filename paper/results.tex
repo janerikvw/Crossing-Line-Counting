@@ -8,14 +8,15 @@
 		\begin{tabular}{llll}
 		\hline
 		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 2.961 & 10.306 & 0.552 \\
-		\multicolumn{1}{l|}{Baseline 1+m}        & 1.394 & 3.724 & 0.273 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 3.238 & 12.230 & 0.603 \\
-		\multicolumn{1}{l|}{Baseline 2+m}        & 1.775 & 5.331 & 0.321 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 1.587 & 4.381 & 0.289 \\
-		\multicolumn{1}{l|}{Proposed+m+c}        & 1.785 & 5.531 & 0.320 \\
-		\multicolumn{1}{l|}{Proposed+w+m}        & 1.781 & 5.066 & 0.330 \\
-		\multicolumn{1}{l|}{Proposed+f+m}        & 1.795 & 5.625 & 0.324 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & - & - & - \\
+		\multicolumn{1}{l|}{Baseline 2}          & - & - & - \\
+		\multicolumn{1}{l|}{Proposed}        	 & 3.152 & 10.715 & 0.555 \\
+		\multicolumn{1}{l|}{Baseline 1+m}        & 1.404 & 3.596 & 0.252 \\
+		\multicolumn{1}{l|}{Baseline 2+m}        & 1.422 & 3.474 & 0.259 \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & 1.419 & 3.783 & 0.259 \\
+		\multicolumn{1}{l|}{Proposed+p+m}        & 1.397 & 4.166 & 0.255 \\
+		\multicolumn{1}{l|}{Proposed+p+f+m}        & 1.299 & 3.195 & 0.234 \\
+		\multicolumn{1}{l|}{Proposed+p+f+w+m}        & - & - & - \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_fudan}The LOI results for Fudan}
 	\end{minipage}
@@ -24,11 +25,12 @@
 		\begin{tabular}{lll}
 		\hline
 		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 11.144 & 135.266 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 6.397 & 50.615 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 3.434 & 17.360 \\
-		\multicolumn{1}{l|}{Proposed+w} 		 & 8.223 & 99.051 \\
-		\multicolumn{1}{l|}{Proposed+f} 		 & 5.041 & 34.458 \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & 5.797 & 50.257 \\
+		\multicolumn{1}{l|}{Baseline 2}          & 2.991 & 15.415 \\
+		\multicolumn{1}{l|}{Proposed}        	 & 2.654 & 13.620 \\
+		\multicolumn{1}{l|}{Proposed+p}        	 & 2.454 & 11.525 \\
+		\multicolumn{1}{l|}{Proposed+p+f} 		 & 2.377 & 10.510 \\
+		\multicolumn{1}{l|}{Proposed+p+f+w}  	 & - & - \\ \hline
 		\end{tabular}
 		\caption{\label{tab:roi_fudan}The ROI results for Fudan}
 	\end{minipage}
@@ -45,33 +47,42 @@ The proposed model performs slightly worse than our baseline, which is probably 
 
 Looking at table \ref{tab:roi_fudan}, the results show that the proposed model outperforms CSRNet \cite{li2018csrnet} on this dataset. Adding Flow significantly decreases the ROI performance, which could mean that the model is focussed on the flow features and therefore ignores some of the non-moving pedestrians.
 
-\section{UCSD}
+\section{CrowdFlow}
 
-\begin{table}
+\begin{table}[!htb]
+	\begin{minipage}{.5\linewidth}
       \centering
-		\begin{tabular}{lllll}
+		\begin{tabular}{llll}
 		\hline
-		Method (LOI)                               & TMAE Left & MWAE@100 Left & TMAE Right & MWAE@100 Right \\ \hline
-		\multicolumn{1}{l|}{\cite{ma_counting_2016}} & 0.60 & 0.72 & 0.69 & 0.51 \\
-		\multicolumn{1}{l|}{\cite{leibe_crossing-line_2016}}& 1.18 & 0.60 & 0.63 & 0.47 \\
-		\multicolumn{1}{l|}{\cite{zheng_cross-line_2019}} & 0.46 & 0.41 & 0.50 & 0.41 \\
-		\multicolumn{1}{l|}{Baseline 1}          & 8.43 & 1.40 & 7.03 & 1.37 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 2.56 & 0.56 & 4.85 & 0.90 \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & 1.89 & 0.46 &  0.96 & 0.51 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 1.82 & 0.51 & 0.88 & 0.47 \\
+		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & - & - & - \\
+		\multicolumn{1}{l|}{Baseline 1+m}          & - & - & - \\
+		\multicolumn{1}{l|}{Baseline 2}          & - & - & - \\
+		\multicolumn{1}{l|}{Baseline 2+m}      & - & - & - \\
+		\multicolumn{1}{l|}{Proposed+m}        	 & - & - & - \\
 		\multicolumn{1}{l|}{Proposed+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m} & 4.33 & 0.78 & 0.73 & 0.47 \\ \hline
+		\multicolumn{1}{l|}{Proposed+w+m}        & - & - & - \\
+		\multicolumn{1}{l|}{Proposed+f+m}        & - & - & - \\ \hline
 		\end{tabular}
-		\caption{\label{tab:loi_ucsd}The LOI results for UCSD}
+		\caption{\label{tab:loi_crowdflow}The LOI results for AI City Challenge dataset}
+	\end{minipage}
+	\begin{minipage}{.5\linewidth}
+      \centering
+		\begin{tabular}{lll}
+		\hline
+		Method (ROI)                               & MAE & MSE \\ \hline
+		\multicolumn{1}{l|}{Baseline 1}          & - & - \\
+		\multicolumn{1}{l|}{Baseline 2}          & - & - \\
+		\multicolumn{1}{l|}{Proposed}        	 & - & - \\
+		\multicolumn{1}{l|}{Proposed+w} 		 & - & - \\
+		\multicolumn{1}{l|}{Proposed+f} & - & - \\ \hline
+		\end{tabular}
+		\caption{\label{tab:roi_crowdflow}The ROI results for AI City Challenge dataset}
+	\end{minipage}
 \end{table}
-\todo{Recheck if the results are correct. Multiple ways to interpreted the papers how to calculate the TMAE and MWAE}
-\todo{More in depth the results}
-The results of UCSD dataset (Table \ref{tab:loi_ucsd}) show that all proposed models are performing worse than other papers. The base proposed model only slightly worse than \cite{leibe_crossing-line_2016} with a full supervised approach. However in this dataset the flow enhanced model performs significantly worse than without the flow context.\todo{Explain, slightly different model than Fudan, so retrain all to make it worth}
 
-
-
+To be done about table \ref{tab:roi_crowdflow} and table \ref{tab:loi_crowdflow}
+\todo{To be done!!!}
 
 \section{AI City Challenge}
 
@@ -81,14 +92,12 @@ The results of UCSD dataset (Table \ref{tab:loi_ucsd}) show that all proposed mo
 		\begin{tabular}{llll}
 		\hline
 		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 11.17 & 195.77 & 0.448 \\
-		\multicolumn{1}{l|}{Baseline 1+m}          & 8.638 & 138.836 & 0.319 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 2.294 & 5.170 & - \\
+		\multicolumn{1}{l|}{Baseline 1+m}          & 14.09 & 273.71 & 0.59 \\
 		\multicolumn{1}{l|}{Baseline 2+m}      & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 3.658 & 12.819 & 0.182 \\
-		\multicolumn{1}{l|}{Proposed+m+c}        & 2.100 & 4.113 & 0.135 \\
-		\multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
-		\multicolumn{1}{l|}{Proposed+f+m+c}        & 4.472 & 26.768 & 0.190 \\ \hline
+		\multicolumn{1}{l|}{Proposed+m}        	 & 3.89 & 17.97 & 0.24 \\
+		\multicolumn{1}{l|}{Proposed+p+m}        & 4.16 & 13.73 & 0.23 \\
+		\multicolumn{1}{l|}{Proposed+p+f+m}        & 3.76 & 11.45 & 0.21 \\
+		\multicolumn{1}{l|}{Proposed+p+f+w+m}        & - & - & - \\ \hline
 		\end{tabular}
 		\caption{\label{tab:loi_aicity}The LOI results for AI City Challenge dataset}
 	\end{minipage}
@@ -104,44 +113,6 @@ To be done about table \ref{tab:loi_aicity}
 \todo{To be done!!!}
 
 
-\section{CrowdFlow}
-
-\begin{table}[!htb]
-	\begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{llll}
-		\hline
-		Method (LOI)                               & MAE & MSE & RMAE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 20.712 & 408.545 & 0.254 \\
-		\multicolumn{1}{l|}{Baseline 1+m}          & 8.041 & 68.031 & 0.0976 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 21.259 & 482.676 & 0.249 \\
-		\multicolumn{1}{l|}{Baseline 2+m}      & 9.827 & 114.031 & 0.111 \\
-		\multicolumn{1}{l|}{Proposed+m}        	 & 18.863 & 312.253 & 0.227 \\
-		\multicolumn{1}{l|}{Proposed+m+c}        & 19.401 & 492.746 & 0.214 \\
-		\multicolumn{1}{l|}{Proposed+w+m}        & 18.517 & 347.058 & 0.229 \\
-		\multicolumn{1}{l|}{Proposed+f+m}        & 17.208 & 324.203 & 0.225 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:loi_crowdflow}The LOI results for AI City Challenge dataset}
-	\end{minipage}
-	\begin{minipage}{.5\linewidth}
-      \centering
-		\begin{tabular}{lll}
-		\hline
-		Method (ROI)                               & MAE & MSE \\ \hline
-		\multicolumn{1}{l|}{Baseline 1}          & 7.161 & 256.988 \\
-		\multicolumn{1}{l|}{Baseline 2}          & 34.177 & 1658.608 \\
-		\multicolumn{1}{l|}{Proposed}        	 & 34.041 & 2584.389 \\
-		\multicolumn{1}{l|}{Proposed+w} 		 & 56.653 & 4419.300 \\
-		\multicolumn{1}{l|}{Proposed+f} & 47.273 & 6741.279 \\ \hline
-		\end{tabular}
-		\caption{\label{tab:roi_crowdflow}The ROI results for AI City Challenge dataset}
-	\end{minipage}
-\end{table}
-
-To be done about table \ref{tab:roi_crowdflow} and table \ref{tab:loi_crowdflow}
-\todo{To be done!!!}
-
-
 \section{Real world performance}
 To compare real world performance the models are compared on processing speed. Additionally the optical FPS is calculated. This is both done on the Fudan-ShanghaiTech dataset.
 
@@ -151,11 +122,11 @@ To compare real world performance the models are compared on processing speed. A
 \begin{tabular}{lll}
 		\hline
 		FPS                               & MAE & RMAE \\ \hline
-		\multicolumn{1}{l|}{25}          & 2.102 & 0.356 \\
-		\multicolumn{1}{l|}{12.5}        & 1.629 & 0.282 \\
-		\multicolumn{1}{l|}{5}        & 1.685 & 0.292 \\
-		\multicolumn{1}{l|}{2.5} & 2.339 & 0.384 \\
-		\multicolumn{1}{l|}{1} & 2.933 & 0.467 \\ \hline
+		\multicolumn{1}{l|}{25}          & - & - \\
+		\multicolumn{1}{l|}{12.5}        & - & - \\
+		\multicolumn{1}{l|}{5}        & - & - \\
+		\multicolumn{1}{l|}{2.5} & - & - \\
+		\multicolumn{1}{l|}{1} & - & - \\ \hline
 		\end{tabular}
 \caption{\label{tab:fps_fudan} Optimal FPS}
 \end{minipage}
@@ -164,10 +135,10 @@ To compare real world performance the models are compared on processing speed. A
 \begin{tabular}{llll}
 \hline
 Method                             & FPS & ms & RMAE \\ \hline
-\multicolumn{1}{l|}{Baseline 2}    & 2.7 & 376ms & 0.531 \\
-\multicolumn{1}{l|}{Baseline 2+m} & 2.3 & 440ms & 0.291\\
-\multicolumn{1}{l|}{Proposed+m}      & 4.0 & 248ms & 0.281 \\
-\multicolumn{1}{l|}{Proposed+f+m} &- & - & 0.245 \\
+\multicolumn{1}{l|}{Baseline 2}    & - & - & - \\
+\multicolumn{1}{l|}{Baseline 2+m} & - & - & -\\
+\multicolumn{1}{l|}{Proposed+m}      & - & - & - \\
+\multicolumn{1}{l|}{Proposed+f+m} &- & - & - \\
 \multicolumn{1}{l|}{Proposed+m+c}        & - & - & - \\
 \multicolumn{1}{l|}{Proposed+w+m+c}        & - & - & - \\
 \multicolumn{1}{l|}{Proposed+f+m+c}        & - & - & - \\
