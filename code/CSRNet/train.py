@@ -22,11 +22,6 @@ import time
 
 parser = argparse.ArgumentParser(description='PyTorch CSRNet')
 
-# parser.add_argument('train_json', metavar='TRAIN',
-#                     help='path to train json')
-# parser.add_argument('test_json', metavar='TEST',
-#                     help='path to test json')
-
 parser.add_argument('--pre', '-p', metavar='PRETRAINED', default=None,type=str,
                     help='path to the pretrained model')
 

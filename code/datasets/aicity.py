@@ -2,6 +2,7 @@ from glob import glob
 import os
 import json
 import numpy as np
+from PIL import Image
 
 from . import basic_entities as entities
 
@@ -12,6 +13,13 @@ lines = {
     'S02/c009': [[(1, 620), (1300, 580)]]
 }
 
+def create_roi(video):
+    video_path = '/'.join(video.get_path().split('/')[-2:])
+    base_path = '/'.join(video.get_path().split('/')[:-2])
+    roi_path = '{}/ROI/{}.jpg'
+    img = Image.open(roi_path)
+    roi = np.asarray(img)/255
+    return roi
 
 def ped_crossed_line(ped_traject, line):
     frames = list(ped_traject.keys())
@@ -85,7 +93,16 @@ def load_video(base_path, video_path, load_labeling=True):
         if load_labeling:
             if i+1 in framer:
                 for point_i in framer[i+1]:
-                    frame_obj.add_point(framer[i+1][point_i])
+                    if i+3 in framer and point_i in framer[i+3]:
+                        speed = np.linalg.norm(np.array(framer[i+1][point_i]) - np.array(framer[i+3][point_i]))
+                        if speed > 6:
+                            moving = True
+                        else:
+                            moving = False
+                    else:
+                        moving = False
+
+                    frame_obj.add_point(framer[i+1][point_i], moving=moving)
 
     # Add line crossing
     if load_labeling:
@@ -121,6 +138,7 @@ def load_all_videos(base_path, load_labeling=True):
     return videos
 
 
+# Split the video and the crossing information into train and test information
 def split_train_test(videos, train=0.5):
     train_videos = []
     test_videos = []
@@ -128,6 +146,8 @@ def split_train_test(videos, train=0.5):
         frames = video.get_frames()
         train_vid = entities.BasicVideo(video.get_path())
         test_vid = entities.BasicVideo(video.get_path())
+
+        test_start_index = int(len(frames)*train)
 
         # Copy line information and split
         for line in video.get_lines():
@@ -137,22 +157,22 @@ def split_train_test(videos, train=0.5):
             test_vid.add_line(test_line)
 
             for cross in line.get_crossings(0):
-                if cross < int(len(frames)*train):
+                if cross < test_start_index:
                     train_line.add_crossing(cross, 0)
                 else:
-                    test_line.add_crossing(cross, 0)
+                    test_line.add_crossing(cross-test_start_index, 0)
 
             for cross in line.get_crossings(1):
-                if cross < int(len(frames)*train):
+                if cross < test_start_index:
                     train_line.add_crossing(cross, 1)
                 else:
-                    test_line.add_crossing(cross, 1)
+                    test_line.add_crossing(cross-test_start_index, 1)
 
         # Split frames
-        for frame in frames[:int(len(frames)*train)]:
+        for frame in frames[:test_start_index]:
             train_vid.add_frame(frame)
 
-        for frame in frames[int(len(frames)*train):]:
+        for frame in frames[test_start_index:]:
             test_vid.add_frame(frame)
 
         train_videos.append(train_vid)

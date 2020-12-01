@@ -17,18 +17,16 @@ from torchvision.utils import save_image
 
 # from model import DRNetModel
 from dataset import SimpleDataset
-from models import V3EndFlow, \
-    V3Dilation, V32Dilation, V3EndFlowDilation, V32EndFlowDilation,\
-    V33Dilation, V332SingleFlow,\
-    V33EndFlowDilation, V34EndFlowDilation, V35EndFlowDilation, V332EndFlowDilation,\
-    V332Dilation, V333Dilation, V34Dilation, V341Dilation, V35Dilation, V351Dilation, V3Correlation, Baseline1,\
-    V5Dilation, V51Dilation, V52Dilation, V5Flow, V5FlowFeatures, V51FlowFeatures, V5FlowWraping
+from models import Baseline2, Baseline21
+from dense_models import P2Base, P21Base, P3Base, P31Base, P32Base, P4Base, P41Base, P5Base, P51Base, P622Base, P62Base, PCustom,\
+                         P2Small, P21Small, P31Small, P32Small, P33Small, P41Small, P42Small, P43Small, P61Small, P62Small, P63Small
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
 from pathlib import Path
 import utils
 import loi
+import density_filter
 
 # Add base path to import dir for importing datasets
 import os, sys, inspect
@@ -36,7 +34,7 @@ import os, sys, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-from datasets import basic_entities, fudan, ucsdpeds, dam, aicity
+from datasets import basic_entities, fudan, ucsdpeds, dam, aicity, tub
 from DDFlow_pytorch import losses
 from CSRNet.model import CSRNet
 
@@ -87,6 +85,8 @@ parser.add_argument('--resize_mode', metavar='RESIZE_MODE', default='bilinear', 
 parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_2', type=str,
                     help='Give a specific learning rate setting')
 
+parser.add_argument('--loi_maxing', metavar='LOI_REALIGNING', default=0, type=int,
+                    help='Using maxing for LOI or not')
 
 parser.add_argument('--loi_version', metavar='LOI_VERSION', default='v2', type=str,
                     help='Versio which is used to select lines')
@@ -99,6 +99,9 @@ parser.add_argument('--loi_level', metavar='LOI_LEVEL', default='pixel', type=st
 
 parser.add_argument('--loi_height', metavar='LOI_HEIGHT', default=2.0, type=float,
                     help='How many times the width to get good results')
+
+parser.add_argument('--eval_method', metavar='EVAL_METHOD', default='loi', type=str,
+                    help='Focus on the LOI or ROI')
 
 
 def save_sample(args, dir, info, density, true, img, flow):
@@ -163,6 +166,17 @@ def load_train_dataset(args):
             random.shuffle(splitted_frames)
             for i, split in enumerate(splitted_frames):
                 splits[i] += split
+
+    elif args.dataset == 'tub':
+        train_videos, _, train_videos2 = tub.train_val_test_split(tub.load_all_videos('../data/TUBCrowdFlow'), 0.1, 0.1)
+        for video in train_videos+train_videos2:
+            total_num += len(video.get_frames())
+            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
+                                            skip_inbetween=False)
+
+            random.shuffle(splitted_frames)
+            for i, split in enumerate(splitted_frames):
+                splits[i] += split
     else:
         print("No valid dataset selected!!!!")
         exit()
@@ -196,10 +210,8 @@ def load_test_dataset(args):
 
     if args.dataset == 'fudan':
         for video_path in glob('../data/Fudan/test_data/*/'):
-            if int(video_path.split('/')[-2]) % 2 == 0:
-                test_vids.append(fudan.load_video(video_path))
-            else:
-                cross_vids.append(fudan.load_video(video_path))
+            test_vids.append(fudan.load_video(video_path))
+            cross_vids.append(fudan.load_video(video_path))
     elif args.dataset == 'ucsd':
         videos = ucsdpeds.load_videos('../data/ucsdpeds')
         # Cross Improve!!
@@ -211,9 +223,16 @@ def load_test_dataset(args):
         cross_vids = [video]
         test_vids = [video]
     elif args.dataset == 'aicity':
-        _, test_videos = aicity.split_train_test(aicity.load_all_videos('../data/AICity'))
+        _, test_videos = aicity.split_train_test(aicity.load_all_videos('../data/AICity'), train=0.5)
+        #cross_vids, test_vids = aicity.split_train_test(test_videos, train=0.5)
         cross_vids = test_videos
         test_vids = test_videos
+    elif args.dataset == 'tub':
+        _, rest, _ = tub.train_val_test_split(
+            tub.load_all_videos('../data/TUBCrowdFlow'), 0.1, 0.1)
+        cross_vids = rest
+        test_vids = rest
+        # cross_vids, test_vids = tub.split_train_test(rest, 0.5)
     else:
         print("No valid dataset selected!!!!")
         exit()
@@ -224,63 +243,59 @@ def load_test_dataset(args):
 
 def load_model(args):
     model = None
-    if args.model == 'old_v31':
-        model = ModelV31(load_pretrained=True).cuda()
-    elif args.model == 'v3dilation':
-        model = V3Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v32dilation':
-        model = V32Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v33dilation':
-        model = V33Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v332dilation':
-        model = V332Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v332singleflow':
-        model = V332SingleFlow(load_pretrained=True).cuda()
-    elif args.model == 'v333dilation':
-        model = V333Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v34dilation':
-        model = V34Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v35dilation':
-        model = V35Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v351dilation':
-        model = V351Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v341dilation':
-        model = V341Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v5dilation':
-        model = V5Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v51dilation':
-        model = V51Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v52dilation':
-        model = V52Dilation(load_pretrained=True).cuda()
-    elif args.model == 'v5flow':
-        model = V5Flow(load_pretrained=True).cuda()
-    elif args.model == 'v5flowfeatures':
-        model = V5FlowFeatures(load_pretrained=True).cuda()
-    elif args.model == 'v51flowfeatures':
-        model = V51FlowFeatures(load_pretrained=True).cuda()
-    elif args.model == 'v5flowwarping':
-        model = V5FlowWraping(load_pretrained=True).cuda()
-    elif args.model == 'v51flowwarping':
-        model = V51FlowWraping(load_pretrained=True).cuda()
-    elif args.model == 'v3endflowdilation':
-        model = V3EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v32endflowdilation':
-        model = V32EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v33endflowdilation':
-        model = V33EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v332endflowdilation':
-        model = V332EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v34endflowdilation':
-        model = V34EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'v35endflowdilation':
-        model = V35EndFlowDilation(load_pretrained=True).cuda()
-    elif args.model == 'baseline1':
-        model = Baseline1(load_pretrained=True).cuda()
+    if args.model == 'p2base':
+        model = P2Base(load_pretrained=True).cuda()
+    elif args.model == 'p2small':
+        model = P2Small(load_pretrained=True).cuda()
+    elif args.model == 'p21small':
+        model = P21Small(load_pretrained=True).cuda()
+    elif args.model == 'p31small':
+        model = P31Small(load_pretrained=True).cuda()
+    elif args.model == 'p32small':
+        model = P32Small(load_pretrained=True).cuda()
+    elif args.model == 'p33small':
+        model = P33Small(load_pretrained=True).cuda()
+    elif args.model == 'p41small':
+        model = P41Small(load_pretrained=True).cuda()
+    elif args.model == 'p42small':
+        model = P42Small(load_pretrained=True).cuda()
+    elif args.model == 'p43small':
+        model = P43Small(load_pretrained=True).cuda()
+    elif args.model == 'p61small':
+        model = P61Small(load_pretrained=True).cuda()
+    elif args.model == 'p62small':
+        model = P62Small(load_pretrained=True).cuda()
+    elif args.model == 'p63small':
+        model = P63Small(load_pretrained=True).cuda()
+    elif args.model == 'p21base':
+        model = P21Base(load_pretrained=True).cuda()
+    elif args.model == 'p3base':
+        model = P3Base(load_pretrained=True).cuda()
+    elif args.model == 'p31base':
+        model = P31Base(load_pretrained=True).cuda()
+    elif args.model == 'p32base':
+        model = P32Base(load_pretrained=True).cuda()
+    elif args.model == 'p4base':
+        model = P4Base(load_pretrained=True).cuda()
+    elif args.model == 'p41base':
+        model = P41Base(load_pretrained=True).cuda()
+    elif args.model == 'p5base':
+        model = P5Base(load_pretrained=True).cuda()
+    elif args.model == 'p51base':
+        model = P51Base(load_pretrained=True).cuda()
+    elif args.model == 'p62base':
+        model = P62Base(load_pretrained=True).cuda()
+    elif args.model == 'p622base':
+        model = P622Base(load_pretrained=True).cuda()
+    elif args.model == 'pcustom':
+        model = PCustom(load_pretrained=True).cuda()
+    elif args.model == 'baseline2':
+        model = Baseline2(load_pretrained=True).cuda()
+    elif args.model == 'baseline21':
+        model = Baseline21(load_pretrained=True).cuda()
     elif args.model == 'csrnet':
         model = CSRNet().cuda()
         args.loss_focus = 'cc'
-    elif args.model == 'v3endflow':
-        model = V3EndFlow(load_pretrained=True).cuda()
     else:
         print("Error! Incorrect model selected")
         exit()
@@ -299,7 +314,6 @@ def train(args):
     writer = SummaryWriter(log_dir='summaries/{}'.format(args.save_dir))
     Path('weights/{}/'.format(args.save_dir)).mkdir(parents=True, exist_ok=True)
     Path('results/{}/'.format(args.save_dir)).mkdir(parents=True, exist_ok=True)
-    Path('finals/').mkdir(parents=True, exist_ok=True)
 
     print('Initializing dataset...')
     train_pair_splits = load_train_dataset(args)
@@ -316,39 +330,34 @@ def train(args):
         exit()
 
     if args.optimizer == 'adam':
-        if args.lr_setting == 'adam_1':
-            optimizer = optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
-        elif args.lr_setting == 'adam_2':
+        if args.lr_setting == 'adam_2':
             optimizer = optim.Adam(model.parameters(), lr=2e-5, weight_decay=1e-4)
-        elif args.lr_setting == 'adam_5_no':
-            optimizer = optim.Adam(model.parameters(), lr=5e-5, weight_decay=0)
-        elif args.lr_setting == 'adam_8':
-            optimizer = optim.Adam(model.parameters(), lr=8e-5, weight_decay=1e-4)
-        elif args.lr_setting == 'adam_6_yes':
-            optimizer = optim.Adam(model.parameters(), lr=1e-6, weight_decay=1e-4)
-    else:
-        optimizer = optim.SGD(model.parameters(), 1e-6, momentum=0.95, weight_decay=5*1e-4)
+        elif args.lr_setting == 'adam_9':
+            ret_params = []
+            for name, params in model.named_parameters():
+                if name.split('.')[0] == 'frontend_feat':
+                    ret_params.append({'params': params, 'lr': 1e-5})
+                elif name.split('.')[0] == 'fe_net':
+                    ret_params.append({'params': params, 'lr': 4e-5})
+                else:
+                    ret_params.append({'params': params, 'lr': 1e-4})
 
-    optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
+            optimizer = optim.Adam(ret_params, lr=2e-5, weight_decay=1e-4)
+    else:
+        optimizer = optim.SGD(model.parameters(), 1e-5, momentum=0.95, weight_decay=5*1e-4)
+
+    if args.lr_setting == 'adam_9':
+        optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(args.epochs/14), gamma=0.7)
+    else:
+        optim_lr_decay = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
 
     best_mae = None
     best_mse = None
     best_loss = None
     print('Start training...')
 
-    _, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-    # if args.single_dataset:
-    #     train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-    #     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-    #                                                num_workers=args.dataloader_workers)
-
     for epoch in range(args.epochs):
-        # if not args.single_dataset:
-        #     train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, 0, args)
-        #     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-        #                                                num_workers=args.dataloader_workers)
-
-        train_dataset, _ = setup_train_cross_dataset(train_pair_splits, 0, args)
+        train_dataset, test_dataset = setup_train_cross_dataset(train_pair_splits, epoch, args)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataloader_workers)
 
@@ -439,13 +448,6 @@ def train(args):
         # Learning decay update
         optim_lr_decay.step()
 
-    results = {
-        'cross_mae': best_mae,
-        'cross_mse': best_mse
-    }
-
-    with open("finals/{}.txt".format(args.save_dir), "w") as outfile:
-        json.dump(results, outfile)
     return
 
 
@@ -552,55 +554,28 @@ def get_max_surrounding(data, surrounding=1, only_under=True, smaller_sides=True
 def loi_test(args):
     metrics = utils.AverageContainer()
 
-    # args.save_dir = '20201006_190409_dataset-fudan_model-csrnet_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    # args.save_dir = '20201013_163654_dataset-ucsd_model-csrnet_cc_weight-50_frames_between-2_epochs-750_loss_focus-cc_lr_setting-adam_2_resize_mode-bilinear'
-    # args.model = 'csrnet'
-    # args.loss_focus = 'cc'
-
-    # args.save_dir = '20201005_120202_dataset-fudan_model-v332dilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    # args.model = 'v332dilation'
-
-    # args.save_dir = '20201005_215952_dataset-fudan_model-v332endflowdilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    # args.model = 'v332endflowdilation'
-
-    # args.save_dir = '20201007_160645_dataset-fudan_model-v332singleflow_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    # args.save_dir = '20201013_085930_dataset-ucsd_model-v332singleflow_cc_weight-50_frames_between-2_epochs-750_lr_setting-adam_2_resize_mode-bilinear'
-    # args.model = 'v332singleflow'
-
-    # args.save_dir = '20201022_085033_dataset-dam_model-v5dilation_cc_weight-50_frames_between-4_epochs-400_lr_setting-adam_2_pre_resize_mode-bilinear'
-    # args.model = 'v5dilation'
-
-
-    # args.save_dir = '20201025_035340_dataset-fudan_model-v51flowfeatures_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    # args.model = 'v51flowfeatures'
-
-    ## ---- NOG DOEN!!! --- ##
-    #args.save_dir = '20201027_073844_dataset-fudan_model-v5dilation_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-
-    args.save_dir = '20201029_233103_dataset-aicity_model-v5dilation_density_model-fixed-16_cc_weight-50_frames_between-2_epochs-200_lr_setting-adam_2_resize_mode-bilinear'
-    args.model = 'v5dilation'
-
-    # args.save_dir = 'test_pyramidV5Flow_full'
-    # args.model = 'v5flow'
-
-    # args.save_dir = 'test_pyramidV5'
-    # args.model = 'v5dilation'
-
-    # args.save_dir = '20201008_081012_dataset-fudan_model-baseline1_cc_weight-50_epochs-500_lr_setting-adam_2_resize_mode-bilinear'
-    # args.save_dir = '20201014_054730_dataset-ucsd_model-baseline1_cc_weight-50_frames_between-2_epochs-750_lr_setting-adam_2_resize_mode-bilinear'
-    # args.model = 'baseline1'
-
-
+    if args.model == 'csrnet':
+        args.loss_focus = 'cc'
 
     if args.pre == '':
-        args.pre = 'weights/{}/best_model.pt'.format(args.save_dir)
+        args.pre = 'weights/{}/last_model.pt'.format(args.save_dir)
     model = load_model(args)
     model.eval()
     if args.loss_focus == 'cc':
-        fe_model = V332Dilation(load_pretrained=True).cuda()
-        #pre_fe = '20200915_162744_dataset-fudan_frames_between-1_loss_focus-fe_resize_patch-on'
-        #pre_fe = '20200916_093740_dataset-fudan_frames_between-5_loss_focus-fe_resize_patch-off'
-        pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
+        if args.dataset == 'fudan':
+            fe_model = P21Base(load_pretrained=True).cuda()
+            pre_fe = '20201119_153835_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
+        elif args.dataset == 'ucsd':
+            pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
+        elif args.dataset == 'tub':
+            pre_fe = '20201107_001146_dataset-tub_model-v332dilation_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-250_loss_focus-fe_lr_setting-adam_2'
+        elif args.dataset == 'aicity':
+            fe_model = Baseline21(load_pretrained=True).cuda()
+            pre_fe = '20201111_150840_dataset-aicity_model-baseline21_density_model-fixed-8_cc_weight-1_frames_between-2_epochs-300_lr_setting-adam_2_pre'
+        else:
+            print("This dataset doesnt have flow only results")
+            exit()
+
         fe_model.load_state_dict(
             torch.load('weights/{}/last_model.pt'.format(pre_fe))
         )
@@ -612,13 +587,18 @@ def loi_test(args):
 
     with torch.no_grad():
         # Right now on cross validation
-        test_vids, _ = load_test_dataset(args)
+        _, test_vids = load_test_dataset(args)
         for v_i, video in enumerate(test_vids):
 
             vid_result = []
-            print("Video:", video.get_path())
+            print("Video ({}): {}".format(v_i, video.get_path()))
 
-            video.generate_frame_pairs(distance=args.frames_between, skip_inbetween=True)
+            if args.eval_method == 'roi':
+                skip_inbetween = False
+            else:
+                skip_inbetween = True
+
+            video.generate_frame_pairs(distance=args.frames_between, skip_inbetween=skip_inbetween)
             dataset = SimpleDataset(video.get_frame_pairs(), args, False)
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, num_workers=args.dataloader_workers)
 
@@ -642,8 +622,27 @@ def loi_test(args):
             else:
                 loi_width = args.loi_width
 
+            if args.loi_level == 'moving_counting':
+                lines = video.get_lines()[0:1]
+            elif args.loi_level == 'take_image' or args.eval_method == 'roi':
+                line = basic_entities.BasicLineSample(video, (0,0), (100,150))
+                line.set_crossed(1,1)
+                lines = [line]
+                real_line = False
+            else:
+                if len(video.get_lines()) == 0:
+                    line = basic_entities.BasicLineSample(video, (0,0), (100,150))
+                    line.set_crossed(1,1)
+                    lines = [line]
+                    real_line = False
+                else:
+                    lines = video.get_lines()
+                    real_line = True
 
-            for l_i, line in enumerate(video.get_lines()):
+            for l_i, line in enumerate(lines):
+                if line.get_crossed()[0] + line.get_crossed()[1] == 0:
+                    continue
+
                 image = video.get_frame(0).get_image()
                 width, height = image.size
                 image.close()
@@ -654,7 +653,9 @@ def loi_test(args):
                                                crop_processing=False,
                                                loi_version=args.loi_version, loi_width=loi_width,
                                                loi_height=loi_width*args.loi_height)
-                loi_model.create_regions()
+
+                if args.loi_level != 'take_image':
+                    loi_model.create_regions()
 
                 total_d1 = 0
                 total_d2 = 0
@@ -667,10 +668,9 @@ def loi_test(args):
 
                 metrics['timing'].reset()
 
+                roi = aicity.create_roi(video)
+
                 for s_i, batch in enumerate(dataloader):
-                    # if s_i < 18:
-                    #     pbar.update(1)
-                    #     continue
                     torch.cuda.empty_cache()
                     timer = utils.sTimer("Full process time")
 
@@ -692,16 +692,28 @@ def loi_test(args):
                     else:
                         fe_output, _, cc_output = model.forward(frames1, frames2)
 
-                    metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
-                    metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
-
-                    fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
-                    fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True, smaller_sides=True)
-
-                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=False, smaller_sides=False)
-                    # fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=False, smaller_sides=False)
-
-                    #fe_output = get_max_surrounding(fe_output, surrounding=4, only_under=False, smaller_sides=False)
+                    if args.loi_maxing == 1:
+                        if args.dataset == 'fudan':
+                            fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True,
+                                                            smaller_sides=True)
+                            fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True,
+                                                            smaller_sides=True)
+                            fe_output = get_max_surrounding(fe_output, surrounding=4, only_under=True,
+                                                            smaller_sides=False)
+                        elif args.dataset == 'tub':
+                            fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True,
+                                                            smaller_sides=True)
+                        elif args.dataset == 'ucsd':
+                            fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True,
+                                                            smaller_sides=True)
+                        elif args.dataset == 'aicity':
+                            fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=False,
+                                                            smaller_sides=False)
+                            fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=False,
+                                                            smaller_sides=False)
+                        else:
+                            print("No maxing exists for this dataset")
+                            exit()
 
                     # Resize and save as numpy
                     cc_output = loi_model.to_orig_size(cc_output)
@@ -711,14 +723,74 @@ def loi_test(args):
                     fe_output = fe_output.squeeze().permute(1, 2, 0)
                     fe_output = fe_output.detach().cpu().data.numpy()
 
+                    if args.loi_level == 'take_image':
+                        dir1 = 'full_imgs/{}-{}/'.format(v_i, s_i)
+                        back = '{}_m{}_{}'.format(args.model, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+                        Path(dir1).mkdir(parents=True, exist_ok=True)
+
+                        img = Image.open(video.get_frame_pairs()[s_i].get_frames(1).get_image_path())
+                        img.save('{}orig2.jpg'.format(dir1))
+
+                        density = torch.FloatTensor(
+                            density_filter.gaussian_filter_fixed_density(video.get_frame_pairs()[s_i].get_frames(0), 8))
+                        density = density.numpy()
+                        cc_img = Image.fromarray(density * 255.0 / density.max())
+                        cc_img = cc_img.convert("L")
+                        cc_img.save('{}orig_cc.jpg'.format(dir1))
+
+                        img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
+                        cc = cc_output
+                        fe = fe_output
+
+                        img.save('{}orig.jpg'.format(dir1))
+
+                        # cc_img = Image.fromarray(cc * 255.0 / cc.max())
+                        # cc_img = cc_img.convert("L")
+                        cc_img.save('{}cc_{}.jpg'.format(dir1, back))
+
+                        fe_img = Image.fromarray(np.uint8(utils.flo_to_color(fe)), mode='RGB')
+                        fe_img.save('{}fe_{}.jpg'.format(dir1, back))
+
+                        cc_img = cc_img.convert('RGB')
+                        blended = Image.blend(cc_img, fe_img, alpha=0.25)
+                        blended.save('{}blend_{}.jpg'.format(dir1, back))
+                        continue
+
+                    if args.dataset == 'aicity':
+                        cc_output = np.multiply(roi, cc_output)
+                        densities = np.multiply(roi, densities)
+
+
                     # Extract LOI results
                     if args.loi_level == 'pixel':
                         loi_results = loi_model.pixelwise_forward(cc_output, fe_output)
                     elif args.loi_level == 'region':
                         loi_results = loi_model.regionwise_forward(cc_output, fe_output)
+                    elif args.loi_level == 'crossed':
+                        loi_results = loi_model.cross_pixelwise_forward(cc_output, fe_output)
+                    elif args.loi_level == 'moving_counting':
+                        loi_results = ([0], [0])
+                        if args.dataset == 'tub':
+                            minimum_move = 3
+                        elif args.dataset == 'aicity':
+                            minimum_move = 6
+
+                        minimum_fe = np.linalg.norm(fe_output, axis=2) > minimum_move
+                        moving_density = np.multiply(minimum_fe, cc_output)
+
+                        metrics['m_mae'].update(abs(moving_density.sum() - len(frame_pair.get_frames(0).get_centers(only_moving=True))))
+                        metrics['m_mse'].update(
+                            math.pow(moving_density.sum() - len(frame_pair.get_frames(0).get_centers(only_moving=True)), 2))
                     else:
                         print('Incorrect LOI level')
                         exit()
+
+                    if l_i == 0:
+                        metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
+                        metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
+
+                        metrics['real_roi_mae'].update(abs(cc_output.sum().item() - len(frame_pair.get_frames(0).get_centers())))
+                        metrics['real_roi_mse'].update(math.pow(cc_output.sum().item() - len(frame_pair.get_frames(0).get_centers()), 2))
 
                     # Get 2 frame results and sum
                     # @TODO: Here is switch between sides. Correct this!!!!!!
@@ -741,26 +813,24 @@ def loi_test(args):
 
 
                     if v_i == 0 and l_i == 0:
-
-                        # Save for debugging
-                        if s_i == 0:
-                            cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
-                            cc_img = cc_img.convert("L")
-                            cc_img.save('counting.png')
-
-                            frame1_img = frame_pair.get_frames(0).get_image()
-                            total_image = frame1_img.copy().convert('RGB')
-                            total_image.save('orig.png')
-
-
                         if s_i < 10:
                             img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
-                            utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
+
+                            density = torch.FloatTensor(density_filter.gaussian_filter_fixed_density(video.get_frame_pairs()[s_i].get_frames(0), 8))
+                            density = density.numpy()
+                            utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, density, fe_output)
 
                     metrics['timing'].update(timer.show(False))
 
 
                 pbar.close()
+
+                # Non-real line is important for ROI counting, but not LOI counting
+                if not real_line:
+                    break
+
+                if args.loi_level == 'take_image':
+                    break
 
                 # Fixes error in UCSD mix
                 ucsd_total_count[0].append(0.0)
@@ -772,7 +842,7 @@ def loi_test(args):
                 p_left, p_right = totals
                 mae = abs(t_left - p_left) + abs(t_right - p_right)
                 metrics['loi_mae'].update(mae)
-                mse = math.pow(t_left - p_left, 2) + math.pow(t_right + p_right, 2)
+                mse = math.pow(t_left - p_left, 2) + math.pow(t_right - p_right, 2)
                 metrics['loi_mse'].update(mse)
                 total_mae = abs(t_left + t_right - (p_left + p_right))
                 total_mse = math.pow(t_left + t_right - (p_left + p_right), 2)
@@ -783,6 +853,7 @@ def loi_test(args):
                 print("LOI performance (MAE: {}, MSE: {}, TMAE: {}, TMSE: {}, PTMAE: {})".format(mae, mse, total_mae,
                                                                                                  total_mse,
                                                                                                  percentual_total_mae))
+
 
                 results.append({
                     'vid': v_i,
@@ -800,7 +871,8 @@ def loi_test(args):
                     with open('dam_results_{}_{}.json'.format(v_i, l_i), 'w') as outfile:
                         json.dump(results, outfile)
 
-            #break
+        if args.loi_level == 'take_image':
+            return
 
         if args.dataset == 'ucsd':
             ucsd_total_gt = ucsdpeds.load_countings('../data/ucsdpeds')
@@ -842,16 +914,26 @@ def loi_test(args):
             print("TMAE: {} | {}".format(sum(tmae[0]) / len(tmae[0]), sum(tmae[1]) / len(tmae[1])))
             print("WMAE: {} | {}".format(sum(wmae[0]) / len(wmae[0]), sum(wmae[1]) / len(wmae[1])))
 
-        # outname = '{}_{}_{}_{}'.format(args.loi_level, args.real_loi_version, args.loi_width, args.loi_height)
-        # with open('loi_results/{}.json'.format(outname), 'w') as outfile:
-        #     json.dump(results, outfile)
-
         print("MAE: {}, MSE: {}, PTMAE: {}".format(metrics['loi_mae'].avg,
                                                    metrics['loi_mse'].avg,
                                                    metrics['loi_ptmae'].avg))
 
-        return {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_ptmae': metrics['loi_ptmae'].avg,\
-               'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg}  # ROI (First Line is LOI)
+        results = {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg,
+                    'loi_ptmae': metrics['loi_ptmae'].avg, 'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg,
+                    'roi2_mae': metrics['real_roi_mae'].avg, 'roi2_mse': metrics['real_roi_mse'].avg,
+                    'timing': metrics['timing'].avg
+               }  # ROI (First Line is LOI)
+
+        if args.loi_level == 'moving_counting':
+            results['m_mae'] = metrics['m_mae'].avg
+            results['m_mse'] = metrics['m_mse'].avg
+
+
+        outname = 'new_{}_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.eval_method, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        with open('loi_results/{}.json'.format(outname), 'w') as outfile:
+            json.dump(results, outfile)
+
+        return results
 
 
 if __name__ == '__main__':
@@ -865,17 +947,13 @@ if __name__ == '__main__':
 
     args.resize_to_orig = True  # Resize output to orig. (Or groundtruth to output)
 
-    args.print_every = 40  # Print every x amount of minibatches
-    args.test_epochs = 1  # Run every tenth epoch a test
-
-    args.train_split = 4
+    args.test_epochs = 5  # Run every tenth epoch a test
+    args.train_split = 5
     args.cross_val_amount = 50
     args.train_amount = 200
 
-    args.single_dataset = False
-
     # Add date and time so we can just run everything very often :)
-    args.save_dir = args.name # '{}_{}'.format(datetime.now().strftime("%Y%m%d_%H%M%S"), args.name)
+    args.save_dir = args.name
 
     args.loi_flow_smoothing = False
     args.loi_flow_width = False
@@ -895,11 +973,9 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     if args.pre != '':
-        args.pre = 'weights/{}/best_model.pt'.format(args.pre)
+        args.pre = 'weights/{}/last_model.pt'.format(args.pre)
 
     if args.mode == 'loi':
         print(loi_test(args))
     else:
         train(args)
-        # args.pre = ''
-        # loi_test(args)

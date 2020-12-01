@@ -157,6 +157,9 @@ def select_regions_v2(dot1, dot2, d_width, d_height):
         # The difference which we can add to the region lines corners
         # to come to the corners on the other end of the region
         part_line_length = math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
+        if part_line_length == 0:
+            continue
+
         point_diff = (
             - (point1[1] - point2[1]) / float(part_line_length) * float(height_region),
             (point1[0] - point2[0]) / float(part_line_length) * float(height_region)
@@ -208,6 +211,7 @@ class LOI_Calculator:
         self.loi_height = loi_height
         self.loi_width = loi_width
         self.regions = loi_regions
+        self.distance_grid = None
 
     def create_regions(self):
         # Generate the original regions as well for later usage
@@ -221,6 +225,8 @@ class LOI_Calculator:
             for o, region in enumerate(small_regions):
                 mask = region_to_mask(region, self.rotate_angle, img_width=self.img_width, img_height=self.img_height)
                 self.masks[i].append(mask)
+
+        self.distance_grid = self._generate_distance_grid()
 
     def reshape_image(self, frame):
         if self.crop_processing is False:
@@ -245,6 +251,27 @@ class LOI_Calculator:
                                   size=(self.img_height, self.img_width),
                                   mode='bicubic', align_corners=False) / factor
         return frame
+
+    def _generate_distance_grid(self):
+        w = self.img_width
+        h = self.img_height
+
+        p1 = np.array(self.point1)
+        p2 = np.array(self.point2)
+        direction = p2 - p1
+
+        x = np.tile(np.array(np.arange(0, w)), (h, 1)).T
+        y = np.tile(np.array(np.arange(0, h)), (w, 1))
+        xy = np.concatenate((x[:, :, None], y[:, :, None]), axis=2)
+
+        line_points = xy - p1
+
+        upper_proj = np.dot(line_points, direction)
+        lower_proj = np.linalg.norm(direction) ** 2
+        proj = upper_proj / lower_proj
+        proj_points = proj[..., None] * np.tile(direction, (w, h, 1))
+
+        return np.linalg.norm(proj_points - line_points, axis=2).T
 
     def regionwise_forward(self, counting_result, flow_result):
         sums = ([], [])
@@ -359,23 +386,63 @@ class LOI_Calculator:
                 threshold = 0.5
                 towards_pixels = fe_part > threshold
 
-                speed = cropped_mask * np.sqrt(np.power(part_flow_result, 2).sum(2))
-
-
-                # print("Count", towards_pixels.sum())
-                # print("Towards:", fe_part[towards_pixels].mean())
-                # print("Speed:", speed[towards_pixels].mean())
-                # print("All speed", speed[speed > threshold].mean())
-                # print("Crowd:", cc_part[towards_pixels].sum())
-                # print("Crowd speed:", cc_part[speed > threshold].sum())
-                # print("LOI:", np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum())
-                # print("Norm:", np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum() / region[4])
-
                 # Too remove some noise
                 if towards_pixels.sum() == 0 or cc_part.sum() < 0:
                     sums[i].append(0.0)
                     continue
 
                 sums[i].append(np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum() / region[4])
+
+        return sums
+
+    def cross_pixelwise_forward(self, counting_result, flow_result):
+        sums = ([], [])
+
+        for i, side_regions in enumerate(self.regions):
+            for o, region in enumerate(side_regions):
+                mask = self.masks[i][o]
+
+                # Get which part of the mask contains the actual mask
+                # This massively improves the speed of the model
+                points = np.array(region[0:4])
+
+                # Get the crop for the regions
+                min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]), \
+                                             np.min(points[:, 1]), np.max(points[:, 1])
+
+                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                
+                cropped_mask = mask[min_y:max_y, min_x:max_x]
+
+                # Use cropped mask on crowd counting result
+                cc_part = cropped_mask * counting_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+                # Project the flow estimation output on a line perpendicular to the LOI,
+                # so we can calculate if the people are approach/leaving the LOI.
+                direction = np.array([region[1][0] - region[2][0], region[1][1] - region[2][1]]).astype(
+                    np.float32)
+                direction = direction / np.linalg.norm(direction)
+
+                # Crop so only cropped area gets projected
+                part_flow_result = flow_result[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+                distance_grid_part = self.distance_grid[lc_min_y:lc_max_y, lc_min_x:lc_max_x]
+
+                # Project on direction of pedestrians
+                perp = np.sum(np.multiply(part_flow_result, direction), axis=2)
+                fe_part = cropped_mask * perp
+
+                # Get all the movement towards the line
+                threshold = 0.5
+                towards_pixels = fe_part > threshold
+
+                # Too remove some noise
+                if towards_pixels.sum() == 0 or cc_part.sum() < 0:
+                    sums[i].append(0.0)
+                    continue
+
+                crossing_pixels = fe_part[towards_pixels] > distance_grid_part[towards_pixels]
+
+                sums[i].append(cc_part[towards_pixels][crossing_pixels].sum())
 
         return sums
