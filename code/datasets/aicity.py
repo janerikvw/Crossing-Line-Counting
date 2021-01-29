@@ -16,7 +16,7 @@ lines = {
 def create_roi(video):
     video_path = '/'.join(video.get_path().split('/')[-2:])
     base_path = '/'.join(video.get_path().split('/')[:-2])
-    roi_path = '{}/ROI/{}.jpg'
+    roi_path = '{}/ROI/{}.jpg'.format(base_path, video_path)
     img = Image.open(roi_path)
     roi = np.asarray(img)/255
     return roi

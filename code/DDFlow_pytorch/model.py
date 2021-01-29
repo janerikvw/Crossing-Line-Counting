@@ -201,6 +201,18 @@ class Refiner(torch.nn.Module):
     # end
 # end
 
+import datetime
+class sTimer():
+    def __init__(self, name):
+        self.start = datetime.datetime.now()
+        self.name = name
+
+    def show(self, printer=True):
+        ms = int((datetime.datetime.now() - self.start).total_seconds() * 1000)
+        if printer:
+            print("{}: {}ms".format(self.name, ms))
+            
+        return ms
 
 class PWCNet(torch.nn.Module):
     def __init__(self, flow_features = False):
@@ -268,15 +280,22 @@ class PWCNet(torch.nn.Module):
                                                  mode='bicubic', align_corners=False)
 
         # Feed through encoder and decode forward and backward
+        # timer = sTimer("Extractor 1")
         features1 = self.netExtractor(frame1)
+        # timer.show()
+        # timer = sTimer("Extractor 2")
         features2 = self.netExtractor(frame2)
+        # timer.show()
+
         flow_fw, flow_features = self.full_decode(features1, features2, initial_sizes=(int_width, int_height),
                                    processed_sizes=(int_preprocessed_width, int_preprocessed_height))
         ret = [flow_fw]
 
         if ret_bw:
+            # timer = sTimer("Decoder backwards")
             flow_bw, _ = self.full_decode(features2, features1, initial_sizes=(int_width, int_height),
                                        processed_sizes=(int_preprocessed_width, int_preprocessed_height))
+            # timer.show()
             ret.append(flow_bw)
 
         if ret_features:

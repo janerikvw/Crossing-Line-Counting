@@ -76,6 +76,9 @@ class SimpleDataset(torch.utils.data.Dataset):
         density = torch.FloatTensor(generate_density(pair.get_frames(0), self.density_type))
         density = density.unsqueeze_(0)
 
+        density2 = torch.FloatTensor(generate_density(pair.get_frames(1), self.density_type))
+        density2 = density2.unsqueeze_(0)
+
         # Crop to 1/2 of the image. (With some resizing for augmentation) and flip sometimes
         if self.augmentation:
             if self.resize_patch:
@@ -100,8 +103,9 @@ class SimpleDataset(torch.utils.data.Dataset):
             frame1 = image_augmentation(frame1, self.cropping_size, crop_mag, crop_loc_rand, flip)
             frame2 = image_augmentation(frame2, self.cropping_size, crop_mag, crop_loc_rand, flip)
             density = image_augmentation(density, self.cropping_size, crop_mag, crop_loc_rand, flip)
+            density2 = image_augmentation(density2, self.cropping_size, crop_mag, crop_loc_rand, flip)
 
-        return frame1, frame2, density
+        return frame1, frame2, density, density2
 
     def __len__(self):
         return len(self.pairs)

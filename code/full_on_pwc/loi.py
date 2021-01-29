@@ -202,7 +202,7 @@ class LOI_Calculator:
 
         # self.select_type = 'V2'
         self.crop_processing = crop_processing
-        self.crop_distance = 0
+        self.crop_distance = 70
 
         self.regions = []
         self.masks = ([], [])
@@ -228,27 +228,39 @@ class LOI_Calculator:
 
         self.distance_grid = self._generate_distance_grid()
 
+        self.cropped_frame = select_line_outer_points(self.regions, self.crop_distance, self.img_width, self.img_height)
+
     def reshape_image(self, frame):
         if self.crop_processing is False:
             return frame
 
-        min_x, max_x, min_y, max_y = select_line_outer_points(self.regions, self.crop_distance, self.img_width, self.img_height)
-        frame = frame.crop((min_x, min_y, max_x, max_y))
-
-        # frame.save(os.path.join('orig_crop.png'))
+        frame = frame[:, :, self.cropped_frame[2]:self.cropped_frame[3], self.cropped_frame[0]:self.cropped_frame[1]]
 
         return frame
 
+
+    def orig_sizes(self):
+        if self.crop_processing is False:
+            orig_height = self.img_height
+            orig_width = self.img_width
+        else:
+            orig_height = self.cropped_frame[3] - self.cropped_frame[2]
+            orig_width = self.cropped_frame[1] - self.cropped_frame[0]
+
+        return orig_width, orig_height
+
     def to_orig_size(self, frame, rescale_values=True):
-        if frame.shape[2] == self.img_height and frame.shape[3] == self.img_width:
+        orig_width, orig_height = self.orig_sizes()
+
+        if frame.shape[2] == orig_height and frame.shape[3] == orig_width:
             return frame
 
         if rescale_values:
-            factor = (self.img_height * self.img_width) / (frame.shape[2] * frame.shape[3])
+            factor = (orig_height * orig_width) / (frame.shape[2] * frame.shape[3])
         else:
             factor = 1.0
         frame = torch.nn.functional.interpolate(input=frame,
-                                  size=(self.img_height, self.img_width),
+                                  size=(orig_height, orig_width),
                                   mode='bicubic', align_corners=False) / factor
         return frame
 
@@ -274,6 +286,10 @@ class LOI_Calculator:
         return np.linalg.norm(proj_points - line_points, axis=2).T
 
     def regionwise_forward(self, counting_result, flow_result):
+        if self.crop_processing is True:
+            print("Regionwise is not optimized for cropping")
+            exit()
+
         sums = ([], [])
 
         for i, side_regions in enumerate(self.regions):
@@ -355,14 +371,13 @@ class LOI_Calculator:
                 min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]), \
                                              np.min(points[:, 1]), np.max(points[:, 1])
 
-                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                # lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
                 # Adjust the crop if we crop the prediction image as well
-                # if self.crop_processing is False:
-                #     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
-                # else:
-                #     adjust_x, _, adjust_y, _ = select_line_outer_points(self.regions, crop['crop'], crop['width'],
-                #                                                         crop['height'])
-                #     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x - adjust_x, max_x - adjust_x, min_y - adjust_y, max_y - adjust_y
+                if self.crop_processing is False:
+                    lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                else:
+                    adjust_x, _, adjust_y, _ = self.cropped_frame
+                    lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x - adjust_x, max_x - adjust_x, min_y - adjust_y, max_y - adjust_y
 
                 cropped_mask = mask[min_y:max_y, min_x:max_x]
 
@@ -396,6 +411,10 @@ class LOI_Calculator:
         return sums
 
     def cross_pixelwise_forward(self, counting_result, flow_result):
+        if self.crop_processing is True:
+            print("Crossing is not optimized for cropping")
+            exit()
+            
         sums = ([], [])
 
         for i, side_regions in enumerate(self.regions):

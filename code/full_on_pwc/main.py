@@ -19,7 +19,8 @@ from torchvision.utils import save_image
 from dataset import SimpleDataset
 from models import Baseline2, Baseline21
 from dense_models import P2Base, P21Base, P3Base, P31Base, P32Base, P4Base, P41Base, P5Base, P51Base, P622Base, P62Base, PCustom,\
-                         P2Small, P21Small, P31Small, P32Small, P33Small, P41Small, P42Small, P43Small, P61Small, P62Small, P63Small
+                         P2Small, P21Small, P31Small, P32Small, P33Small, P41Small, P42Small, P43Small, P61Small, P62Small, P63Small,\
+                         P622Small, P632Small, P72Small
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
@@ -265,8 +266,14 @@ def load_model(args):
         model = P61Small(load_pretrained=True).cuda()
     elif args.model == 'p62small':
         model = P62Small(load_pretrained=True).cuda()
+    elif args.model == 'p622small':
+        model = P622Small(load_pretrained=True).cuda()
     elif args.model == 'p63small':
         model = P63Small(load_pretrained=True).cuda()
+    elif args.model == 'p632small':
+        model = P632Small(load_pretrained=True).cuda()
+    elif args.model == 'p72small':
+        model = P72Small(load_pretrained=True).cuda()
     elif args.model == 'p21base':
         model = P21Base(load_pretrained=True).cuda()
     elif args.model == 'p3base':
@@ -364,10 +371,11 @@ def train(args):
         loss_container = utils.AverageContainer()
         for i, batch in enumerate(train_loader):
 
-            frames1, frames2, densities = batch
+            frames1, frames2, densities, densities2 = batch
             frames1 = frames1.cuda()
             frames2 = frames2.cuda()
             densities = densities.cuda()
+            densities2 = densities2.cuda()
 
             # Set grad to zero
             optimizer.zero_grad()
@@ -401,7 +409,11 @@ def train(args):
                 loss_container['census_occlusion'].update(photo_losses['census']['occlusion'].item())
 
             if args.loss_focus != 'fe':
-                cc_loss = criterion(pred_densities, densities.repeat(1, pred_densities.shape[1], 1, 1))
+                if pred_densities.shape[1] == 2:
+                    loss_densities = torch.cat([densities, densities2], 1)
+                else:
+                    loss_densities = densities.repeat(1, pred_densities.shape[1], 1, 1)
+                cc_loss = criterion(pred_densities, loss_densities)
 
             if args.loss_focus == 'cc':
                 loss = cc_loss * args.cc_weight
@@ -472,7 +484,7 @@ def test_run(args, epoch, test_dataset, model, save=True):
     model.eval()
     with torch.no_grad():
         for i, batch in enumerate(test_loader):
-            frames1, frames2, densities = batch
+            frames1, frames2, densities, densities2 = batch
             frames1 = frames1.cuda()
             frames2 = frames2.cuda()
             densities = densities.cuda()
@@ -524,7 +536,6 @@ def test_run(args, epoch, test_dataset, model, save=True):
 # Smaller_sides: When only_under the width search will be as wide as the height (surrounding+1)
 def get_max_surrounding(data, surrounding=1, only_under=True, smaller_sides=True):
     kernel_size = surrounding * 2 + 1
-
     out_channels = np.eye(kernel_size * kernel_size)
 
     if only_under:
@@ -542,13 +553,10 @@ def get_max_surrounding(data, surrounding=1, only_under=True, smaller_sides=True
 
     speed = torch.sqrt(torch.sum(torch.pow(patches, 2), axis=0))
     max_speeds = torch.argmax(speed, axis=0)
-    flat_max_speeds = max_speeds.reshape(data.shape[2] * data.shape[3])
+    gather_speeds = max_speeds.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+    output = torch.gather(patches, 1, gather_speeds)
+    output = output.transpose(0, 1)
 
-    y_axis = torch.arange(data.shape[2]).repeat_interleave(data.shape[3])
-    x_axis = torch.arange(data.shape[3]).repeat(data.shape[2])
-
-    output = patches[:, flat_max_speeds, y_axis, x_axis]
-    output = output.reshape(1, 2, data.shape[2], data.shape[3])
     return output
 
 def loi_test(args):
@@ -562,16 +570,15 @@ def loi_test(args):
     model = load_model(args)
     model.eval()
     if args.loss_focus == 'cc':
+        fe_model = P21Small(load_pretrained=True).cuda()
         if args.dataset == 'fudan':
-            fe_model = P21Base(load_pretrained=True).cuda()
-            pre_fe = '20201119_153835_dataset-fudan_model-p21base_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
+            pre_fe = '20201123_122014_dataset-fudan_model-p21small_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-400_lr_setting-adam_9'
         elif args.dataset == 'ucsd':
             pre_fe = '20201013_193544_dataset-ucsd_model-v332dilation_cc_weight-50_frames_between-2_epochs-750_loss_focus-fe_lr_setting-adam_2_resize_mode-bilinear'
         elif args.dataset == 'tub':
-            pre_fe = '20201107_001146_dataset-tub_model-v332dilation_density_model-fixed-8_cc_weight-50_frames_between-5_epochs-250_loss_focus-fe_lr_setting-adam_2'
+            pre_fe = '20201125_152055_dataset-tub_model-p21small_density_model-fixed-5_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
         elif args.dataset == 'aicity':
-            fe_model = Baseline21(load_pretrained=True).cuda()
-            pre_fe = '20201111_150840_dataset-aicity_model-baseline21_density_model-fixed-8_cc_weight-1_frames_between-2_epochs-300_lr_setting-adam_2_pre'
+            pre_fe = '20201126_192730_dataset-aicity_model-p21small_density_model-fixed-5_cc_weight-50_frames_between-5_epochs-350_lr_setting-adam_9'
         else:
             print("This dataset doesnt have flow only results")
             exit()
@@ -650,7 +657,7 @@ def loi_test(args):
 
                 loi_model = loi.LOI_Calculator(point1, point2,
                                                img_width=width, img_height=height,
-                                               crop_processing=False,
+                                               crop_processing=True,
                                                loi_version=args.loi_version, loi_width=loi_width,
                                                loi_height=loi_width*args.loi_height)
 
@@ -668,15 +675,26 @@ def loi_test(args):
 
                 metrics['timing'].reset()
 
-                roi = aicity.create_roi(video)
+                if args.dataset == 'aicity':
+                    roi = aicity.create_roi(video)
 
+                v = 0
+                capt = 0
                 for s_i, batch in enumerate(dataloader):
+
+                    if args.loi_level == 'take_image':
+                        v = v + 1
+                        n_screens = len(video.get_frame_pairs())
+                        every_screen = math.ceil(n_screens / 6)
+                        if (v%every_screen) != 0:
+                            continue
+
                     torch.cuda.empty_cache()
                     timer = utils.sTimer("Full process time")
 
                     frame_pair = video.get_frame_pairs()[s_i]
                     print_i = '{:05d}'.format(s_i + 1)
-                    frames1, frames2, densities = batch
+                    frames1, frames2, densities, densities2 = batch
                     frames1 = loi_model.reshape_image(frames1.cuda())
                     frames2 = loi_model.reshape_image(frames2.cuda())
 
@@ -715,6 +733,7 @@ def loi_test(args):
                             print("No maxing exists for this dataset")
                             exit()
 
+
                     # Resize and save as numpy
                     cc_output = loi_model.to_orig_size(cc_output)
                     cc_output = cc_output.squeeze().squeeze()
@@ -724,8 +743,10 @@ def loi_test(args):
                     fe_output = fe_output.detach().cpu().data.numpy()
 
                     if args.loi_level == 'take_image':
-                        dir1 = 'full_imgs/{}-{}/'.format(v_i, s_i)
-                        back = '{}_m{}_{}'.format(args.model, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+                        
+                        dir1 = 'full_imgs/{}/{}-{}/'.format(args.dataset, v_i, capt)
+                        capt = capt + 1
+                        back = '{}_m{}_{}_{}'.format(args.model, args.loi_maxing, args.frames_between, datetime.now().strftime("%Y%m%d_%H%M%S"))
                         Path(dir1).mkdir(parents=True, exist_ok=True)
 
                         img = Image.open(video.get_frame_pairs()[s_i].get_frames(1).get_image_path())
@@ -744,8 +765,8 @@ def loi_test(args):
 
                         img.save('{}orig.jpg'.format(dir1))
 
-                        # cc_img = Image.fromarray(cc * 255.0 / cc.max())
-                        # cc_img = cc_img.convert("L")
+                        cc_img = Image.fromarray(cc_output * 255.0 / cc_output.max())
+                        cc_img = cc_img.convert("L")
                         cc_img.save('{}cc_{}.jpg'.format(dir1, back))
 
                         fe_img = Image.fromarray(np.uint8(utils.flo_to_color(fe)), mode='RGB')
@@ -784,6 +805,9 @@ def loi_test(args):
                     else:
                         print('Incorrect LOI level')
                         exit()
+                    
+                    if s_i > 0:
+                        metrics['timing'].update(timer.show(False))
 
                     if l_i == 0:
                         metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
@@ -812,15 +836,15 @@ def loi_test(args):
                     pbar.update(1)
 
 
+
                     if v_i == 0 and l_i == 0:
                         if s_i < 10:
                             img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
 
-                            density = torch.FloatTensor(density_filter.gaussian_filter_fixed_density(video.get_frame_pairs()[s_i].get_frames(0), 8))
-                            density = density.numpy()
-                            utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, density, fe_output)
+                            utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
 
-                    metrics['timing'].update(timer.show(False))
+                    # if s_i == 5:
+                    #     exit()
 
 
                 pbar.close()
@@ -929,7 +953,7 @@ def loi_test(args):
             results['m_mse'] = metrics['m_mse'].avg
 
 
-        outname = 'new_{}_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.eval_method, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        outname = 'new3_{}_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.eval_method, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
         with open('loi_results/{}.json'.format(outname), 'w') as outfile:
             json.dump(results, outfile)
 
