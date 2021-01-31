@@ -67,5 +67,5 @@ def load_train_test_frames(base_path, train=0.8, load_labeling=True):
 
 
 if __name__ == '__main__':
-    train_frames = load_all_frames('../data/Fudan/train_data')
+    train_frames = load_all_frames('data/Fudan/train_data')
     print(len(train_frames))

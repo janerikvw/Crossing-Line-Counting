@@ -24,7 +24,7 @@ for ex in experiments:
         continue
 
     try:
-        file = open('full_on_pwc/finals/{}.txt'.format(ex['name']), mode='r')
+        file = open('finals/{}.txt'.format(ex['name']), mode='r')
         all_of_it = file.read()
         file.close()
         # mae, mse = all_of_it.split(',')

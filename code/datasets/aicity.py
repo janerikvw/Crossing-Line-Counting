@@ -182,7 +182,7 @@ def split_train_test(videos, train=0.5):
 
 
 if __name__ == '__main__':
-    videos = load_all_videos('../data/AICity')
+    videos = load_all_videos('data/AICity')
     train, test = split_train_test(videos)
 
     for i, tr in enumerate(train):

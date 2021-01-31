@@ -6,7 +6,7 @@ const port = 3000
 var glob = require("glob")
 var fs = require('fs');
 
-const base_path = '../../videos/'
+const base_path = '../videos/'
 
 let videos = null
 

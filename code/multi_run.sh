@@ -12,8 +12,6 @@ do
   name=$VALUES
 
   echo $name
-  cd full_on_pwc
   python main.py $var_run
-  cd ../
   python finishing_spreadsheet.py
 done
