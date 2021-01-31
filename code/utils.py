@@ -24,6 +24,19 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+
+class AverageContainer:
+    def __init__(self):
+        self.meters = {}
+
+    def __getitem__(self, item):
+        if item not in self.meters:
+            self.meters[item] = AverageMeter()
+        return self.meters[item]
+
+    def reset(self):
+        self.meters = {}
+
 def norm_to_img(tensor):
     return tensor / tensor.max()
 
@@ -39,7 +52,6 @@ class sTimer():
 
         return ms
 
-
 # Return a RGB image based on a optical flow map
 def flo_to_color(flo):
     hsv = np.zeros((flo.shape[0], flo.shape[1], 3), dtype=np.uint8)
@@ -52,20 +64,6 @@ def flo_to_color(flo):
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     RGB_im = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     return RGB_im
-
-
-class AverageContainer:
-    def __init__(self):
-        self.meters = {}
-
-    def __getitem__(self, item):
-        if item not in self.meters:
-            self.meters[item] = AverageMeter()
-        return self.meters[item]
-
-    def reset(self):
-        self.meters = {}
-
 
 def save_loi_sample(name, img, cc, fe, results=[]):
     img.save('imgs/{}_orig.jpg'.format(name))
