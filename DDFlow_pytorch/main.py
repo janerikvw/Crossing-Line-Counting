@@ -10,7 +10,6 @@ import os
 import time
 import PIL
 import PIL.Image
-import sys
 import argparse
 from matplotlib import pyplot as plt
 import cv2

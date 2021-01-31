@@ -190,7 +190,7 @@ def select_regions_v2(dot1, dot2, d_width, d_height):
 
 class LOI_Calculator:
     def __init__(self, point1, point2, img_width, img_height, crop_processing=False,
-                 loi_version='v1', loi_width=20, loi_height=20, loi_regions=6):
+                 loi_version='v2', loi_width=20, loi_height=20, loi_regions=6):
         self.point1 = point1
         self.point2 = point2
         self.img_width = img_width
@@ -248,6 +248,7 @@ class LOI_Calculator:
             orig_width = self.cropped_frame[1] - self.cropped_frame[0]
 
         return orig_width, orig_height
+    
 
     def to_orig_size(self, frame, rescale_values=True):
         orig_width, orig_height = self.orig_sizes()
@@ -304,14 +305,12 @@ class LOI_Calculator:
                 min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]), \
                                              np.min(points[:, 1]), np.max(points[:, 1])
 
-                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
                 # Adjust the crop if we crop the prediction image as well
-                # if self.crop_processing is False:
-                #     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
-                # else:
-                #     adjust_x, _, adjust_y, _ = select_line_outer_points(self.regions, crop['crop'], crop['width'],
-                #                                                         crop['height'])
-                #     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x - adjust_x, max_x - adjust_x, min_y - adjust_y, max_y - adjust_y
+                if self.crop_processing is False:
+                    lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                else:
+                    adjust_x, _, adjust_y, _ = self.cropped_frame
+                    lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x - adjust_x, max_x - adjust_x, min_y - adjust_y, max_y - adjust_y
 
                 cropped_mask = mask[min_y:max_y, min_x:max_x]
 
@@ -371,7 +370,6 @@ class LOI_Calculator:
                 min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]), \
                                              np.min(points[:, 1]), np.max(points[:, 1])
 
-                # lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
                 # Adjust the crop if we crop the prediction image as well
                 if self.crop_processing is False:
                     lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
@@ -429,7 +427,12 @@ class LOI_Calculator:
                 min_x, max_x, min_y, max_y = np.min(points[:, 0]), np.max(points[:, 0]), \
                                              np.min(points[:, 1]), np.max(points[:, 1])
 
-                lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                # Adjust the crop if we crop the prediction image as well
+                if self.crop_processing is False:
+                    lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x, max_x, min_y, max_y
+                else:
+                    adjust_x, _, adjust_y, _ = self.cropped_frame
+                    lc_min_x, lc_max_x, lc_min_y, lc_max_y = min_x - adjust_x, max_x - adjust_x, min_y - adjust_y, max_y - adjust_y
                 
                 cropped_mask = mask[min_y:max_y, min_x:max_x]
 

@@ -8,6 +8,10 @@ from matplotlib import pyplot as plt
 from glob import glob
 import numpy as np
 import json
+from pathlib import Path
+import utils
+from PIL import Image, ImageDraw
+import sys
 
 import torch
 import torch.nn as nn
@@ -17,19 +21,9 @@ from torchvision.utils import save_image
 
 from dataset import SimpleDataset
 from models import P2Small, P21Small, P33Small, P43Small, P632Small, P72Small, Baseline21
-from PIL import Image, ImageDraw
 
-from pathlib import Path
-import utils
 import loi
 import density_filter
-
-# Add base path to import dir for importing datasets
-import os, sys, inspect
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
 
 from datasets import basic_entities, fudan, ucsdpeds, dam, aicity, tub
 import losses
@@ -67,10 +61,7 @@ parser.add_argument('--frames_between', metavar='SKIP_FRAMES', default=5, type=i
 parser.add_argument('--epochs', metavar='EPOCHS', default=500, type=int,
                     help='Epochs running')
 
-parser.add_argument('--student_model', metavar='STUDENT', default='off', type=str,
-                    help='Run the student model for optimal flow halfway')
-
-parser.add_argument('--model', metavar='MODEL', default='v332singleflow', type=str,
+parser.add_argument('--model', metavar='MODEL', default='p2small', type=str,
                     help='Which model gonna train')
 
 parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='off', type=str,
@@ -796,9 +787,6 @@ def loi_test(args):
                             img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
 
                             utils.save_loi_sample("{}_{}_{}".format(v_i, l_i, s_i), img, cc_output, fe_output)
-
-                    # if s_i == 5:
-                    #     exit()
 
 
                 pbar.close()
