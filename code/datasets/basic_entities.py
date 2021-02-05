@@ -18,6 +18,12 @@ def generate_frame_pairs(frames, distance, skip_inbetween=False):
         pairs.append(BasicFramePair(frame1, frame2, distance=distance))
     return pairs
 
+def n_split_pairs(frames, splits=3, distance=20, skip_inbetween=False):
+    ret = []
+    for s_split in np.array_split(frames, splits):
+        ret.append(generate_frame_pairs(s_split, distance, skip_inbetween))
+
+    return ret
 
 """
 BasicVideo is an object used to store individual video's with frames.

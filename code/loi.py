@@ -11,6 +11,10 @@ import torchvision.transforms.functional as F
 from PIL import Image, ImageDraw
 from scipy.ndimage import rotate
 
+##############################################
+#### FILE WITH EVERYTHING FOR LOI RELATED ####
+##############################################
+
 
 # Give a region and turn it in a mask to extract the region information
 def region_to_mask(region, rotate_angle, img_width, img_height):
@@ -55,6 +59,7 @@ def rotate_point(point, angle, center, to_int=True):
 
     return out
 
+## Select outer points of region used for optimized cropping
 def select_line_outer_points(regions, crop_distance, width, height):
     arr = np.asarray(np.array(regions)[:, :, :-1].flatten().tolist())
     min_x, max_x, min_y, max_y = np.min(arr[:, 0]), np.max(arr[:, 0]), \
@@ -353,6 +358,8 @@ class LOI_Calculator:
                 percentage_over = towards_avg / region[4]
 
                 sums[i].append(crowd_towards * percentage_over)
+
+        sums = (sums[1], sums[0])
         return sums
 
     def pixelwise_forward(self, counting_result, flow_result):
@@ -406,6 +413,7 @@ class LOI_Calculator:
 
                 sums[i].append(np.multiply(fe_part[towards_pixels], cc_part[towards_pixels]).sum() / region[4])
 
+        sums = (sums[1], sums[0])
         return sums
 
     def cross_pixelwise_forward(self, counting_result, flow_result):
@@ -467,4 +475,5 @@ class LOI_Calculator:
 
                 sums[i].append(cc_part[towards_pixels][crossing_pixels].sum())
 
+        sums = (sums[1], sums[0])
         return sums

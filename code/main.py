@@ -24,10 +24,13 @@ from models import P2Small, P21Small, P33Small, P43Small, P632Small, P72Small, B
 
 import loi
 import density_filter
+from maxing import get_max_surrounding
 
 from datasets import basic_entities, fudan, ucsdpeds, dam, aicity, tub
 import losses
 from model_csrnet import CSRNet
+
+import tqdm
 
 print("Model training")
 print("Input: {}".format(str(sys.argv)))
@@ -101,15 +104,6 @@ def save_sample(args, dir, info, density, true, img, flow):
     if flow is not None:
         plt.imsave('{}/{}/flow_{}.png'.format(dir, args.save_dir, info), flow)
 
-
-def n_split_pairs(frames, splits=3, distance=20, skip_inbetween=False):
-    ret = []
-    for s_split in np.array_split(frames, splits):
-        ret.append(basic_entities.generate_frame_pairs(s_split, distance, skip_inbetween))
-
-    return ret
-
-
 def load_train_dataset(args):
     splits = [[] for _ in range(args.train_split)]
     total_num = 0
@@ -118,7 +112,7 @@ def load_train_dataset(args):
         for video_path in glob('data/Fudan/train_data/*/'):
             video = fudan.load_video(video_path)
             total_num += len(video.get_frames())
-            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between, skip_inbetween=False)
+            splitted_frames = basic_entities.n_split_pairs(video.get_frames(), args.train_split, args.frames_between, skip_inbetween=False)
 
             # Possibly overfit slightly, because middle parts could almost overlap with outer parts, so shuffle to balance
             random.shuffle(splitted_frames)
@@ -130,7 +124,7 @@ def load_train_dataset(args):
         videos = videos[3:7] + videos[10:]
         for video in videos:
             total_num += len(video.get_frames())
-            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
+            splitted_frames = basic_entities.n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
                                             skip_inbetween=False)
 
             # Possibly overfit slightly, because middle parts could almost overlap with outer parts, so shuffle to balance
@@ -148,7 +142,7 @@ def load_train_dataset(args):
         train_videos, _ = aicity.split_train_test(aicity.load_all_videos('data/AICity'))
         for video in train_videos:
             total_num += len(video.get_frames())
-            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
+            splitted_frames = basic_entities.n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
                                             skip_inbetween=False)
 
             random.shuffle(splitted_frames)
@@ -159,7 +153,7 @@ def load_train_dataset(args):
         train_videos, _, train_videos2 = tub.train_val_test_split(tub.load_all_videos('data/TUBCrowdFlow'), 0.1, 0.1)
         for video in train_videos+train_videos2:
             total_num += len(video.get_frames())
-            splitted_frames = n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
+            splitted_frames = basic_entities.n_split_pairs(video.get_frames(), args.train_split, args.frames_between,
                                             skip_inbetween=False)
 
             random.shuffle(splitted_frames)
@@ -273,6 +267,7 @@ def train(args):
     print('Initializing model...')
     model = load_model(args)
 
+    # Get the loss function for the density map decoder
     if args.loss_function == 'L1':
         criterion = nn.L1Loss(reduction='sum').cuda()
     elif args.loss_function == 'L2':
@@ -281,10 +276,13 @@ def train(args):
         print("Error, no correct loss function")
         exit()
 
+
+    # Get the optimizer and step learner
     if args.optimizer == 'adam':
         if args.lr_setting == 'adam_2':
             optimizer = optim.Adam(model.parameters(), lr=2e-5, weight_decay=1e-4)
         elif args.lr_setting == 'adam_9':
+            # Used for final results
             ret_params = []
             for name, params in model.named_parameters():
                 if name.split('.')[0] == 'frontend_feat':
@@ -315,7 +313,6 @@ def train(args):
 
         loss_container = utils.AverageContainer()
         for i, batch in enumerate(train_loader):
-
             frames1, frames2, densities, densities2 = batch
             frames1 = frames1.cuda()
             frames2 = frames2.cuda()
@@ -325,18 +322,20 @@ def train(args):
             # Set grad to zero
             optimizer.zero_grad()
 
-            # Run model and optimize
+            # Run model and optimize (@TODO: Turn CSRNet in seperate model predicting both flow and density)
             if args.model == 'csrnet':
                 pred_densities = model(frames1)
                 flow_fw = None
                 flow_bw = None
             else:
+                # Rest of the models
                 flow_fw, flow_bw, pred_densities = model(frames1, frames2)
 
             # Resizing back to original sizes
             factor = (densities.shape[2] * densities.shape[3]) / (
                 pred_densities.shape[2] * pred_densities.shape[3])
 
+            # Check resize factor
             if epoch == 0 and i == 0:
                 print("Resize factor: {}".format(factor))
 
@@ -345,6 +344,7 @@ def train(args):
                                            mode=args.resize_mode, align_corners=False) / factor
 
             if args.loss_focus != 'cc':
+                # Creating loss for optical flow!
                 photo_losses = losses.create_photometric_losses(frames1, frames2, flow_fw, flow_bw)
                 fe_loss = photo_losses['abs_robust_mean']['no_occlusion']
 
@@ -352,13 +352,17 @@ def train(args):
                 loss_container['abs_occlusion'].update(photo_losses['abs_robust_mean']['occlusion'].item())
                 loss_container['census_no_occlusion'].update(photo_losses['census']['no_occlusion'].item())
                 loss_container['census_occlusion'].update(photo_losses['census']['occlusion'].item())
+                loss_container['fe_loss'].update(fe_loss.item())
 
             if args.loss_focus != 'fe':
                 if pred_densities.shape[1] == 2:
                     loss_densities = torch.cat([densities, densities2], 1)
                 else:
                     loss_densities = densities.repeat(1, pred_densities.shape[1], 1, 1)
+
+                # Just use this one
                 cc_loss = criterion(pred_densities, loss_densities)
+                loss_container['cc_loss'].update(cc_loss.item())
 
             if args.loss_focus == 'cc':
                 loss = cc_loss * args.cc_weight
@@ -367,16 +371,13 @@ def train(args):
             else:
                 loss = fe_loss + cc_loss * args.cc_weight
 
+            loss_container['total_loss'].update(loss.item())
+
+            # Update
             loss.backward()
             optimizer.step()
 
-            loss_container['total_loss'].update(loss.item())
-
-            if args.loss_focus != 'fe':
-                loss_container['cc_loss'].update(cc_loss.item())
-            if args.loss_focus != 'cc':
-                loss_container['fe_loss'].update(fe_loss.item())
-
+        # Skip first epoch for better smoothing and update weights
         if epoch > 0:
             writer.add_scalar('Train/Total_loss', loss_container['total_loss'].avg, epoch)
             writer.add_scalar('Train/FE_loss', loss_container['fe_loss'].avg, epoch)
@@ -387,6 +388,7 @@ def train(args):
             writer.add_scalar('FE_loss/census_no_occlusion', loss_container['census_no_occlusion'].avg, epoch)
             writer.add_scalar('FE_loss/census_occlusion', loss_container['census_occlusion'].avg, epoch)
 
+        # Run every x epochs a test run
         if epoch % args.test_epochs == args.test_epochs - 1:
             timer = utils.sTimer('Test run')
             avg, avg_sq, avg_loss = test_run(args, epoch, test_dataset, model)
@@ -471,39 +473,7 @@ def test_run(args, epoch, test_dataset, model, save=True):
 
     return avg, avg_sq, avg_loss
 
-
-#### Smooth the surroundings for Flow Estimation ####
-# Due to the use of 2D conv to do one sample at the time which is easy
-# Update could handle multiple frames at the time
-#
-# Surrounding: Pixels around each pixel to look for the max
-# only_under removes the search in top side of the pixel
-# Smaller_sides: When only_under the width search will be as wide as the height (surrounding+1)
-def get_max_surrounding(data, surrounding=1, only_under=True, smaller_sides=True):
-    kernel_size = surrounding * 2 + 1
-    out_channels = np.eye(kernel_size * kernel_size)
-
-    if only_under:
-        out_channels = out_channels[surrounding * kernel_size:]
-        if smaller_sides:
-            for i in range(math.floor(surrounding/2)):
-                out_channels[list(range(i, len(out_channels), kernel_size))] = False
-                out_channels[list(range(kernel_size - i - 1, len(out_channels), kernel_size))] = False
-
-    w = out_channels.reshape((out_channels.shape[0], 1, kernel_size, kernel_size))
-    w = torch.tensor(w, dtype=torch.float).cuda()
-
-    data = data.transpose(0, 1).cuda()
-    patches = torch.nn.functional.conv2d(data, w, padding=(surrounding, surrounding))[:, :, :data.shape[2], :data.shape[3]]
-
-    speed = torch.sqrt(torch.sum(torch.pow(patches, 2), axis=0))
-    max_speeds = torch.argmax(speed, axis=0)
-    gather_speeds = max_speeds.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
-    output = torch.gather(patches, 1, gather_speeds)
-    output = output.transpose(0, 1)
-
-    return output
-
+# Run LOI test
 def loi_test(args):
     metrics = utils.AverageContainer()
 
@@ -514,6 +484,8 @@ def loi_test(args):
         args.pre = 'weights/{}/last_model.pt'.format(args.save_dir)
     model = load_model(args)
     model.eval()
+
+    # Get a pretrained fixed model for the flow prediction
     if args.loss_focus == 'cc':
         fe_model = P21Small(load_pretrained=True).cuda()
         if args.dataset == 'fudan':
@@ -574,32 +546,26 @@ def loi_test(args):
             else:
                 loi_width = args.loi_width
 
-            if args.loi_level == 'moving_counting':
-                lines = video.get_lines()[0:1]
-            elif args.loi_level == 'take_image' or args.eval_method == 'roi':
+            # Sometimes a single line is required for all the information
+            if args.loi_level == 'moving_counting' or args.loi_level == 'take_image' or args.eval_method == 'roi' or len(video.get_lines()) == 0:
                 line = basic_entities.BasicLineSample(video, (0,0), (100,150))
                 line.set_crossed(1,1)
                 lines = [line]
                 real_line = False
             else:
-                if len(video.get_lines()) == 0:
-                    line = basic_entities.BasicLineSample(video, (0,0), (100,150))
-                    line.set_crossed(1,1)
-                    lines = [line]
-                    real_line = False
-                else:
-                    lines = video.get_lines()
-                    real_line = True
+                lines = video.get_lines()
+                real_line = True
 
             for l_i, line in enumerate(lines):
+                # Circumvent some bugs. When no pedestrians at all are present in the frame. Skip
                 if line.get_crossed()[0] + line.get_crossed()[1] == 0:
                     continue
 
+                # Setup LOI
                 image = video.get_frame(0).get_image()
                 width, height = image.size
                 image.close()
                 point1, point2 = line.get_line()
-
                 loi_model = loi.LOI_Calculator(point1, point2,
                                                img_width=width, img_height=height,
                                                crop_processing=True,
@@ -608,30 +574,28 @@ def loi_test(args):
 
                 if args.loi_level != 'take_image':
                     loi_model.create_regions()
-
-                total_d1 = 0
-                total_d2 = 0
-                totals = [total_d1, total_d2]
-                crosses = line.get_crossed()
-
-                per_frame = [[], []]
-
-                pbar = tqdm(total=len(video.get_frame_pairs()))
-
-                metrics['timing'].reset()
+                else:
+                    # Index of capture in the video
+                    capt = 0
 
                 if args.dataset == 'aicity':
                     roi = aicity.create_roi(video)
 
-                v = 0
-                capt = 0
-                for s_i, batch in enumerate(dataloader):
 
+                per_frame = [[], []]
+                crosses = line.get_crossed()
+
+                pbar = tqdm(total=len(video.get_frame_pairs()))
+
+                metrics['timing'].reset()
+                
+                for s_i, batch in enumerate(dataloader):
+                    
+                    # Take 6 screens per video
                     if args.loi_level == 'take_image':
-                        v = v + 1
                         n_screens = len(video.get_frame_pairs())
                         every_screen = math.ceil(n_screens / 6)
-                        if (v%every_screen) != 0:
+                        if ((s_i+1)%every_screen) != 0:
                             continue
 
                     torch.cuda.empty_cache()
@@ -644,7 +608,6 @@ def loi_test(args):
                     frames2 = loi_model.reshape_image(frames2.cuda())
 
                     # Expand for CC only (CSRNet to optimize for real world applications)
-                    # @TODO optimize for speed to show result
                     if args.loss_focus == 'cc':
                         if args.model == 'csrnet':
                             cc_output = model(frames1)
@@ -655,6 +618,7 @@ def loi_test(args):
                     else:
                         fe_output, _, cc_output = model.forward(frames1, frames2)
 
+                    # Apply maxing!!!
                     if args.loi_maxing == 1:
                         if args.dataset == 'fudan':
                             fe_output = get_max_surrounding(fe_output, surrounding=6, only_under=True,
@@ -687,8 +651,9 @@ def loi_test(args):
                     fe_output = fe_output.squeeze().permute(1, 2, 0)
                     fe_output = fe_output.detach().cpu().data.numpy()
 
+                    # If in take_image mode we only quickly take a picture of the results!!!
+                    # Move to utilities
                     if args.loi_level == 'take_image':
-                        
                         dir1 = 'full_imgs/{}/{}-{}/'.format(args.dataset, v_i, capt)
                         capt = capt + 1
                         back = '{}_m{}_{}_{}'.format(args.model, args.loi_maxing, args.frames_between, datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -722,10 +687,10 @@ def loi_test(args):
                         blended.save('{}blend_{}.jpg'.format(dir1, back))
                         continue
 
+                    # Apply ROI's before calculating LOI
                     if args.dataset == 'aicity':
                         cc_output = np.multiply(roi, cc_output)
                         densities = np.multiply(roi, densities)
-
 
                     # Extract LOI results
                     if args.loi_level == 'pixel':
@@ -740,48 +705,45 @@ def loi_test(args):
                             minimum_move = 3
                         elif args.dataset == 'aicity':
                             minimum_move = 6
+                        else:
+                            print('This dataset doesnt work with moving counting')
+                            exit()
 
                         minimum_fe = np.linalg.norm(fe_output, axis=2) > minimum_move
                         moving_density = np.multiply(minimum_fe, cc_output)
 
                         metrics['m_mae'].update(abs(moving_density.sum() - len(frame_pair.get_frames(0).get_centers(only_moving=True))))
-                        metrics['m_mse'].update(
-                            math.pow(moving_density.sum() - len(frame_pair.get_frames(0).get_centers(only_moving=True)), 2))
+                        metrics['m_mse'].update(math.pow(moving_density.sum() - len(frame_pair.get_frames(0).get_centers(only_moving=True)), 2))
                     else:
                         print('Incorrect LOI level')
                         exit()
                     
+                    # Keep the time and save it
                     if s_i > 0:
                         metrics['timing'].update(timer.show(False))
 
+                    # ROI information should be saved once per video
                     if l_i == 0:
-                        metrics['mae'].update(abs((cc_output.sum() - densities.sum()).item()))
-                        metrics['mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
+                        # Based on densities, but due errors these can be of
+                        metrics['old_roi_mae'].update(abs((cc_output.sum() - densities.sum()).item()))
+                        metrics['old_roi_mse'].update(torch.pow(cc_output.sum() - densities.sum(), 2).item())
 
+                        # Comparing with the real numbers is better for real world applications, but often worse performance
                         metrics['real_roi_mae'].update(abs(cc_output.sum().item() - len(frame_pair.get_frames(0).get_centers())))
                         metrics['real_roi_mse'].update(math.pow(cc_output.sum().item() - len(frame_pair.get_frames(0).get_centers()), 2))
 
-                    # Get 2 frame results and sum
-                    # @TODO: Here is switch between sides. Correct this!!!!!!
-                    total_d1 += sum(loi_results[1])
-                    total_d2 += sum(loi_results[0])
-
-
-                    ucsd_total_count[0].append(sum(loi_results[1]))
-                    ucsd_total_count[1].append(sum(loi_results[0]))
-
-                    totals = [total_d1, total_d2]
-
-                    # Save every frame
-                    per_frame[0].append(sum(loi_results[1]))
-                    per_frame[1].append(sum(loi_results[0]))
+                    # @TODO: Fix this to get all totals work like this
+                    ucsd_total_count[0].append(sum(loi_results[0]))
+                    ucsd_total_count[1].append(sum(loi_results[1]))
+                    per_frame[0].append(sum(loi_results[0]))
+                    per_frame[1].append(sum(loi_results[1]))
 
                     # Update GUI
-                    pbar.set_description('{} ({}), {} ({})'.format(totals[0], crosses[0], totals[1], crosses[1]))
+                    pbar.set_description('{} ({}), {} ({})'.format(sum(per_frame[0]), crosses[0], sum(per_frame[1]), crosses[1]))
                     pbar.update(1)
 
 
-
+                    # Another video saver, which one to use and which not??
                     if v_i == 0 and l_i == 0:
                         if s_i < 10:
                             img = Image.open(video.get_frame_pairs()[s_i].get_frames(0).get_image_path())
@@ -795,30 +757,32 @@ def loi_test(args):
                 if not real_line:
                     break
 
-                if args.loi_level == 'take_image':
-                    break
-
-                # Fixes error in UCSD mix
+                # Last frame is skipped, because we can't predict the one, so fix
+                # @TODO fix the UCSD dataset and merge afterwards
                 ucsd_total_count[0].append(0.0)
                 ucsd_total_count[1].append(0.0)
+                per_frame[0].append(0.0)
+                per_frame[1].append(0.0)
 
                 print("Timing {}".format(metrics['timing'].avg))
 
+                # truth and predicted for evaluating all metrics
                 t_left, t_right = crosses
-                p_left, p_right = totals
+                p_left, p_right = (sum(per_frame[0]), sum(per_frame[1]))
+
                 mae = abs(t_left - p_left) + abs(t_right - p_right)
                 metrics['loi_mae'].update(mae)
+
                 mse = math.pow(t_left - p_left, 2) + math.pow(t_right - p_right, 2)
                 metrics['loi_mse'].update(mse)
-                total_mae = abs(t_left + t_right - (p_left + p_right))
-                total_mse = math.pow(t_left + t_right - (p_left + p_right), 2)
+
                 percentual_total_mae = (p_left + p_right) / (t_left + t_right)
-                relative_mae = mae / (t_left + t_right)
                 metrics['loi_ptmae'].update(percentual_total_mae)
-                metrics['loi_rmae'].update(relative_mae)
-                print("LOI performance (MAE: {}, MSE: {}, TMAE: {}, TMSE: {}, PTMAE: {})".format(mae, mse, total_mae,
-                                                                                                 total_mse,
-                                                                                                 percentual_total_mae))
+
+                relative_mae = mae / (t_left + t_right)
+                metrics['loi_mape'].update(relative_mae)
+
+                print("LOI performance (MAE: {}, RMSE: {}, MAPE: {})".format(mae, math.sqrt(mse), relative_mae))
 
 
                 results.append({
@@ -830,8 +794,8 @@ def loi_test(args):
                     'rmae': relative_mae
                 })
 
+                # @TODO Do this in general!! Not only for Dam, because these results are interesting to compare
                 if args.dataset == 'dam':
-
                     results = {'per_frame': per_frame}
 
                     with open('dam_results_{}_{}.json'.format(v_i, l_i), 'w') as outfile:
@@ -840,6 +804,7 @@ def loi_test(args):
         if args.loi_level == 'take_image':
             return
 
+        # @TODO Move this to utils!!
         if args.dataset == 'ucsd':
             ucsd_total_gt = ucsdpeds.load_countings('data/ucsdpeds')
             ucsd_total_count2 = ucsd_total_count
@@ -879,25 +844,34 @@ def loi_test(args):
             print("IMAE: {} | {}".format(sum(imae[0]) / len(imae[0]), sum(imae[1]) / len(imae[1])))
             print("TMAE: {} | {}".format(sum(tmae[0]) / len(tmae[0]), sum(tmae[1]) / len(tmae[1])))
             print("WMAE: {} | {}".format(sum(wmae[0]) / len(wmae[0]), sum(wmae[1]) / len(wmae[1])))
-
-        print("MAE: {}, MSE: {}, PTMAE: {}".format(metrics['loi_mae'].avg,
-                                                   metrics['loi_mse'].avg,
-                                                   metrics['loi_ptmae'].avg))
-
-        results = {'loi_mae': metrics['loi_mae'].avg, 'loi_mse': metrics['loi_mse'].avg, 'loi_rmae': metrics['loi_rmae'].avg,
-                    'loi_ptmae': metrics['loi_ptmae'].avg, 'roi_mae': metrics['mae'].avg, 'roi_mse': metrics['mse'].avg,
-                    'roi2_mae': metrics['real_roi_mae'].avg, 'roi2_mse': metrics['real_roi_mse'].avg,
-                    'timing': metrics['timing'].avg
-               }  # ROI (First Line is LOI)
-
-        if args.loi_level == 'moving_counting':
-            results['m_mae'] = metrics['m_mae'].avg
-            results['m_mse'] = metrics['m_mse'].avg
+        # END of UCSD special testing
 
 
-        outname = 'new3_{}_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.eval_method, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
+        # Save all results. Some won't work per time, but are then often 0.
+        # @TODO add in README which results are when valid
+        results = {
+            'loi_mae': metrics['loi_mae'].avg,
+            'loi_mse': metrics['loi_mse'].avg,
+            'loi_rmae': metrics['loi_rmae'].avg,
+            'loi_ptmae': metrics['loi_ptmae'].avg,
+            'loi_mape': metrics['loi_mape'].avg,
+            'old_roi_mae': metrics['old_roi_mae'].avg,
+            'old_roi_mse': metrics['old_roi_mse'].avg,
+            'real_roi_mae': metrics['real_roi_mae'].avg,
+            'real_roi_mse': metrics['real_roi_mse'].avg,
+            'moving_mae': metrics['m_mae'].avg,
+            'moving_mse': metrics['m_mse'].avg,
+            'timing': metrics['timing'].avg,
+            'per_vid': results
+        }
+        outname = 'new_{}_{}_{}_{}_{}_{}'.format(args.dataset, args.model, args.eval_method, args.loi_level, args.loi_maxing, datetime.now().strftime("%Y%m%d_%H%M%S"))
         with open('loi_results/{}.json'.format(outname), 'w') as outfile:
             json.dump(results, outfile)
+
+        # Print simple results
+        print("MAE: {}, MSE: {}, MAPE: {}".format(metrics['loi_mae'].avg,
+                                                   metrics['loi_mse'].avg,
+                                                   metrics['loi_mape'].avg))
 
         return results
 
