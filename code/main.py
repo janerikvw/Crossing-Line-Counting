@@ -55,7 +55,7 @@ parser.add_argument('--density_model', metavar='DENSITY', default='fixed-8', typ
 parser.add_argument('--loss_focus', metavar='LOSS_FOCUS', default='full', type=str,
                     help='Which loss to use (full, fe, cc)')
 
-parser.add_argument('--cc_weight', metavar='CC_WEIGHT', default=5, type=float,
+parser.add_argument('--cc_weight', metavar='CC_WEIGHT', default=50, type=float,
                     help='Weight of cc in comparing to fe for full loss')
 
 parser.add_argument('--frames_between', metavar='SKIP_FRAMES', default=5, type=int,
@@ -64,7 +64,7 @@ parser.add_argument('--frames_between', metavar='SKIP_FRAMES', default=5, type=i
 parser.add_argument('--epochs', metavar='EPOCHS', default=500, type=int,
                     help='Epochs running')
 
-parser.add_argument('--model', metavar='MODEL', default='p2small', type=str,
+parser.add_argument('--model', metavar='MODEL', default='p21small', type=str,
                     help='Which model gonna train')
 
 parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='off', type=str,
@@ -73,14 +73,14 @@ parser.add_argument('--resize_patch', metavar='RESIZE_PATCH', default='off', typ
 parser.add_argument('--resize_mode', metavar='RESIZE_MODE', default='bilinear', type=str,
                     help='Resizing patch so zoom/not zoom')
 
-parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_2', type=str,
+parser.add_argument('--lr_setting', metavar='LR_SETTING', default='adam_9', type=str,
                     help='Give a specific learning rate setting')
 
 parser.add_argument('--loi_maxing', metavar='LOI_REALIGNING', default=0, type=int,
                     help='Using maxing for LOI or not')
 
 parser.add_argument('--loi_version', metavar='LOI_VERSION', default='v2', type=str,
-                    help='Versio which is used to select lines')
+                    help='Version which is used to select lines')
 
 parser.add_argument('--loi_width', metavar='LOI_WIDTH', default=40, type=int,
                     help='Width of the LOI')
