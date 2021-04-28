@@ -107,8 +107,24 @@ env.bak/
 venv.bak/
 
 
-code/data/*
+data/*
 
 
 notebook.sh
 eagle.sh
+
+*.pyc
+results/
+weights/
+results/
+summaries/
+finals/
+imgs/
+loi_results/
+
+full_imgs/
+
+thesis-loi-288313-328c2d373141.json
+
+network-chairs-things.pytorch
+notebook.sh

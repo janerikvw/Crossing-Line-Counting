@@ -1,5 +1,5 @@
-# Thesis
- MSc thesis Crowd Counting and Crowd Flow
+# Crossing-Line Counting with Deep Spatial-Temporal Feature Learning
+ In this repository [the results (final-version-thesis.pdf)](final-version-thesis.pdf) and code are published regarding the master thesis of Jan Erik van Woerden for the Master Artificial Intelligence at the University of Amsterdam.
 
 
 # How to run the code
