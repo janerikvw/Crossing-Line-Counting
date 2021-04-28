@@ -3,7 +3,7 @@
 
 
 # How to run the code
-All the training and testing code (Main loop) is in code/main.py. In the rest of the files there are utilities and other core modules with corresponding names. In code/datasets the files for loading the datasets are present and in code/data the different datasets need to be stored. The code/gd_runner is bash script which makes it possible to run multiple trainingruns from parameters stored in a Google Drive Spreadsheet.
+All the training and testing code (Main loop) is in main.py. In the rest of the files there are utilities and other core modules with corresponding names. In /datasets the files for loading the datasets are present and in /data the different datasets need to be stored. The /gd_runner is bash script which makes it possible to run multiple trainingruns from parameters stored in a Google Drive Spreadsheet.
 
 Below there are several demo's and explainations for running code:
 
@@ -20,7 +20,7 @@ python main.py unique_name_of_results_saving --mode train --model p21small --dat
 - `--density_model` Is the size of the density Guassian, it is `fixed-{size}`, with an arbitrary integer for `{size}`.
 
 ## Testing a simple model:
-A simple example of evaluating for LOI performance. The results are saved at the end in `code/loi_results`.
+A simple example of evaluating for LOI performance. The results are saved at the end in `/loi_results`.
 
 Use only the LOI results, because the ROI results can be corrupted due to the use of multiple lines for a single example. Additionally for the LOI, we skip the evaluation for the inbetween frames (Of `--frames_between`), so not all the ROI performances are measured.
 ```
@@ -45,7 +45,7 @@ python main.py unique_name_of_results_saving --mode loi --model p21small --datas
 ```
 
 ### Take several images from trained model:
-To take images and store in `code/full_imgs` for presentations replace `--loi_level take_image`. Only 6 per sample videos are stored. When performing on multiple models, all results are grouped per video, so easily comparison between the models on the same sample.
+To take images and store in `/full_imgs` for presentations replace `--loi_level take_image`. Only 6 per sample videos are stored. When performing on multiple models, all results are grouped per video, so easily comparison between the models on the same sample.
 ```
 python main.py trained_data_model --mode loi --model p21small --dataset fudan --frames_between 1 --loi_level take_image --loi_maxing 0
 ```
